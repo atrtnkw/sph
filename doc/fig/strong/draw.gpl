@@ -1,0 +1,108 @@
+set lmargin 7
+set rmargin 2
+set tmargin 2
+set bmargin 3
+
+unset key
+
+set size ratio 1
+set size 0.5
+
+set term po co eps enhanced font "TimesNewRoman"
+set output "tmp.eps"
+
+set multiplot
+dx=0.26
+dy=0.37
+
+set grid
+
+black="#000000"
+col00="#0000ff"        
+col01="#0080ff"
+col02="#00ffff"
+col03="#00ff80"
+col04="#00ff00"
+col05="#80ff00"
+col06="#ffff00"
+col07="#ff8000"
+col08="#ff0000"
+
+#============================================
+#============================================
+
+set origin dx*0, dy*1
+
+set xrange [-0.45:0.45]
+set xtic -0.6, 0.2, 0.6
+set mxtic 4
+set format x ""
+
+set yrange [0:7]
+set ytic -10, 1, 10
+set mytic 4
+set ylabel "{/Symbol r}"
+
+pl \
+"sph_t0007.dat" u 3:15 pt 6 ps 0.5
+
+#============================================
+
+set origin dx*1, dy*1
+
+set yrange [0:1200]
+set ytic 0, 400, 1200
+set mytic 4
+set format y ""
+set ylabel ""
+
+set y2range [0:1200]
+set y2tic 0, 400, 1200
+set my2tic 4
+set format y2 "%g"
+set y2label "P"
+
+pl \
+"sph_t0007.dat" u 3:17 pt 6 ps 0.5
+
+#============================================
+#============================================
+
+set origin dx*0, dy*0
+
+set format x "%g"
+set xlabel "x"
+
+set yrange [-4:25]
+set ytic -20, 4, 28
+set mytic 4
+set format y "%g"
+set ylabel "v_x"
+
+set y2range [-4:25]
+set y2tic -20, 8, 28
+set my2tic 4
+set format y2 ""
+set y2label ""
+
+pl \
+"sph_t0007.dat" u 3:6 pt 6 ps 0.5
+
+#============================================
+
+set origin dx*1, dy*0
+
+set yrange [0:2700]
+set ytic 0, 400, 2800
+set mytic 4
+set format y ""
+set ylabel ""
+
+set y2range [0:2700]
+set y2tic 0, 400, 2800
+set my2tic 4
+set format y2 "%g"
+set y2label "u"
+
+pl \
+"sph_t0007.dat" u 3:12 pt 6 ps 0.5
