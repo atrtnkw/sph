@@ -195,8 +195,9 @@ each particle as follows:
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \item Calculate the next timestep:
   \begin{align}
-    \Delta t = C \min_i \left( \frac{2H_i}{\max_j v_{ij}^{\rm sig}}
-    \right),
+    \Delta t = C \min_i \left[ \min \left( \frac{2H_i}{\max_j \left(
+        v_{ij}^{\rm sig} \right) }, \frac{u_i}{|\dot{u}_i|} \right)
+      \right],
   \end{align}
   where $C=0.15$.
 

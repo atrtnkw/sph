@@ -21,8 +21,8 @@ CLIBS += -L${PHANTOM_DIR} -lpg5
 
 ###### AT_FLAGS ######
 #CFLAGS += -DUSE_AT1D
-CFLAGS += -DUSE_AT2D
-#CFLAGS += -DGRAVITY
+#CFLAGS += -DUSE_AT2D
+CFLAGS += -DGRAVITY
 ######################
 
 OBJ = main.o
@@ -38,7 +38,9 @@ main.o: main.cpp $(HDR) $(ETC)
 
 clean:
 	rm -f *~
-	rm -f snap/*
+#	rm -f snap/*
+	rm -f test.o*
+	rm -f core
 distclean:
 	make clean
 	rm -f *.o

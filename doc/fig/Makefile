@@ -3,6 +3,7 @@ all:
 	make -C strong
 	make -C kh
 	make -C pex
+	make -C evrard
 
 clean:
 	rm -f *~
@@ -13,3 +14,4 @@ distclean:
 	make -C strong clean
 	make -C kh
 	make -C pex clean
+	make -C evrard clean

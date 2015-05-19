@@ -106,6 +106,7 @@ public:
     PS::F64    grdh;
     PS::F64    vsmx;
     PS::F64    pot;
+    PS::F64vec accg;
     static PS::F64ort cbox;
     static PS::F64    cinv;
     static PS::F64    ksrh;
@@ -138,8 +139,9 @@ public:
     }
 
     void copyFromForce(const Gravity & gravity) {
-        this->acc += gravity.acc;
-        this->pot  = gravity.pot;
+        this->acc  += gravity.acc;
+        this->pot   = gravity.pot + this->mass / this->eps;
+        this->accg  = gravity.acc;
     }
 
     void readAscii(FILE *fp) {
@@ -151,15 +153,16 @@ public:
     }
 
     void writeAscii(FILE *fp) const {
-        fprintf(fp, "%6d %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %6d\n",
-                this->id, this->mass,
-                this->pos[0], this->pos[1], this->pos[2],
-                this->vel[0], this->vel[1], this->vel[2],
-                this->acc[0], this->acc[1], this->acc[2],
-                this->uene,   this->alph,   this->ksr,
-                this->dens,   this->vsnd,   this->pres,
-                this->divv,   this->rotv,   this->bswt,
-                this->grdh,   this->np);
+        fprintf(fp, "%6d %+e", this->id, this->mass);
+        fprintf(fp, " %+e %+e %+e", this->pos[0], this->pos[1], this->pos[2]);
+        fprintf(fp, " %+e %+e %+e", this->vel[0], this->vel[1], this->vel[2]);
+        fprintf(fp, " %+e %+e %+e", this->acc[0], this->acc[1], this->acc[2]);
+        fprintf(fp, " %+e %+e %+e", this->uene, this->alph, this->ksr);
+        fprintf(fp, " %+e %+e %+e", this->dens, this->vsnd, this->pres);
+        fprintf(fp, " %+e %+e %+e", this->divv, this->rotv, this->bswt);
+        fprintf(fp, " %+e %6d %+e", this->grdh, this->np, this->pot);
+        fprintf(fp, " %+e %+e %+e", this->accg[0], this->accg[1], this->accg[2]);
+        fprintf(fp, "\n");
     }
 
     void referEquationOfState() {
@@ -181,11 +184,21 @@ public:
     PS::F64 calcTimeStep() {
         return tceff * 2. * this->ksr / this->vsmx;
     }
+    /*
+    PS::F64 calcTimeStep() {
+        PS::F64 dthydro  = tceff * 2. * this->ksr / this->vsmx;
+        PS::F64 dtenergy = tceff * this->uene / fabs(this->udot);
+        return ((dthydro < dtenergy) ? dthydro : dtenergy);
+    }
+    */
 
     PS::F64 calcEnergy() {
 #ifdef GRAVITY
+        /*
         return this->mass * (0.5 * this->vel * this->vel + this->uene
                              + 0.5 * (this->pot + this->mass / this->eps));
+        */
+        return this->mass * (0.5 * this->vel * this->vel + this->uene + 0.5 * this->pot);
 #else
         return this->mass * (0.5 * this->vel * this->vel + this->uene);
 #endif

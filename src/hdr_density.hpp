@@ -94,7 +94,10 @@ struct calcDensity {
                     nj_i   += (q_i < 1.d) ? 1 : 0;
                 }
                 density[i].dens = rh_i;
+                /*
                 density[i].grdh = 1.d / (1.d + h_i * gh_i / (KernelSph::dim * rh_i));
+                */
+                density[i].grdh = 1.d;
                 density[i].np   = nj_i;
 
                 h_i = SPH::eta * SPH::ksrh * SPH::calcPowerOfDimInverse(epi[i].mass, rh_i);
