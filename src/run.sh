@@ -6,8 +6,8 @@
 NPARALLEL=48
 NPROCESS=48
 tempodir=snap
-odir=evrard
-ifile=init/evrard.init
+odir=kh
+ifile=init/kh.init
 fexe=run
 
 cd $PBS_O_WORKDIR

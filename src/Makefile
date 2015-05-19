@@ -21,8 +21,8 @@ CLIBS += -L${PHANTOM_DIR} -lpg5
 
 ###### AT_FLAGS ######
 #CFLAGS += -DUSE_AT1D
-#CFLAGS += -DUSE_AT2D
-CFLAGS += -DGRAVITY
+CFLAGS += -DUSE_AT2D
+#CFLAGS += -DGRAVITY
 ######################
 
 OBJ = main.o

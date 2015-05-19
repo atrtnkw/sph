@@ -175,10 +175,13 @@ public:
     }
 
     void calcAlphaDot() {
+        /*
         PS::F64 src;
         src = - divv * (alphamax - this->alph);
         src = (src > 0.) ? src : 0.;
         this->adot = - (this->alph - alphamin) * (0.1 * this->vsnd) / this->ksr + src;
+        */
+        this->adot = 0.0;
     }
 
     PS::F64 calcTimeStep() {
@@ -240,13 +243,15 @@ PS::F64    SPH::calcPowerOfDimInverse(PS::F64 mass,
 }
 #else
 #ifdef USE_AT2D
-PS::F64    SPH::ksrh = 1.897367d;
+//PS::F64    SPH::ksrh = 1.897367d;
+PS::F64    SPH::ksrh = 2.8;
 PS::F64    SPH::calcPowerOfDimInverse(PS::F64 mass,
                                       PS::F64 dens) {
     return sqrt(mass / dens);
 }
 #else
-PS::F64    SPH::ksrh = 1.936492d;
+//PS::F64    SPH::ksrh = 1.936492d;
+PS::F64    SPH::ksrh = 3.0d;
 PS::F64    SPH::calcPowerOfDimInverse(PS::F64 mass,
                                       PS::F64 dens) {
     return pow(mass / dens, 1.d / 3.d);
