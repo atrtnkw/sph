@@ -23,11 +23,12 @@ CLIBS += -L${PHANTOM_DIR} -lpg5
 #CFLAGS += -DUSE_AT1D
 CFLAGS += -DUSE_AT2D
 #CFLAGS += -DGRAVITY
+CFLAGS += -DDAMPING
 ######################
 
 OBJ = main.o
 HDR = hdr_sph.hpp hdr_kernel.hpp hdr_density.hpp hdr_hydro.hpp \
-	hdr_gravity.hpp
+	hdr_gravity.hpp hdr_damp.hpp
 ETC = Makefile
 
 run: $(OBJ) $(HDR) $(ETC)

@@ -12,10 +12,7 @@
 #include "gp5util.h"
 #include "hdr_gravity.hpp"
 
-//#define DEBUG_NAN
-#ifdef DEBUG_NAN
-static bool global_flag = false;
-#endif
+#include "hdr_damp.hpp"
 
 static PS::S32 nptclmax = 65536;
 
@@ -140,14 +137,6 @@ int main(int argc, char **argv)
             dinfo.decomposeDomainAll(sph);
         }
 
-#ifdef DEBUG_NAN
-        ////////////////////////////////
-        if(time > 1.2255) {
-            global_flag = true;
-        }
-        ////////////////////////////////
-#endif
-
         sph.exchangeParticle(dinfo);
         calcSPHKernel(dinfo, sph, density, derivative,
                       calcDensity(), calcDerivative());
@@ -159,19 +148,14 @@ int main(int argc, char **argv)
                                          dinfo);
 #endif
 
-#ifdef DEBUG_NAN
-        //////////////////////////////////////////////////////////////////
-        if(global_flag){
-            char filename[64];
-            sprintf(filename, "snap/error_dump_%.10f.dat", time);
-            sph.writeParticleAscii(filename);                
-            PS::Finalize();
-            exit(0);
-        }
-    //////////////////////////////////////////////////////////////////
-#endif
-
         correct(sph, dtime);
+
+#ifdef DAMPING
+        DampVelocity::dampVelocity(sph, dtime);
+        if(DampVelocity::stopDamping(sph)) {
+            break;
+        }
+#endif
 
         time += dtime;
         dtime = calcTimeStep(sph, time, dtime);

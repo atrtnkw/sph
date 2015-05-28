@@ -1,3 +1,5 @@
+#pragma once
+
 class DensityEPI {
 public:
     PS::S32    id;

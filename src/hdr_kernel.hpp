@@ -1,3 +1,5 @@
+#pragma once
+
 namespace KernelSph {
 
 #ifdef USE_AT1D

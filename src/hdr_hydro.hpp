@@ -1,3 +1,5 @@
+#pragma once
+
 class DerivativeEPI {
 public:
     PS::S32    id;

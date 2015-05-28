@@ -197,10 +197,6 @@ public:
 
     PS::F64 calcEnergy() {
 #ifdef GRAVITY
-        /*
-        return this->mass * (0.5 * this->vel * this->vel + this->uene
-                             + 0.5 * (this->pot + this->mass / this->eps));
-        */
         return this->mass * (0.5 * this->vel * this->vel + this->uene + 0.5 * this->pot);
 #else
         return this->mass * (0.5 * this->vel * this->vel + this->uene);
@@ -210,6 +206,17 @@ public:
     static inline PS::F64 calcPowerOfDimInverse(PS::F64 mass,
                                                 PS::F64 dens);
 
+#ifdef DAMPING
+    void predict(PS::F64 dt) {
+        this->pos   = this->pos  +       this->vel  * dt  + 0.5 * this->acc * dt * dt;
+        this->vel2  = this->vel  + 0.5 * this->acc  * dt;
+        this->vel   = this->vel  +       this->acc  * dt;
+    }
+
+    void correct(PS::F64 dt) {
+        this->vel   = this->vel2  + 0.5 * this->acc  * dt;
+    }
+#else
     void predict(PS::F64 dt) {
         this->pos   = this->pos  +       this->vel  * dt  + 0.5 * this->acc * dt * dt;
         this->vel2  = this->vel  + 0.5 * this->acc  * dt;
@@ -224,6 +231,11 @@ public:
         this->vel   = this->vel2  + 0.5 * this->acc  * dt;
         this->uene  = this->uene2 + 0.5 * this->udot * dt;
         this->alph  = this->alph2 + 0.5 * this->adot * dt;
+    }
+#endif
+
+    void dampVelocity(PS::F64 dt) {
+        this->vel *= exp(- 0.1 * this->vsnd / this->ksr * dt);
     }
 
 };
@@ -243,15 +255,15 @@ PS::F64    SPH::calcPowerOfDimInverse(PS::F64 mass,
 }
 #else
 #ifdef USE_AT2D
-//PS::F64    SPH::ksrh = 1.897367d;
-PS::F64    SPH::ksrh = 2.8;
+PS::F64    SPH::ksrh = 1.897367d;
+//PS::F64    SPH::ksrh = 2.8;
 PS::F64    SPH::calcPowerOfDimInverse(PS::F64 mass,
                                       PS::F64 dens) {
     return sqrt(mass / dens);
 }
 #else
-//PS::F64    SPH::ksrh = 1.936492d;
-PS::F64    SPH::ksrh = 3.0d;
+PS::F64    SPH::ksrh = 1.936492d;
+//PS::F64    SPH::ksrh = 3.0d;
 PS::F64    SPH::calcPowerOfDimInverse(PS::F64 mass,
                                       PS::F64 dens) {
     return pow(mass / dens, 1.d / 3.d);
