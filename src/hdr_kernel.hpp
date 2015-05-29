@@ -1,6 +1,6 @@
 #pragma once
 
-namespace KernelSph {
+namespace WendlandC2 {
 
 #ifdef USE_AT1D
 
@@ -8,11 +8,11 @@ namespace KernelSph {
     const  PS::F64 ksrh  = 1.620185d;
     const  PS::F64 ceff0 = +1.25d;
     const  PS::F64 ceff1 = +3.75d;
-    inline PS::F64 kernelWendlandC2(const PS::F64 r) {
+    inline PS::F64 kernel0th(const PS::F64 r) {
         PS::F64 rmin  = (r < 1.d) ? (1.d - r) : 0.;
         return ceff0 * rmin * rmin * rmin * (1.d + 3.d * r);
     }
-    inline PS::F64 kernelWendlandC2First(const PS::F64 r) {
+    inline PS::F64 kernel1st(const PS::F64 r) {
         PS::F64 rmin  = (r < 1.) ? (1. - r) : 0.;
         PS::F64 rmin2 = rmin  * rmin;
         PS::F64 rmin3 = rmin  * rmin2;
@@ -59,12 +59,12 @@ namespace KernelSph {
     const  PS::F64 ceff1 = +1.336901521971920914e+01d;
 #endif
     
-    inline PS::F64 kernelWendlandC2(const PS::F64 r) {
+    inline PS::F64 kernel0th(const PS::F64 r) {
         PS::F64 rmin  = (r < 1.d) ? (1.d - r) : 0.;
         PS::F64 rmin2 = rmin * rmin;
         return ceff0 * rmin2 * rmin2 * (1.d + 4.d * r);
     }
-    inline PS::F64 kernelWendlandC2First(const PS::F64 r) {
+    inline PS::F64 kernel1st(const PS::F64 r) {
         PS::F64 rmin  = (r < 1.) ? (1. - r) : 0.;
         PS::F64 rmin2 = rmin  * rmin;
         PS::F64 rmin3 = rmin  * rmin2;
@@ -75,3 +75,5 @@ namespace KernelSph {
 #endif
     
 }
+
+namespace KernelSph = WendlandC2;

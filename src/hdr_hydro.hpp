@@ -120,8 +120,8 @@ struct calcDerivative {
                 PS::F64    q_j   = r1_ij * hi_j;
 
                 PS::F64vec dw_ij  = m_j * dx_ij * ri_ij * 0.5d
-                    * (hi4_i * KernelSph::kernelWendlandC2First(q_i)
-                       + hi4_j * KernelSph::kernelWendlandC2First(q_j));
+                    * (hi4_i * KernelSph::kernel1st(q_i)
+                       + hi4_j * KernelSph::kernel1st(q_j));
 
                 xv_ij = (xv_ij < 0.) ? xv_ij : 0.;
                 PS::F64    mu_ij  = xv_ij * ri_ij;

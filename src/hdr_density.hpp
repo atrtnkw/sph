@@ -76,7 +76,7 @@ struct calcDensity {
                     PS::F64    r1_ij = sqrt(r2_ij);
                     PS::F64    q_i   = r1_ij * hi_i;
                     
-                    PS::F64 kw0 = KernelSph::kernelWendlandC2(q_i);
+                    PS::F64 kw0 = KernelSph::kernel0th(q_i);
                     
                     PS::F64 rhj =   m_j * hi3_i * kw0;
                     
@@ -109,8 +109,8 @@ struct calcDensity {
                 PS::F64    ri_ij = (id_i != id_j) ? 1. / r1_ij : 0.;
                 PS::F64    q_i   = r1_ij * hi_i;
 
-                PS::F64 kw0 = KernelSph::kernelWendlandC2(q_i);
-                PS::F64 kw1 = KernelSph::kernelWendlandC2First(q_i);
+                PS::F64 kw0 = KernelSph::kernel0th(q_i);
+                PS::F64 kw1 = KernelSph::kernel1st(q_i);
                 
                 PS::F64    ghj   = - m_j * hi4_i * (KernelSph::dim * kw0 + q_i * kw1);
                 PS::F64vec dw_ij = (m_j * hi4_i * kw1 * ri_ij) * dx_ij;
