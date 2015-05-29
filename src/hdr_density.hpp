@@ -74,7 +74,6 @@ struct calcDensity {
                 PS::F64 hi3_i = KernelSph::calcVolumeInverse(hi_i);
                 PS::F64 hi4_i = hi_i * hi3_i;
                 PS::F64 rh_i  = 0.;
-                PS::F64 gh_i  = 0.;
                 PS::S32 nj_i  = 0;
                 for(PS::S32 j = 0; j < njp; j++) {
                     PS::F64    m_j = epj[j].mass;
@@ -86,20 +85,13 @@ struct calcDensity {
                     PS::F64    q_i   = r1_ij * hi_i;
                     
                     PS::F64 kw0 = KernelSph::kernelWendlandC2(q_i);
-                    PS::F64 kw1 = KernelSph::kernelWendlandC2First(q_i);
                     
                     PS::F64 rhj =   m_j * hi3_i * kw0;
-                    PS::F64 ghj = - m_j * hi4_i * (KernelSph::dim * kw0 + q_i * kw1);
                     
                     rh_i   += rhj;
-                    gh_i   += ghj;
                     nj_i   += (q_i < 1.d) ? 1 : 0;
                 }
                 density[i].dens = rh_i;
-                /*
-                density[i].grdh = 1.d / (1.d + h_i * gh_i / (KernelSph::dim * rh_i));
-                */
-                density[i].grdh = 1.d;
                 density[i].np   = nj_i;
 
                 h_i = SPH::eta * SPH::ksrh * SPH::calcPowerOfDimInverse(epi[i].mass, rh_i);
@@ -109,6 +101,7 @@ struct calcDensity {
 
             PS::F64    hi_i   = 1.d / h_i;
             PS::F64    hi4_i  = hi_i * KernelSph::calcVolumeInverse(hi_i);
+            PS::F64    gh_i  = 0.;
             PS::F64    divv_i = 0.;
             PS::F64vec rotv_i = 0.;            
             for(PS::S32 j = 0; j < njp; j++) {
@@ -124,17 +117,21 @@ struct calcDensity {
                 PS::F64    ri_ij = (id_i != id_j) ? 1. / r1_ij : 0.;
                 PS::F64    q_i   = r1_ij * hi_i;
 
+                PS::F64 kw0 = KernelSph::kernelWendlandC2(q_i);
                 PS::F64 kw1 = KernelSph::kernelWendlandC2First(q_i);
                 
+                PS::F64    ghj   = - m_j * hi4_i * (KernelSph::dim * kw0 + q_i * kw1);
                 PS::F64vec dw_ij = (m_j * hi4_i * kw1 * ri_ij) * dx_ij;
 
+                gh_i   += ghj;
                 divv_i += dv_ij * dw_ij;
                 rotv_i += dv_ij ^ dw_ij;
             }
             PS::F64 rhi_i = 1. / density[i].dens;
+//            density[i].grdh = 1.d / (1.d + h_i * rhi_i * gh_i / KernelSph::dim);
+            density[i].grdh = 1.d;
             PS::F64 grd_i = density[i].grdh;
-            rotv_i *= rhi_i * grd_i;
-            density[i].rotv = sqrt(rotv_i * rotv_i);
+            density[i].rotv = sqrt(rotv_i * rotv_i) * rhi_i * grd_i;
             density[i].divv = divv_i * rhi_i * grd_i;
         }        
 

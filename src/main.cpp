@@ -152,7 +152,7 @@ int main(int argc, char **argv)
 
 #ifdef DAMPING
         DampVelocity::dampVelocity(sph, dtime);
-        if(DampVelocity::stopDamping(sph)) {
+        if(DampVelocity::stopDamping(time, sph)) {
             break;
         }
 #endif
