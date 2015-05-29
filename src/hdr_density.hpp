@@ -49,14 +49,6 @@ public:
 
 struct calcDensity {
 
-#if 0
-    static const PS::F64 dim;
-    static const PS::F64 ceff0, ceff1;
-    static inline PS::F64 calcVolumeInverse(const PS::F64 hi);
-    static inline PS::F64 kernelWendlandC2(const PS::F64 r);
-    static inline PS::F64 kernelWendlandC2First(const PS::F64 r);
-#endif
-
     void operator () (const DensityEPI *epi,
                       const PS::S32 nip,
                       const DensityEPJ *epj,
@@ -71,7 +63,7 @@ struct calcDensity {
 
             for(PS::S32 repeat = 0; repeat < 3; repeat++) {
                 PS::F64 hi_i  = 1.d / h_i;
-                PS::F64 hi3_i = KernelSph::calcVolumeInverse(hi_i);
+                PS::F64 hi3_i = SPH::calcVolumeInverse(hi_i);
                 PS::F64 hi4_i = hi_i * hi3_i;
                 PS::F64 rh_i  = 0.;
                 PS::S32 nj_i  = 0;
@@ -94,13 +86,13 @@ struct calcDensity {
                 density[i].dens = rh_i;
                 density[i].np   = nj_i;
 
-                h_i = SPH::eta * SPH::ksrh * SPH::calcPowerOfDimInverse(epi[i].mass, rh_i);
+                h_i = SPH::eta * KernelSph::ksrh * SPH::calcPowerOfDimInverse(epi[i].mass, rh_i);
                 density[i].ksr = h_i;
                 density[i].itr = (h_i > epi[i].rs) ? true : false;
             }
 
             PS::F64    hi_i   = 1.d / h_i;
-            PS::F64    hi4_i  = hi_i * KernelSph::calcVolumeInverse(hi_i);
+            PS::F64    hi4_i  = hi_i * SPH::calcVolumeInverse(hi_i);
             PS::F64    gh_i  = 0.;
             PS::F64    divv_i = 0.;
             PS::F64vec rotv_i = 0.;            

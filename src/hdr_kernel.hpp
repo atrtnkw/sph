@@ -5,9 +5,9 @@ namespace KernelSph {
 #ifdef USE_AT1D
 
     const  PS::F64 dim   = +1.0d;
+    const  PS::F64 ksrh  = 1.620185d;
     const  PS::F64 ceff0 = +1.25d;
     const  PS::F64 ceff1 = +3.75d;
-    inline PS::F64 calcVolumeInverse(const PS::F64 hi) {return hi;}
     inline PS::F64 kernelWendlandC2(const PS::F64 r) {
         PS::F64 rmin  = (r < 1.d) ? (1.d - r) : 0.;
         return ceff0 * rmin * rmin * rmin * (1.d + 3.d * r);
@@ -49,14 +49,14 @@ namespace KernelSph {
 
 #ifdef USE_AT2D
     const  PS::F64 dim  = +2.0;
+    const  PS::F64 ksrh = 1.897367d;
     const  PS::F64 ceff0 = +2.228169203286535005e+00d;
     const  PS::F64 ceff1 = +8.912676813146140020e+00d;
-    inline PS::F64 calcVolumeInverse(const PS::F64 hi) {return hi * hi;}
 #else
     const  PS::F64 dim  = +3.0;
+    const  PS::F64 ksrh = 1.936492d;
     const  PS::F64 ceff0 = +3.342253804929802286e+00d;
     const  PS::F64 ceff1 = +1.336901521971920914e+01d;
-    inline PS::F64 calcVolumeInverse(const PS::F64 hi) {return hi * hi * hi;}
 #endif
     
     inline PS::F64 kernelWendlandC2(const PS::F64 r) {

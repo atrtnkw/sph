@@ -109,7 +109,6 @@ public:
     PS::F64vec accg;
     static PS::F64ort cbox;
     static PS::F64    cinv;
-    static PS::F64    ksrh;
     static PS::F64    eta;
     static PS::F64    alphamax, alphamin;
     static PS::F64    tceff;
@@ -173,7 +172,7 @@ public:
     void calcBalsaraSwitch() {
         this->bswt = fabs(this->grdh * this->divv)
             / (fabs(this->grdh * this->divv) + fabs(this->grdh * this->rotv)
-               + 1e-4 * this->vsnd * ksrh / this->ksr);
+               + 1e-4 * this->vsnd * KernelSph::ksrh / this->ksr);
     }
 
     void calcAlphaDot() {
@@ -205,6 +204,7 @@ public:
 #endif
     }
 
+    static inline PS::F64 calcVolumeInverse(const PS::F64 hi);
     static inline PS::F64 calcPowerOfDimInverse(PS::F64 mass,
                                                 PS::F64 dens);
 
@@ -250,22 +250,22 @@ PS::F64    SPH::alphamax, SPH::alphamin;
 PS::F64    SPH::eps = 1e-3;
 
 #ifdef USE_AT1D
-PS::F64    SPH::ksrh = 1.620185d;
-PS::F64    SPH::calcPowerOfDimInverse(PS::F64 mass,
-                                      PS::F64 dens) {
+inline PS::F64 SPH::calcVolumeInverse(const PS::F64 hi) {return hi;}
+inline PS::F64 SPH::calcPowerOfDimInverse(PS::F64 mass,
+                                          PS::F64 dens) {
     return mass / dens;
 }
 #else
 #ifdef USE_AT2D
-PS::F64    SPH::ksrh = 1.897367d;
-PS::F64    SPH::calcPowerOfDimInverse(PS::F64 mass,
-                                      PS::F64 dens) {
+inline PS::F64 SPH::calcVolumeInverse(const PS::F64 hi) {return hi * hi;}
+inline PS::F64 SPH::calcPowerOfDimInverse(PS::F64 mass,
+                                          PS::F64 dens) {
     return sqrt(mass / dens);
 }
 #else
-PS::F64    SPH::ksrh = 1.936492d;
-PS::F64    SPH::calcPowerOfDimInverse(PS::F64 mass,
-                                      PS::F64 dens) {
+inline PS::F64 SPH::calcVolumeInverse(const PS::F64 hi) {return hi * hi * hi;}
+inline PS::F64 SPH::calcPowerOfDimInverse(PS::F64 mass,
+                                          PS::F64 dens) {
     return pow(mass / dens, 1.d / 3.d);
 }
 #endif

@@ -3,9 +3,9 @@
 #include <cassert>
 
 #include "particle_simulator.hpp"
-#include "hdr_sph.hpp"
-
 #include "hdr_kernel.hpp"
+
+#include "hdr_sph.hpp"
 #include "hdr_density.hpp"
 #include "hdr_hydro.hpp"
 

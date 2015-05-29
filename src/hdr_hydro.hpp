@@ -73,11 +73,6 @@ public:
 };
 
 struct calcDerivative {
-    /*
-    static const  PS::F64 ceff;
-    static inline PS::F64 calcVolumeInverse(const PS::F64 hi);
-    static inline PS::F64 kernelWendlandC2First(const PS::F64 r);
-    */
 
     void operator () (const DerivativeEPI *epi,
                       const PS::S32 nip,
@@ -89,7 +84,7 @@ struct calcDerivative {
             PS::F64vec x_i     = epi[i].pos;
             PS::F64vec v_i     = epi[i].vel;
             PS::F64    hi_i    = 1. / epi[i].ksr;
-            PS::F64    hi4_i   = hi_i * KernelSph::calcVolumeInverse(hi_i);
+            PS::F64    hi4_i   = hi_i * SPH::calcVolumeInverse(hi_i);
             PS::F64    rh_i    = epi[i].rho;
             PS::F64    rhi_i   = 1. / rh_i;
             PS::F64    prhi2_i = epi[i].pres * rhi_i * rhi_i;
@@ -106,7 +101,7 @@ struct calcDerivative {
                 PS::F64vec x_j     = epj[j].pos;
                 PS::F64vec v_j     = epj[j].vel;
                 PS::F64    hi_j    = 1. / epj[j].ksr;
-                PS::F64    hi4_j   = hi_j * KernelSph::calcVolumeInverse(hi_j);
+                PS::F64    hi4_j   = hi_j * SPH::calcVolumeInverse(hi_j);
                 PS::F64    rh_j    = epj[j].rho;
                 PS::F64    rhi_j   = 1. / rh_j;
                 PS::F64    prhi2_j = epj[j].pres * rhi_j * rhi_j;
