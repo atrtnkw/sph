@@ -1,4 +1,3 @@
-#FDPS_DIR = /nfshome/tanikawa/work3/fdps-arma/src
 FDPS_DIR = ../../../fdps-jenever0/src
 PHANTOM_DIR = ${FDPS_DIR}/phantom_grape_x86/G5/newton/libpg5
 
@@ -24,7 +23,7 @@ CLIBS += -L${PHANTOM_DIR} -lpg5
 CFLAGS += -DCUBICSPLINE
 #CFLAGS += -DUSE_AT1D
 #CFLAGS += -DUSE_AT2D
-#CFLAGS += -DGRAVITY
+CFLAGS += -DGRAVITY
 #CFLAGS += -DDAMPING
 ######################
 
@@ -41,7 +40,6 @@ main.o: main.cpp $(HDR) $(ETC)
 
 clean:
 	rm -f *~
-#	rm -f snap/*
 	rm -f test.o*
 	rm -f core
 distclean:

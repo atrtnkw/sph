@@ -176,25 +176,23 @@ public:
     }
 
     void calcAlphaDot() {
-        /*
         PS::F64 src;
         src = - divv * (alphamax - this->alph);
         src = (src > 0.) ? src : 0.;
-        this->adot = - (this->alph - alphamin) * (0.1 * this->vsnd) / this->ksr + src;
-        */
-        this->adot = 0.0;
+//        this->adot = - (this->alph - alphamin) * (0.1 * this->vsnd) / this->ksr + src;
+        this->adot = - (this->alph - alphamin) * (0.25 * this->vsnd) / this->ksr + src;
+//        this->adot = 0.0;
     }
 
     PS::F64 calcTimeStep() {
         return tceff * 2. * this->ksr / this->vsmx;
     }
-    /*
-    PS::F64 calcTimeStep() {
-        PS::F64 dthydro  = tceff * 2. * this->ksr / this->vsmx;
-        PS::F64 dtenergy = tceff * this->uene / fabs(this->udot);
-        return ((dthydro < dtenergy) ? dthydro : dtenergy);
-    }
-    */
+
+//    PS::F64 calcTimeStep() {
+//        PS::F64 dthydro  = tceff * 2. * this->ksr / this->vsmx;
+//        PS::F64 dtenergy = tceff * this->uene / fabs(this->udot);
+//        return ((dthydro < dtenergy) ? dthydro : dtenergy);
+//    }
 
     PS::F64 calcEnergy() {
 #ifdef GRAVITY

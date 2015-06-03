@@ -9,11 +9,10 @@ ifile=$2
 
 odir=snap
 
-if test -e $odir
+if ! test -e $odir
 then
-    rm -rf $odir
+    mkdir $odir
 fi
-mkdir $odir
 
 export OMP_NUM_THREADS=1
 mpirun -np $nproc ./run $ifile

@@ -120,8 +120,8 @@ struct calcDensity {
                 rotv_i += dv_ij ^ dw_ij;
             }
             PS::F64 rhi_i = 1. / density[i].dens;
-//            density[i].grdh = 1.d / (1.d + h_i * rhi_i * gh_i / KernelSph::dim);
-            density[i].grdh = 1.d;
+            density[i].grdh = 1.d / (1.d + h_i * rhi_i * gh_i / KernelSph::dim);
+//            density[i].grdh = 1.d;
             PS::F64 grd_i = density[i].grdh;
             density[i].rotv = sqrt(rotv_i * rotv_i) * rhi_i * grd_i;
             density[i].divv = divv_i * rhi_i * grd_i;
