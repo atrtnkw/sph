@@ -1,12 +1,12 @@
 #FDPS_DIR = /nfshome/tanikawa/work3/fdps-arma/src
-FDPS_DIR = ../../fdps/src
+FDPS_DIR = ../../../fdps-jenever0/src
 PHANTOM_DIR = ${FDPS_DIR}/phantom_grape_x86/G5/newton/libpg5
 
 PS_PATH  = -I${FDPS_DIR}
 PS_PATH += -I${PHANTOM_DIR}
 
-#CCC = mpicxx
-CCC = CC
+CCC = mpicxx
+#CCC = CC
 #CCC = mpicxx-openmpi-gcc49
 #CCC = mpicxx-mpich-gcc49
 #CCC = g++
@@ -20,10 +20,12 @@ CFLAGS += -DSANITY_CHECK_REALLOCATABLE_ARRAY
 CLIBS += -L${PHANTOM_DIR} -lpg5
 
 ###### AT_FLAGS ######
+#CFLAGS += -DWENDLANDC2
+CFLAGS += -DCUBICSPLINE
 #CFLAGS += -DUSE_AT1D
-CFLAGS += -DUSE_AT2D
+#CFLAGS += -DUSE_AT2D
 #CFLAGS += -DGRAVITY
-CFLAGS += -DDAMPING
+#CFLAGS += -DDAMPING
 ######################
 
 OBJ = main.o

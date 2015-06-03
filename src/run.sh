@@ -1,23 +1,19 @@
-#PBS -N test
-#PBS -l mppwidth=48
-#PBS -j oe
-#PBS -q short-b
+if test $# -ne 2
+then
+    echo "$0 <nproc> <ifile>"
+    exit
+fi
 
-NPARALLEL=48
-NPROCESS=48
-tempodir=snap
-odir=kh
-ifile=init/kh.init
-fexe=run
+nproc=$1
+ifile=$2
 
-cd $PBS_O_WORKDIR
+odir=snap
 
-export OMP_NUM_THREADS=`echo "$NPARALLEL / $NPROCESS" | bc`
+if test -e $odir
+then
+    rm -rf $odir
+fi
+mkdir $odir
 
-mkdir $tempodir
-cp $0 $tempodir
-
-nptcl=`echo "$npernode / 24 * $NPROCESS * $OMP_NUM_THREADS" | bc`
-aprun -n $NPROCESS -d $OMP_NUM_THREADS ./"$fexe" $ifile
-
-mv $tempodir $odir
+export OMP_NUM_THREADS=1
+mpirun -np $nproc ./run $ifile
