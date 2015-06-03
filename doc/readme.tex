@@ -85,26 +85,14 @@ each particle as follows:
         W(r,H)}{\partial H} &= -H^{-(D+1)} \left[ D w(q) + q
         \frac{\partial w}{\partial q} \right].
     \end{align}
-    In the case of $D = 1$,
-    \begin{align}
-      w(q) &= \frac{5}{4} (1-q)_+^3 (1+3q) \\ \frac{\partial
-        w(q)}{\partial q} &= \frac{15}{4} \left[(1-q)^3_+ -
-        (1-q)^2_+ (1+3q) \right],
-    \end{align}
-    and in the case of $D = 2, 3$,
-    \begin{align}
-      w(q) &= C_{\rm W} (1-q)_+^4 (1+4q) \\ \frac{\partial
-        w(q)}{\partial q} &= 4 C_{\rm W} \left[(1-q)^4_+ - (1-q)^3_+
-        (1+4q) \right],
-    \end{align}
-      where $C_{\rm W}= 7/\pi$ ($D=2$), and $C_{\rm W}= 21/(2\pi)$
-      ($D=3$).
+    The formula of $w(q)$ and $\partial w/\partial q$ are described in
+    Appendix~\ref{sec:kernels}.
   \item calculate the kernel length as follow:
     \begin{align}
       H_i = (H/h) \times \eta \left( \frac{m_i}{\rho_i} \right)^{1/D},
     \end{align}
-    where $h$ is the kernel length, $\eta=1.6$, and
-    $H/h=1.620185(D=1)$, $1.897367(D=2)$, and $1.93492(D=3)$.
+    where $h$ is the kernel length. The values of $\eta$ and $H/h$ are
+    described in Appendix~\ref{sec:kernels}.
   \item Return to step~(\ref{item:estimatedensity}) if this is the
     first time.
   \item Calculate divergence and rotation of $\bm{v}$:
@@ -137,7 +125,7 @@ each particle as follows:
   \begin{align}
     f_i &= \frac{|\nabla \cdot \tilde{\bm{v}}_i|}{|\nabla \cdot
       \tilde{\bm{v}}_i| + |\nabla \times \tilde{\bm{v}}_i| + 0.0001
-      \tilde{c}_{{\rm s},i} / H_i}.
+      \tilde{c}_{{\rm s},i} / h_i}.
   \end{align}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -197,71 +185,28 @@ each particle as follows:
   \begin{align}
     \Delta t = C \min_i \left[ \min \left( \frac{2H_i}{\max_j \left(
         v_{ij}^{\rm sig} \right) }, \frac{u_i}{|\dot{u}_i|} \right)
-      \right],
+      \right].
   \end{align}
-  where $C=0.15$.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \item Return to step~1.
 \end{enumerate}
 
-\section{Test}
-
-\begin{enumerate}
-\item Shock tube
-\item Strong shock
-\item Point like explosion
-\item Kelvin-Helmholtz instability
-\end{enumerate}
-
-\begin{figure}
-  \begin{center}
-    \includegraphics[width=10cm]{fig/shock/draw.eps}
-  \end{center}
-  \caption{Shock tube ($\gamma=1.4$, $\alpha=2.0$, $\eta=1.6$).}
-\end{figure}
-
-\begin{figure}
-  \begin{center}
-    \includegraphics[width=10cm]{fig/strong/draw.eps}
-  \end{center}
-  \caption{Strong shock ($\gamma=1.4$, $\alpha=2.0$, $\eta=1.6$).}
-\end{figure}
-
-\begin{figure}
-  \begin{center}
-    \includegraphics[width=10cm,bb=0 0 1020 840]{fig/pex/draw.png}
-  \end{center}
-  \caption{Point like explosion ($\gamma=5/3$, $\alpha=3.0$,
-    $\eta=1.6$).}
-\end{figure}
-
-\begin{figure}
-  \begin{center}
-    \includegraphics[width=8cm,bb=0 0 1020 1040]{fig/kh/draw.png}
-  \end{center}
-  \caption{KH instability ($\gamma=5/3$, $\alpha=3.0$, $\eta=1.6$).}
-\end{figure}
-
-\begin{figure}
-  \begin{center}
-    \includegraphics[width=16cm,bb=0 0 2120 2000]{fig/evrard/draw.png}
-  \end{center}
-  \caption{Evrard test.}
-\end{figure}
-
-\if 0
-
 \appendix
 
-\section{Cubic spline kernel}
+\section{Kernels}
+\label{sec:kernels}
 
-We describe the converntional cubic spline kernel:
+\subsection{Cubic spline kernel}
+
+We describe the cubic spline kernel:
 \begin{align}
   w(r/H) &= 2^D \sigma \times \left\{
   \begin{array}{ll}
     \left( 1 - 6 q^2 + 6 q^3 \right) & (0 \le q < 1/2) \\
+%%
     \left[ 2 (1 - q)^3 \right] & (1/2 \le q < 1) \\
+%%
     0 & (q \ge 1)
   \end{array}
   \right. \\
@@ -270,13 +215,91 @@ We describe the converntional cubic spline kernel:
   \times \left\{
   \begin{array}{ll}
     1/3 & (0 \le q < 1/3) \\
+%%
     \left(2q - 3q^2 \right) & (1/3 \le q < 1/2) \\
+%%
     (1 - q)^2 & (1/2 \le q < 1) \\
     0 & (q \ge 1)
   \end{array}
-  \right.. \\
+  \right., \\
 \end{align}
+where $\sigma = 2/3$ (1D), $10/7\pi$ (2D), and $1/\pi$ (3D).
 
-\fi
+For this kernel, $\eta=1.2$, and $H/h=2$.
+
+\subsection{Wendland C$^2$ kernel}
+
+We describe Wendland C$^2$ kernel: In the case of $D = 1$,
+\begin{align}
+  w(q) &= C_{\rm W} (1-q)_+^3 (1+3q) \\ \frac{\partial w(q)}{\partial
+    q} &= 3 C_{\rm W} \left[(1-q)^3_+ - (1-q)^2_+ (1+3q) \right],
+\end{align}
+and in the case of $D = 2, 3$,
+\begin{align}
+  w(q) &= C_{\rm W} (1-q)_+^4 (1+4q) \\ \frac{\partial w(q)}{\partial
+    q} &= 4 C_{\rm W} \left[(1-q)^4_+ - (1-q)^3_+ (1+4q) \right],
+\end{align}
+where $C_{\rm W}=5/4$ ($D=1$), $7/\pi$ ($D=2$), and $21/(2\pi)$
+($D=3$). For this kernel, $\eta=1.6$, and $H/h=1.620185(D=1)$,
+$1.897367(D=2)$, and $1.93492(D=3)$.
+
+\subsection{Wendland C$^4$ kernel}
+
+We describe Wendland C$^4$ kernel: In the case of $D = 1$,
+\begin{align}
+  w(q) &= C_{\rm W} (1-q)_+^5 (1+5q+8q^2) \\
+%%
+  \frac{\partial w(q)}{\partial q} &= C_{\rm W} (1-q)_+^4 \left[
+    -5(1+5q+8q^2) + (1-q)_+ (5+16q) \right]
+\end{align}
+and in the case of $D = 2, 3$,
+\begin{align}
+  w(q) &= C_{\rm W} (1-q)_+^6 \left[ 1+6q+(35/3)q^2 \right] \\
+%%
+  \frac{\partial w(q)}{\partial q} &= C_{\rm W} (1-q)_+^5 \left\{-6
+  \left[ 1+6q+(35/3)q^2 \right] + (1-q)_+ \left[ 6+(70/3)q \right]
+  \right\}
+\end{align}
+where $C_{\rm W}=3/2$ ($D=1$), $9/\pi$ ($D=2$), and $495/(32\pi)$
+($D=3$). For this kernel, $\eta=1.6$, and $H/h=1.936492(D=1)$,
+$2.171239(D=2)$, and $2.207940(D=3)$.
+
+\section{Test}
+
+\begin{enumerate}
+\item Shock tube
+\item Strong shock
+\item Point like explosion
+\item Evrard test
+\end{enumerate}
+
+\begin{figure}
+  \begin{center}
+    \includegraphics[width=10cm]{fig/shock/draw.eps}
+  \end{center}
+  \caption{Shock tube (cubic spline, $\gamma=1.4$, $\alpha=1.0$).}
+\end{figure}
+
+\begin{figure}
+  \begin{center}
+    \includegraphics[width=10cm]{fig/strong/draw.eps}
+  \end{center}
+  \caption{Strong shock (cubic spline, $\gamma=1.4$, $\alpha=1.0$).}
+\end{figure}
+
+\begin{figure}
+  \begin{center}
+    \includegraphics[width=10cm,bb=0 0 1020 840]{fig/pex/draw.png}
+  \end{center}
+  \caption{Point like explosion (cubic spline, $\gamma=5/3$,
+    $\alpha=3.0$).}
+\end{figure}
+
+\begin{figure}
+  \begin{center}
+    \includegraphics[width=16cm,bb=0 0 2120 2000]{fig/evrard/draw.png}
+  \end{center}
+  \caption{Evrard test (cubic spline, $\gamma=5/3$, $\alpha=1.05$.}
+\end{figure}
 
 \end{document}

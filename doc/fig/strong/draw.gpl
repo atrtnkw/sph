@@ -44,7 +44,8 @@ set mytic 4
 set ylabel "{/Symbol r}"
 
 pl \
-"sph_t0007.dat" u 3:15 pt 6 ps 0.5
+"sph_t0007.dat" u 3:15 pt 6 ps 0.5, \
+"shock_strong.dat" u ($1-0.5):3 w l lt 1 lc 3 lw 2
 
 #============================================
 
@@ -63,7 +64,8 @@ set format y2 "%g"
 set y2label "P"
 
 pl \
-"sph_t0007.dat" u 3:17 pt 6 ps 0.5
+"sph_t0007.dat" u 3:17 pt 6 ps 0.5, \
+"shock_strong.dat" u ($1-0.5):4 w l lt 1 lc 3 lw 2
 
 #============================================
 #============================================
@@ -86,23 +88,25 @@ set format y2 ""
 set y2label ""
 
 pl \
-"sph_t0007.dat" u 3:6 pt 6 ps 0.5
+"sph_t0007.dat" u 3:6 pt 6 ps 0.5, \
+"shock_strong.dat" u ($1-0.5):2 w l lt 1 lc 3 lw 2
 
 #============================================
 
 set origin dx*1, dy*0
 
-set yrange [0:2700]
-set ytic 0, 400, 2800
-set mytic 4
+set yrange [0:40]
+set ytic 0, 10, 40
+set mytic 5
 set format y ""
 set ylabel ""
 
-set y2range [0:2700]
-set y2tic 0, 400, 2800
-set my2tic 4
+set y2range [0:40]
+set y2tic 0, 10, 40
+set my2tic 5
 set format y2 "%g"
 set y2label "u"
 
 pl \
-"sph_t0007.dat" u 3:12 pt 6 ps 0.5
+"sph_t0007.dat" u 3:16 pt 6 ps 0.5, \
+"shock_strong.dat" u ($1-0.5):5 w l lt 1 lc 3 lw 2
