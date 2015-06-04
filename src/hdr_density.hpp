@@ -86,7 +86,9 @@ struct calcDensity {
                 density[i].dens = rh_i;
                 density[i].np   = nj_i;
 
-                h_i = SPH::eta * KernelSph::ksrh * SPH::calcPowerOfDimInverse(epi[i].mass, rh_i);
+//                h_i = SPH::eta * KernelSph::ksrh * SPH::calcPowerOfDimInverse(epi[i].mass, rh_i);
+                h_i = KernelSph::eta * KernelSph::ksrh
+                    * SPH::calcPowerOfDimInverse(epi[i].mass, rh_i);
                 density[i].ksr = h_i;
                 density[i].itr = (h_i > epi[i].rs) ? true : false;
             }

@@ -175,7 +175,7 @@ int main(int argc, char **argv)
 template <class Theader>
 void setParameterParticle(Theader & header) {
     SPH::cbox  = header.cbox;
-    SPH::eta   = header.eta;
+//    SPH::eta   = header.eta;
     SPH::cinv  = header.gamma - 1.d;
     SPH::alphamax = header.alphamax;
     SPH::alphamin = header.alphamin;

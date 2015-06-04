@@ -2,6 +2,8 @@
 
 namespace WendlandC2 {
 
+    const  PS::F64 eta   = 1.6d;
+
 #ifdef USE_AT1D
 
     const  PS::F64 dim   = +1.0d;
@@ -51,6 +53,8 @@ namespace WendlandC2 {
 }
 
 namespace WendlandC4 {
+
+    const  PS::F64 eta   = 1.6d;
 
 #ifdef USE_AT1D
 
@@ -103,6 +107,8 @@ namespace WendlandC4 {
 
 namespace CubicSpline {
     
+    const PS::F64 eta   = 1.2d;
+
 #ifdef USE_AT1D
     const PS::F64 dim   = +1.0;
     const PS::F64 ceff0 = +1.3333333333333333d;

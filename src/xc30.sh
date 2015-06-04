@@ -1,15 +1,13 @@
 #PBS -N test
-#PBS -l mppwidth=24
+#PBS -l mppwidth=1
 #PBS -j oe
 #PBS -q short-b
 
-#NPARALLEL=24
-#NPROCESS=$NPARALLEL
-NPARALLEL=24
-NPROCESS=1
+NPARALLEL=1
+NPROCESS=$NPARALLEL
 tempodir=snap
-odir=pex.saitoh.c03.3
-ifile=init/saitoh_init/pex.64.init.c03
+odir=strong_1d
+ifile=../init/strong_1d.init
 fexe=run
 
 cd $PBS_O_WORKDIR

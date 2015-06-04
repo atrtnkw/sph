@@ -51,7 +51,7 @@ public:
     PS::F64    gamma;    
     PS::F64    alphamax;
     PS::F64    alphamin;
-    PS::F64    eta;
+//    PS::F64    eta;
     PS::F64    tceff;
     PS::S64    nptcl;
 
@@ -64,7 +64,7 @@ public:
         gamma      = 0.0;
         alphamax   = 0.0;
         alphamin   = 0.0;
-        eta        = 0.0;
+//        eta        = 0.0;
         tceff      = 0.0;
         nptcl      = 0;
     }
@@ -73,7 +73,8 @@ public:
         fscanf(fp, "%lf%lf%lf", &time, &tend, &dtsp);
         fscanf(fp, "%lf%lf%lf", &cbox.low_[0], &cbox.low_[1], &cbox.low_[2]);
         fscanf(fp, "%lf%lf%lf", &cbox.high_[0], &cbox.high_[1], &cbox.high_[2]);
-        fscanf(fp, "%lf%lf%lf%lf%lf", &gamma, &alphamax, &alphamin, &eta, &tceff);
+//        fscanf(fp, "%lf%lf%lf%lf%lf", &gamma, &alphamax, &alphamin, &eta, &tceff);
+        fscanf(fp, "%lf%lf%lf%lf", &gamma, &alphamax, &alphamin, &tceff);
         fscanf(fp, "%d", &nptcl);
 
         return nptcl;
@@ -109,7 +110,7 @@ public:
     PS::F64vec accg;
     static PS::F64ort cbox;
     static PS::F64    cinv;
-    static PS::F64    eta;
+//    static PS::F64    eta;
     static PS::F64    alphamax, alphamin;
     static PS::F64    tceff;
     static PS::F64    eps;
@@ -242,7 +243,7 @@ public:
 
 PS::F64ort SPH::cbox;
 PS::F64    SPH::cinv;
-PS::F64    SPH::eta;
+//PS::F64    SPH::eta;
 PS::F64    SPH::tceff;
 PS::F64    SPH::alphamax, SPH::alphamin;
 PS::F64    SPH::eps = 1e-3;
