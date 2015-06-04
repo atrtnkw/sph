@@ -1,9 +1,9 @@
 #PBS -N test
-#PBS -l mppwidth=24
+#PBS -l mppwidth=48
 #PBS -j oe
 #PBS -q short-b
 
-NPARALLEL=24
+NPARALLEL=48
 NPROCESS=$NPARALLEL
 tempodir=snap
 odir=evrard

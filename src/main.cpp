@@ -111,6 +111,7 @@ int main(int argc, char **argv)
 
     dtime = calcTimeStep(sph, time, 1 / 64.);
 
+    FILE *fplog = fopen("snap/time.log", "w");
     PS::F64 tout = 0.0;
     PS::F64 dtdc = 0.25;
     PS::S32 nstp = 0;
@@ -125,7 +126,8 @@ int main(int argc, char **argv)
         
         PS::F64 etot = calcEnergy(sph);
         if(rank == 0) {
-            fprintf(stderr, "time: %.10f %+e %+e\n", time, dtime, etot);
+            fprintf(fplog, "time: %.10f %+e %+e\n", time, dtime, etot);
+            fflush(fplog);
         }
 
         predict(sph, dtime);
@@ -160,6 +162,8 @@ int main(int argc, char **argv)
         time += dtime;
         dtime = calcTimeStep(sph, time, dtime);
     }
+
+    fclose(fplog);
 
     {
         char filename[64];

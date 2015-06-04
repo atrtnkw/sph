@@ -86,7 +86,6 @@ struct calcDensity {
                 density[i].dens = rh_i;
                 density[i].np   = nj_i;
 
-//                h_i = SPH::eta * KernelSph::ksrh * SPH::calcPowerOfDimInverse(epi[i].mass, rh_i);
                 h_i = KernelSph::eta * KernelSph::ksrh
                     * SPH::calcPowerOfDimInverse(epi[i].mass, rh_i);
                 density[i].ksr = h_i;
@@ -118,7 +117,6 @@ struct calcDensity {
                 PS::F64vec dw_ij = (m_j * hi4_i * kw1 * ri_ij) * dx_ij;
 
                 gh_i   += ghj;
-//                divv_i += dv_ij * dw_ij;
                 divv_i -= dv_ij * dw_ij;
                 rotv_i += dv_ij ^ dw_ij;
             }

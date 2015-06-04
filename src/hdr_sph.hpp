@@ -180,13 +180,13 @@ public:
         PS::F64 src;
         src = - divv * (alphamax - this->alph);
         src = (src > 0.) ? src : 0.;
-//        this->adot = - (this->alph - alphamin) * (0.1 * this->vsnd) / this->ksr + src;
-        this->adot = - (this->alph - alphamin) * (0.25 * this->vsnd) / this->ksr + src;
-//        this->adot = 0.0;
+        this->adot = - (this->alph - alphamin)
+            * (0.25 * this->vsnd * KernelSph::ksrh) / this->ksr + src;
     }
 
     PS::F64 calcTimeStep() {
-        return tceff * 2. * this->ksr / this->vsmx;
+//        return tceff * 2. * this->ksr / this->vsmx;
+        return tceff * 2. * this->ksr / (this->vsmx * KernelSph::ksrh);
     }
 
 //    PS::F64 calcTimeStep() {
@@ -236,7 +236,8 @@ public:
 #endif
 
     void dampVelocity(PS::F64 dt) {
-        this->vel *= exp(- 0.1 * this->vsnd / this->ksr * dt);
+//        this->vel *= exp(- 0.1 * this->vsnd / this->ksr * dt);
+        this->vel *= exp(- 0.1 * this->vsnd * KernelSph::ksrh / this->ksr * dt);
     }
 
 };
