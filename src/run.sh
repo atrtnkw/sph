@@ -1,18 +1,25 @@
-if test $# -ne 2
-then
-    echo "$0 <nproc> <ifile>"
-    exit
-fi
+#PBS -N test
+#PBS -l mppwidth=24
+#PBS -j oe
+#PBS -q short-b
 
-nproc=$1
-ifile=$2
+#NPARALLEL=24
+#NPROCESS=$NPARALLEL
+NPARALLEL=24
+NPROCESS=1
+tempodir=snap
+odir=pex.saitoh.c03.3
+ifile=init/saitoh_init/pex.64.init.c03
+fexe=run
 
-odir=snap
+cd $PBS_O_WORKDIR
 
-if ! test -e $odir
-then
-    mkdir $odir
-fi
+export OMP_NUM_THREADS=`echo "$NPARALLEL / $NPROCESS" | bc`
 
-export OMP_NUM_THREADS=1
-mpirun -np $nproc ./run $ifile
+mkdir $tempodir
+cp $0 $tempodir
+
+nptcl=`echo "$npernode / 24 * $NPROCESS * $OMP_NUM_THREADS" | bc`
+aprun -n $NPROCESS -d $OMP_NUM_THREADS ./"$fexe" $ifile
+
+mv $tempodir $odir

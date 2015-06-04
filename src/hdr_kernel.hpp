@@ -50,6 +50,57 @@ namespace WendlandC2 {
     
 }
 
+namespace WendlandC4 {
+
+#ifdef USE_AT1D
+
+    const  PS::F64 dim   = +1.0d;
+    const  PS::F64 ksrh  = +1.936492d;
+    const  PS::F64 ceff0 = +1.5d;
+    inline PS::F64 kernel0th(const PS::F64 r) {
+        PS::F64 rmin  = (r < 1.d) ? (1.d - r) : 0.d;
+        PS::F64 rmin2 = rmin * rmin;
+        return ceff0 * rmin2 * rmin2 * rmin * (1.d + 5.d * r + 8.d * r * r);
+    }
+    inline PS::F64 kernel1st(const PS::F64 r) {
+        PS::F64 rmin  = (r < 1.d) ? (1.d - r) : 0.d;
+        PS::F64 rmin2 = rmin  * rmin;
+        PS::F64 rmin4 = rmin2 * rmin2;
+        return ceff0 * rmin4 * (- (5.d + 25.d * r + 40.d * r * r)
+                                + rmin * (5.d + 16.d * r));
+    }
+
+#else
+
+#ifdef USE_AT2D
+    const  PS::F64 dim  = +2.0;
+    const  PS::F64 ksrh = 2.171239d;
+    const  PS::F64 ceff0 = +2.8647889756541162e+00d;
+#else
+    const  PS::F64 dim  = +3.0;
+    const  PS::F64 ksrh = 2.207940d;
+    const  PS::F64 ceff0 = +4.9238560519055123e+00d;
+#endif
+    const  PS::F64 ceff1 = +1.1666666666666667e+01d;
+    const  PS::F64 ceff2 = +2.3333333333333333e+01d;
+    
+    inline PS::F64 kernel0th(const PS::F64 r) {
+        PS::F64 rmin  = (r < 1.d) ? (1.d - r) : 0.;
+        PS::F64 rmin2 = rmin * rmin;
+        return ceff0 * rmin2 * rmin2 * rmin2 * (1.d + 6.d * r + ceff1 * r * r);
+    }
+    inline PS::F64 kernel1st(const PS::F64 r) {
+        PS::F64 rmin  = (r < 1.) ? (1. - r) : 0.;
+        PS::F64 rmin2 = rmin  * rmin;
+        PS::F64 rmin3 = rmin  * rmin2;
+        return ceff0 * rmin2 * rmin3 * (- (6.d + 36.d * r + 70.d * r * r)
+                                        + rmin * (6.d + ceff2 * r));
+    }
+    
+#endif
+    
+}
+
 namespace CubicSpline {
     
 #ifdef USE_AT1D
@@ -93,6 +144,8 @@ namespace CubicSpline {
 
 #ifdef WENDLANDC2
 namespace KernelSph = WendlandC2;
+#elif defined WENDLANDC4
+namespace KernelSph = WendlandC4;
 #elif defined CUBICSPLINE
 namespace KernelSph = CubicSpline;
 #else
