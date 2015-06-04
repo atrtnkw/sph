@@ -97,11 +97,12 @@ each particle as follows:
     first time.
   \item Calculate divergence and rotation of $\bm{v}$:
     \begin{align}
-      \nabla \cdot \tilde{\bm{v}}_i &= \frac{1}{\Omega_i \rho_i} \sum
+      \nabla \cdot \tilde{\bm{v}}_i &= - \frac{1}{\Omega_i \rho_i} \sum
       \tilde{\bm{v}}_{ij} \cdot \left[ m_j \frac{\partial
-          W_i}{\partial r_{ij}} \frac{\bm{r}_{ij}}{r_{ij}} \right],
-      \\ \nabla \times \tilde{\bm{v}}_i &= \frac{1}{\Omega_i \rho_i}
-      \sum \tilde{\bm{v}}_{ij} \times \left[ m_j \frac{\partial
+          W_i}{\partial r_{ij}} \frac{\bm{r}_{ij}}{r_{ij}} \right], \\
+%%
+      \nabla \times \tilde{\bm{v}}_i &= \frac{1}{\Omega_i \rho_i} \sum
+      \tilde{\bm{v}}_{ij} \times \left[ m_j \frac{\partial
           W_i}{\partial r_{ij}} \frac{\bm{r}_{ij}}{r_{ij}} \right].
     \end{align}
     The
@@ -145,10 +146,12 @@ each particle as follows:
   where $f_{ij}=(f_i+f_j)/2$, and $\Pi_{ij}$ is an artificial
   viscosity. The artificial viscosity is expressed as follows:
   \begin{align}
-    \Pi_{ij} &= - \frac{\alpha}{2} \frac{v_{ij}^{\rm
-        sig} w_{ij}}{\rho_{ij}} \\
+    \Pi_{ij} &= - \frac{\tilde{\alpha}_i}{2} \frac{v_{ij}^{\rm sig}
+      w_{ij}}{\rho_{ij}} \\
+%%
     v_{ij}^{\rm sig} &= c_{{\rm s},i} + c_{{\rm s},j} - 3 w_{ij} \\
-    w_{ij} &= \left\{    
+%%
+    w_{ij} &= \left\{
     \begin{array}{ll}
       \displaystyle \frac{\bm{r}_{ij} \cdot
         \tilde{\bm{v}}_{ij}}{|\bm{r}_{ij}|} & (\bm{r}_{ij} \cdot
@@ -157,7 +160,7 @@ each particle as follows:
     \end{array}
     \right.    
   \end{align}
-  where $\alpha=1.0$ and $\rho_{ij}=(\rho_i+\rho_j)/2$.
+  where $\rho_{ij}=(\rho_i+\rho_j)/2$.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \item Calculate $\dot{\alpha}$:
@@ -267,7 +270,8 @@ $2.171239(D=2)$, and $2.207940(D=3)$.
 \section{Test}
 
 \begin{enumerate}
-\item Shock tube
+\item 1D shock tube
+\item 3D shock tube
 \item Strong shock
 \item Point like explosion
 \item Evrard test
@@ -275,14 +279,21 @@ $2.171239(D=2)$, and $2.207940(D=3)$.
 
 \begin{figure}
   \begin{center}
-    \includegraphics[width=10cm]{fig/shock/draw.eps}
+    \includegraphics[width=10cm,bb=0 0 1020 840]{fig/shock_1d/draw.png}
   \end{center}
-  \caption{Shock tube (cubic spline, $\gamma=1.4$, $\alpha=1.0$).}
+  \caption{1D shock tube (cubic spline, $\gamma=1.4$, $\alpha=1.0$).}
 \end{figure}
 
 \begin{figure}
   \begin{center}
-    \includegraphics[width=10cm]{fig/strong/draw.eps}
+    \includegraphics[width=10cm,bb=0 0 1020 840]{fig/shock_3d/draw.png}
+  \end{center}
+  \caption{3D shock tube (cubic spline, $\gamma=1.4$, $\alpha=1.0$).}
+\end{figure}
+
+\begin{figure}
+  \begin{center}
+    \includegraphics[width=10cm,bb=0 0 1020 840]{fig/strong/draw.png}
   \end{center}
   \caption{Strong shock (cubic spline, $\gamma=1.4$, $\alpha=1.0$).}
 \end{figure}

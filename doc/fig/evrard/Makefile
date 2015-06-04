@@ -1,5 +1,9 @@
 all:
+	sh omit.sh
 	sh ../fig.sh draw
 
 clean:
-	rm -r *.eps *.png *~
+	rm -f *~
+distclean:
+	make clean
+	rm -f *.eps *.png

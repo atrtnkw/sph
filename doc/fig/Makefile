@@ -1,5 +1,6 @@
 all:
-	make -C shock
+	make -C shock_1d
+	make -C shock_3d
 	make -C strong
 	make -C kh
 	make -C pex
