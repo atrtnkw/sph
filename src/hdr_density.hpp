@@ -118,7 +118,8 @@ struct calcDensity {
                 PS::F64vec dw_ij = (m_j * hi4_i * kw1 * ri_ij) * dx_ij;
 
                 gh_i   += ghj;
-                divv_i += dv_ij * dw_ij;
+//                divv_i += dv_ij * dw_ij;
+                divv_i -= dv_ij * dw_ij;
                 rotv_i += dv_ij ^ dw_ij;
             }
             PS::F64 rhi_i = 1. / density[i].dens;
