@@ -1,5 +1,65 @@
 #pragma once
 
+#include "heos/WDEOS.hpp"
+
+namespace CodeUnit {
+    PS::F64 SolarRadius        = 6.9599e10; // cm
+    PS::F64 SolarMass          = 1.9891e33; // g
+
+    PS::F64 UnitOfLength       = SolarRadius * 1.0e-3d;
+    PS::F64 UnitOfMass         = SolarMass   * 1.0e-6d;
+    PS::F64 UnitOfTime         = 1.0d;
+    PS::F64 UnitOfVelocity     = UnitOfLength / UnitOfTime;
+    PS::F64 UnitOfDensity      = UnitOfMass / (UnitOfLength * UnitOfLength * UnitOfLength);
+    PS::F64 UnitOfEnergy       = UnitOfVelocity * UnitOfVelocity;
+    PS::F64 UnitOfPressure     = UnitOfMass * UnitOfLength
+        / (UnitOfTime * UnitOfTime * UnitOfLength * UnitOfLength);
+    PS::F64 UnitOfAcceleration = UnitOfVelocity / UnitOfTime;
+
+    PS::F64 UnitOfLengthInv    = 1.d / UnitOfLength;
+    PS::F64 UnitOfMassInv      = 1.d / UnitOfMass;
+    PS::F64 UnitOfTimeInv      = 1.d / UnitOfTime;
+    PS::F64 UnitOfVelocityInv  = 1.d / UnitOfVelocity;
+    PS::F64 UnitOfDensityInv   = 1.d / UnitOfDensity;
+    PS::F64 UnitOfEnergyInv    = 1.d / UnitOfEnergy;
+    PS::F64 UnitOfPressureInv  = 1.d / UnitOfPressure;
+}
+
+class CalcEquationOfState {
+private:
+    OTOO::EOS * eos_;
+    CalcEquationOfState() {
+        using namespace OTOO;
+        using namespace CodeUnit;
+        eos_ = new WDEOS_D_E(UnitOfDensity, UnitOfEnergy, UnitOfVelocity,
+                             UnitOfPressure, 1.0e6);
+    };
+    ~CalcEquationOfState() {};
+    CalcEquationOfState(const CalcEquationOfState & c);
+    CalcEquationOfState & operator=(const CalcEquationOfState & c);
+    static CalcEquationOfState & getInstance() {
+        static CalcEquationOfState inst;
+        return inst;
+    }
+public:
+    static PS::F64 getPressure(PS::F64 density,
+                               PS::F64 energy) {
+        return getInstance().eos_->GetP(density, energy);
+    }
+    static PS::F64 getTemperature(PS::F64 density,
+                                  PS::F64 energy) {
+        return getInstance().eos_->GetT(density, energy);
+    }
+    static PS::F64 getSoundVelocity(PS::F64 density,
+                                    PS::F64 energy) {
+        return getInstance().eos_->GetS(density, energy);
+    }
+    static PS::F64 getEnergy(PS::F64 density,
+                             PS::F64 energy) {
+        return getInstance().eos_->GetS(density, energy);
+    }
+};
+
 class Density{
 public:
     PS::F64 dens;
@@ -68,11 +128,18 @@ public:
     }
 
     PS::S32 readAscii(FILE *fp) {
+        using namespace CodeUnit;
+
+        PS::F64 dummy;
+
         fscanf(fp, "%lf%lf%lf", &time, &tend, &dtsp);
-        fscanf(fp, "%lf%lf%lf", &cbox.low_[0], &cbox.low_[1], &cbox.low_[2]);
-        fscanf(fp, "%lf%lf%lf", &cbox.high_[0], &cbox.high_[1], &cbox.high_[2]);
-        fscanf(fp, "%lf%lf%lf%lf", &gamma, &alphamax, &alphamin, &tceff);
+        fscanf(fp, "%lf%lf%lf", &alphamax, &alphamin, &tceff);
+        fscanf(fp, "%lf", &dummy);
         fscanf(fp, "%d", &nptcl);
+
+        time *= UnitOfTimeInv;
+        tend *= UnitOfTimeInv;
+        dtsp *= UnitOfTimeInv;
 
         return nptcl;
     }
@@ -105,6 +172,7 @@ public:
     PS::F64    vsmx;
     PS::F64    pot;
     PS::F64vec accg;
+    PS::F64    temp;
     static PS::F64ort cbox;
     static PS::F64    cinv;
     static PS::F64    alphamax, alphamin;
@@ -140,30 +208,65 @@ public:
         this->accg  = gravity.acc;
     }
 
-    void readAscii(FILE *fp) {
+    void readAscii(FILE *fp) {        
+        using namespace CodeUnit;
+
         fscanf(fp, "%lld%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf",
                &this->id, &this->mass,
                &this->pos[0], &this->pos[1], &this->pos[2],
                &this->vel[0], &this->vel[1], &this->vel[2],
                &this->uene,   &this->alph,   &this->ksr);
+
+        this->mass *= UnitOfMassInv;
+        this->pos  *= UnitOfLengthInv;
+        this->vel  *= UnitOfVelocityInv;
+        this->uene *= UnitOfEnergyInv;
+        this->ksr  *= UnitOfLengthInv;
     }
 
     void writeAscii(FILE *fp) const {
-        fprintf(fp, "%6d %+e", this->id, this->mass);
-        fprintf(fp, " %+e %+e %+e", this->pos[0], this->pos[1], this->pos[2]);
-        fprintf(fp, " %+e %+e %+e", this->vel[0], this->vel[1], this->vel[2]);
-        fprintf(fp, " %+e %+e %+e", this->acc[0], this->acc[1], this->acc[2]);
-        fprintf(fp, " %+e %+e %+e", this->uene, this->alph, this->ksr);
-        fprintf(fp, " %+e %+e %+e", this->dens, this->vsnd, this->pres);
-        fprintf(fp, " %+e %+e %+e", this->divv, this->rotv, this->bswt);
+        using namespace CodeUnit;
+
+        PS::F64    tmass = this->mass * UnitOfMass;
+        PS::F64vec tpos  = this->pos  * UnitOfLength;
+        PS::F64vec tvel  = this->vel  * UnitOfVelocity;
+        PS::F64vec tacc  = this->acc  * UnitOfAcceleration;
+        PS::F64    tuene = this->uene * UnitOfEnergy;
+        PS::F64    tksr  = this->ksr  * UnitOfLength;
+        PS::F64    tdens = this->dens * UnitOfDensity;
+        PS::F64    tvsnd = this->vsnd * UnitOfVelocity;
+        PS::F64    tpres = this->pres * UnitOfPressure;
+        PS::F64    tdivv = this->divv * UnitOfTimeInv; // divv [s^-1]
+        PS::F64    trotv = this->rotv * UnitOfTimeInv; // rotv [s^-1]
+        
+        fprintf(fp, "%6d %+e", this->id, tmass);
+        fprintf(fp, " %+e %+e %+e", tpos[0], tpos[1], tpos[2]);
+        fprintf(fp, " %+e %+e %+e", tvel[0], tvel[1], tvel[2]);
+        fprintf(fp, " %+e %+e %+e", tacc[0], tacc[1], tacc[2]);
+        fprintf(fp, " %+e %+e %+e", tuene, this->alph, tksr);
+        fprintf(fp, " %+e %+e %+e", tdens, tvsnd, tpres);
+        fprintf(fp, " %+e %+e %+e", tdivv, trotv, this->bswt);
         fprintf(fp, " %+e %6d %+e", this->grdh, this->np, this->pot);
-        fprintf(fp, " %+e %+e %+e", this->accg[0], this->accg[1], this->accg[2]);
         fprintf(fp, "\n");
+
+//        fprintf(fp, "%6d %+e", this->id, this->mass);
+//        fprintf(fp, " %+e %+e %+e", this->pos[0], this->pos[1], this->pos[2]);
+//        fprintf(fp, " %+e %+e %+e", this->vel[0], this->vel[1], this->vel[2]);
+//        fprintf(fp, " %+e %+e %+e", this->acc[0], this->acc[1], this->acc[2]);
+//        fprintf(fp, " %+e %+e %+e", this->uene, this->alph, this->ksr);
+//        fprintf(fp, " %+e %+e %+e", this->dens, this->vsnd, this->pres);
+//        fprintf(fp, " %+e %+e %+e", this->divv, this->rotv, this->bswt);
+//        fprintf(fp, " %+e %6d %+e", this->grdh, this->np, this->pot);
+//        fprintf(fp, " %+e %+e %+e", this->accg[0], this->accg[1], this->accg[2]);
+//        fprintf(fp, "\n");
     }
 
     void referEquationOfState() {
-        this->pres = cinv * this->dens * this->uene;
-        this->vsnd = sqrt((1. + cinv) * this->pres / this->dens);
+        this->pres = CalcEquationOfState::getPressure(this->dens, this->uene);
+        this->vsnd = CalcEquationOfState::getSoundVelocity(this->dens, this->uene);
+        this->temp = CalcEquationOfState::getTemperature(this->dens, this->uene);
+//        this->pres = cinv * this->dens * this->uene;
+//        this->vsnd = sqrt((1. + cinv) * this->pres / this->dens);
     }
 
     void calcBalsaraSwitch() {

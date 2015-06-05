@@ -1,5 +1,4 @@
-FCC = gfortran
-FFLAGS += -O3
+FFLAGS = -O3
 
 eos.o: eos.f
 	$(FCC) $(FFLAGS) -c eos.f -o eos.o

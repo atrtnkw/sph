@@ -351,22 +351,14 @@ c      zion(1)  = 28.0d0
 
 
 CCCC CO White Dwarf
-C c..helium  4
-       xmass(1) = 0.5d0
-       aion(1)  = 4.0d0
-       zion(1)  = 2.0d0
-C c..helium  4
-       xmass(2) = 0.5d0
-       aion(2)  = 4.0d0
-       zion(2)  = 2.0d0
 C c..carbon 12
-c       xmass(1) = 0.5d0
-c       aion(1)  = 12.0d0
-c       zion(1)  = 6.0d0
+       xmass(1) = 0.5d0
+       aion(1)  = 12.0d0
+       zion(1)  = 6.0d0
 C c..oxygen 16
-c       xmass(2) = 0.5d0
-c       aion(2)  = 16.0d0
-c       zion(2)  = 8.0d0
+       xmass(2) = 0.5d0
+       aion(2)  = 16.0d0
+       zion(2)  = 8.0d0
 
 c..get abar, zbar and a few other composition variables
       call azbar(xmass,aion,zion,ionmax,
@@ -743,7 +735,7 @@ c..do this stuff once
 
 c..open the table
 c      open(unit=2,file='helm_table_large.dat',status='old')
-      open(unit=2,file='eos/helm_table_large.dat',status='old')
+      open(unit=2,file='heos/helm_table_large.dat',status='old')
 
 c..read the helmholtz free energy table
 c       tlo   = 4.0d0
@@ -1742,7 +1734,7 @@ c..do this stuff once
 
 c..open the table
 c      open(unit=2,file='helm_table_large.dat',status='old')
-      open(unit=2,file='eos/helm_table_large.dat',status='old')
+      open(unit=2,file='heos/helm_table_large.dat',status='old')
 
 c..read the helmholtz free energy table
 c       tlo   = 4.0d0
