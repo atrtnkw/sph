@@ -10,7 +10,7 @@ FFLAGS += -Ieos
 
 LIBS += -lstdc++ -lm
 
-OBJ = main.o eos.o
+OBJ = main.o eos/eos.o
 HDR = 
 ETC = Makefile
 
@@ -20,16 +20,19 @@ run: $(OBJ) $(HDR) $(ETC)
 main.o: main.cpp $(HDR) $(ETC)
 	$(CCC) $(CFLAGS) -c main.cpp -o main.o
 
-eos.o: eos.f
-	$(FCC) $(FFLAGS) -c eos.f -o eos.o
+eos/eos.o: eos/eos.f
+	make -C eos
 
 clean:
 	rm -f *~
 	rm -f test.o*
 	rm -f core
+	make -C eos clean
 distclean:
 	make clean
 	rm -f *.o
+	make -C eos distclean
 allclean:
 	make distclean
 	rm -f run EOS_3999.dat
+	make -C eos allclean
