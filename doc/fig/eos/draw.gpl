@@ -1,0 +1,63 @@
+set lmargin 7
+set rmargin 2
+set tmargin 2
+set bmargin 3
+
+unset key
+
+set size ratio 1
+set size 0.5
+
+set term po co eps enhanced font "TimesNewRoman"
+set output "tmp.eps"
+
+set multiplot
+dx=0.26
+dy=0.37
+
+set grid
+
+black="#000000"
+col00="#0000ff"        
+col01="#0080ff"
+col02="#00ffff"
+col03="#00ff80"
+col04="#00ff00"
+col05="#80ff00"
+col06="#ffff00"
+col07="#ff8000"
+col08="#ff0000"
+
+#============================================
+#============================================
+
+set origin dx*0, dy*0
+
+set log x
+set format x "10^{%T}"
+set xlabel "{/Symbol r} [gcm^{-3}]"
+
+set log y
+set format y "10^{%T}"
+set ylabel "P [ergcm^{-3}]"
+
+pl \
+"test_src/heos_c.log"  u 1:3 w l, \
+"test_src/heos_co.log" u 1:3 w l, \
+"test_src/heos_he.log" u 1:3 w l
+
+#============================================
+
+set origin dx*1, dy*0
+
+set format y ""
+set ylabel ""
+
+set log y2
+set format y2 "10^{%T}"
+set ylabel "u [ergg^{-1}]"
+
+pl \
+"test_src/heos_c.log"  u 1:2 w l, \
+"test_src/heos_co.log" u 1:2 w l, \
+"test_src/heos_he.log" u 1:2 w l
