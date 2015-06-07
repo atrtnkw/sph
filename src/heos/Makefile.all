@@ -8,7 +8,7 @@ use_omp = yes
 CFLAGS += -DCUBICSPLINE
 #CFLAGS += -DUSE_AT1D
 #CFLAGS += -DUSE_AT2D
-CFLAGS += -DGRAVITY
+#CFLAGS += -DGRAVITY
 #CFLAGS += -DDAMPING
 ######################
 

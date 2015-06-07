@@ -5,8 +5,10 @@ eos.o: eos.f
 
 clean:
 	rm -f *~
+
 distclean:
-	make clean
+	make -f Makefile.heos clean
 	rm -f *.o
+
 allclean:
-	make distclean
+	make -f Makefile.heos distclean

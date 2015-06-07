@@ -16,9 +16,6 @@
 
 static PS::S32 nptclmax = 65536;
 
-template <class Theader>
-void setParameterParticle(Theader & header);
-
 template <class Tptcl>
 void writeSnapshot(FILE *fp,
                    Tptcl & system);
@@ -128,6 +125,7 @@ int main(int argc, char **argv)
         if(rank == 0) {
             fprintf(fplog, "time: %.10f %+e %+e\n", time, dtime, etot);
             fflush(fplog);
+            fprintf(stderr, "time: %.10f %+e %+e\n", time, dtime, etot);
         }
 
         predict(sph, dtime);
@@ -174,18 +172,6 @@ int main(int argc, char **argv)
     PS::Finalize();
 
     return 0;
-}
-
-template <class Theader>
-void setParameterParticle(Theader & header) {
-    SPH::cbox  = header.cbox;
-//    SPH::eta   = header.eta;
-    SPH::cinv  = header.gamma - 1.d;
-    SPH::alphamax = header.alphamax;
-    SPH::alphamin = header.alphamin;
-    SPH::tceff = header.tceff;
-    
-    return;
 }
 
 template <class Tptcl>
