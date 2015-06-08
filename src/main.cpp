@@ -109,7 +109,8 @@ int main(int argc, char **argv)
     dtime = calcTimeStep(sph, time, 1 / 64.);
 
     FILE *fplog = fopen("snap/time.log", "w");
-    PS::F64 tout = 0.0;
+//    PS::F64 tout = 0.0;
+    PS::F64 tout = time;
     PS::F64 dtdc = 0.25;
     PS::S32 nstp = 0;
     while(time < tend){

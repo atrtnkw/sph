@@ -9,7 +9,7 @@ CFLAGS += -DCUBICSPLINE
 #CFLAGS += -DUSE_AT1D
 #CFLAGS += -DUSE_AT2D
 CFLAGS += -DGRAVITY
-#CFLAGS += -DDAMPING
+#CFLAGS += -DWD_DAMPING
 ######################
 
 FDPS_DIR = ../../../fdps-jenever0/src
@@ -68,5 +68,5 @@ distclean:
 	make -C heos -f Makefile.heos distclean
 allclean:
 	make distclean
-	rm -f run
+	rm -f run EOS_*.dat
 	make -C heos -f Makefile.heos allclean

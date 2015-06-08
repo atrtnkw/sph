@@ -38,8 +38,13 @@ private:
     CalcEquationOfState() {
         using namespace OTOO;
         using namespace CodeUnit;
+#ifdef WD_DAMPING
+        eos_ = new WDEOSforDumping(UnitOfDensity, UnitOfEnergy, UnitOfVelocity,
+                                   UnitOfPressure, 1.0e6);
+#else
         eos_ = new WDEOS_D_E(UnitOfDensity, UnitOfEnergy, UnitOfVelocity,
                              UnitOfPressure, 1.0e6);
+#endif
     };
     ~CalcEquationOfState() {};
     CalcEquationOfState(const CalcEquationOfState & c);
@@ -136,8 +141,6 @@ public:
 
     PS::S32 readAscii(FILE *fp) {
         using namespace CodeUnit;
-
-//        PS::F64 dummy;
 
         fscanf(fp, "%lf%lf%lf", &time, &tend, &dtsp);
         fscanf(fp, "%lf%lf%lf", &alphamax, &alphamin, &tceff);
@@ -298,15 +301,23 @@ public:
     static inline PS::F64 calcPowerOfDimInverse(PS::F64 mass,
                                                 PS::F64 dens);
 
-#ifdef DAMPING
+#ifdef WD_DAMPING
     void predict(PS::F64 dt) {
         this->pos   = this->pos  +       this->vel  * dt  + 0.5 * this->acc * dt * dt;
         this->vel2  = this->vel  + 0.5 * this->acc  * dt;
         this->vel   = this->vel  +       this->acc  * dt;
+        this->uene2 = this->uene + 0.5 * this->udot * dt;
+        this->uene  = this->uene +       this->udot * dt;
+        this->alph2 = this->alph + 0.5 * this->adot * dt;
+        this->alph  = this->alph +       this->adot * dt;
     }
 
     void correct(PS::F64 dt) {
+        this->acc  -= this->vel / (128.d * dt); //// damping force
         this->vel   = this->vel2  + 0.5 * this->acc  * dt;
+        this->uene  = this->uene2 + 0.5 * this->udot * dt;
+        this->alph  = this->alph2 + 0.5 * this->adot * dt;
+        this->uene  = CalcEquationOfState::getEnergy(this->dens, this->uene); //// damping
     }
 #else
     void predict(PS::F64 dt) {
@@ -326,8 +337,7 @@ public:
     }
 #endif
 
-    void dampVelocity(PS::F64 dt) {
-//        this->vel *= exp(- 0.1 * this->vsnd / this->ksr * dt);
+    inline void dampVelocity(PS::F64 dt) {
         this->vel *= exp(- 0.1 * this->vsnd * KernelSph::ksrh / this->ksr * dt);
     }
 
