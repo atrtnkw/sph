@@ -1,77 +1,5 @@
 #pragma once
 
-#include "heos/WDEOS.hpp"
-
-namespace CodeUnit {
-    PS::F64 SolarRadius        = 6.9599e10; // cm
-    PS::F64 SolarMass          = 1.9891e33; // g
-    PS::F64 GravityConstant    = 6.6738480e-8;  // [cm^3 g^-1 g^-2]
-
-    PS::F64 UnitOfLength       = SolarRadius * 1.0e-3d;
-    PS::F64 UnitOfMass         = SolarMass   * 1.0e-6d;
-    PS::F64 UnitOfTime         = 1.0d;
-
-    PS::F64 UnitOfVelocity     = UnitOfLength / UnitOfTime;
-    PS::F64 UnitOfDensity      = UnitOfMass / (UnitOfLength * UnitOfLength * UnitOfLength);
-    PS::F64 UnitOfEnergy       = UnitOfVelocity * UnitOfVelocity;
-    PS::F64 UnitOfPressure     = UnitOfMass * UnitOfLength
-        / (UnitOfTime * UnitOfTime * UnitOfLength * UnitOfLength);
-    PS::F64 UnitOfAcceleration = UnitOfVelocity / UnitOfTime;
-
-    PS::F64 UnitOfLengthInv    = 1.d / UnitOfLength;
-    PS::F64 UnitOfMassInv      = 1.d / UnitOfMass;
-    PS::F64 UnitOfTimeInv      = 1.d / UnitOfTime;
-    PS::F64 UnitOfVelocityInv  = 1.d / UnitOfVelocity;
-    PS::F64 UnitOfDensityInv   = 1.d / UnitOfDensity;
-    PS::F64 UnitOfEnergyInv    = 1.d / UnitOfEnergy;
-    PS::F64 UnitOfPressureInv  = 1.d / UnitOfPressure;
-
-    // different from OTOO code in time unit !!
-    PS::F64 grav               = GravityConstant /
-        ((UnitOfLength * UnitOfLength * UnitOfLength) * UnitOfMassInv
-         * (UnitOfTimeInv * UnitOfTimeInv));
-}
-
-class CalcEquationOfState {
-private:
-    OTOO::EOS * eos_;
-    CalcEquationOfState() {
-        using namespace OTOO;
-        using namespace CodeUnit;
-#ifdef WD_DAMPING
-        eos_ = new WDEOSforDumping(UnitOfDensity, UnitOfEnergy, UnitOfVelocity,
-                                   UnitOfPressure, 1.0e6);
-#else
-        eos_ = new WDEOS_D_E(UnitOfDensity, UnitOfEnergy, UnitOfVelocity,
-                             UnitOfPressure, 1.0e6);
-#endif
-    };
-    ~CalcEquationOfState() {};
-    CalcEquationOfState(const CalcEquationOfState & c);
-    CalcEquationOfState & operator=(const CalcEquationOfState & c);
-    static CalcEquationOfState & getInstance() {
-        static CalcEquationOfState inst;
-        return inst;
-    }
-public:
-    static PS::F64 getPressure(PS::F64 density,
-                               PS::F64 energy) {
-        return getInstance().eos_->GetP(density, energy);
-    }
-    static PS::F64 getTemperature(PS::F64 density,
-                                  PS::F64 energy) {
-        return getInstance().eos_->GetT(density, energy);
-    }
-    static PS::F64 getSoundVelocity(PS::F64 density,
-                                    PS::F64 energy) {
-        return getInstance().eos_->GetS(density, energy);
-    }
-    static PS::F64 getEnergy(PS::F64 density,
-                             PS::F64 energy) {
-        return getInstance().eos_->GetE(density, energy);
-    }
-};
-
 class Density{
 public:
     PS::F64 dens;
@@ -120,6 +48,7 @@ public:
     PS::F64    tend;
     PS::F64    dtsp;
     PS::F64ort cbox;
+    PS::F64    gamma;    
     PS::F64    alphamax;
     PS::F64    alphamin;
     PS::F64    tceff;
@@ -132,6 +61,7 @@ public:
         dtsp       = 0.0;
         cbox.low_  = 0.0;
         cbox.high_ = 0.0;
+        gamma      = 0.0;
         alphamax   = 0.0;
         alphamin   = 0.0;
         tceff      = 0.0;
@@ -140,17 +70,14 @@ public:
     }
 
     PS::S32 readAscii(FILE *fp) {
-        using namespace CodeUnit;
-
         fscanf(fp, "%lf%lf%lf", &time, &tend, &dtsp);
-        fscanf(fp, "%lf%lf%lf", &alphamax, &alphamin, &tceff);
+        fscanf(fp, "%lf%lf%lf", &cbox.low_[0], &cbox.low_[1], &cbox.low_[2]);
+        fscanf(fp, "%lf%lf%lf", &cbox.high_[0], &cbox.high_[1], &cbox.high_[2]);
+        fscanf(fp, "%lf%lf%lf%lf", &gamma, &alphamax, &alphamin, &tceff);
+#ifdef GRAVITY
         fscanf(fp, "%lf", &eps);
+#endif
         fscanf(fp, "%d", &nptcl);
-
-        time *= UnitOfTimeInv;
-        tend *= UnitOfTimeInv;
-        dtsp *= UnitOfTimeInv;
-        eps  *= UnitOfLengthInv;
 
         return nptcl;
     }
@@ -183,7 +110,6 @@ public:
     PS::F64    vsmx;
     PS::F64    pot;
     PS::F64vec accg;
-    PS::F64    temp;
     static PS::F64ort cbox;
     static PS::F64    cinv;
     static PS::F64    alphamax, alphamin;
@@ -214,59 +140,35 @@ public:
     }
 
     void copyFromForce(const Gravity & gravity) {
-        this->acc  += CodeUnit::grav * gravity.acc;
-        this->pot   = CodeUnit::grav * (gravity.pot + this->mass / this->eps);
-        this->accg  = CodeUnit::grav * gravity.acc;
+        this->acc  += gravity.acc;
+        this->pot   = gravity.pot + this->mass / this->eps;
+        this->accg  = gravity.acc;
     }
 
-    void readAscii(FILE *fp) {        
-        using namespace CodeUnit;
-
+    void readAscii(FILE *fp) {
         fscanf(fp, "%lld%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf",
                &this->id, &this->mass,
                &this->pos[0], &this->pos[1], &this->pos[2],
                &this->vel[0], &this->vel[1], &this->vel[2],
                &this->uene,   &this->alph,   &this->ksr);
-
-        this->mass *= UnitOfMassInv;
-        this->pos  *= UnitOfLengthInv;
-        this->vel  *= UnitOfVelocityInv;
-        this->uene *= UnitOfEnergyInv;
-        this->ksr  *= UnitOfLengthInv;
     }
 
     void writeAscii(FILE *fp) const {
-        using namespace CodeUnit;
-
-        PS::F64    tmass = this->mass * UnitOfMass;
-        PS::F64vec tpos  = this->pos  * UnitOfLength;
-        PS::F64vec tvel  = this->vel  * UnitOfVelocity;
-        PS::F64vec tacc  = this->acc  * UnitOfAcceleration;
-        PS::F64    tuene = this->uene * UnitOfEnergy;
-        PS::F64    tksr  = this->ksr  * UnitOfLength;
-        PS::F64    tdens = this->dens * UnitOfDensity;
-        PS::F64    tvsnd = this->vsnd * UnitOfVelocity;
-        PS::F64    tpres = this->pres * UnitOfPressure;
-        PS::F64    tdivv = this->divv * UnitOfTimeInv; // divv [s^-1]
-        PS::F64    trotv = this->rotv * UnitOfTimeInv; // rotv [s^-1]
-        PS::F64    tpot  = this->pot  * UnitOfEnergy;
-        
-        fprintf(fp, "%6d %+e", this->id, tmass);
-        fprintf(fp, " %+e %+e %+e", tpos[0], tpos[1], tpos[2]);
-        fprintf(fp, " %+e %+e %+e", tvel[0], tvel[1], tvel[2]);
-        fprintf(fp, " %+e %+e %+e", tacc[0], tacc[1], tacc[2]);
-        fprintf(fp, " %+e %+e %+e", tuene, this->alph, tksr);
-        fprintf(fp, " %+e %+e %+e %+e", tdens, tvsnd, tpres, this->temp);
-        fprintf(fp, " %+e %+e %+e", tdivv, trotv, this->bswt);
-        fprintf(fp, " %+e %6d %+e", this->grdh, this->np, tpot);
+        fprintf(fp, "%6d %+e", this->id, this->mass);
+        fprintf(fp, " %+e %+e %+e", this->pos[0], this->pos[1], this->pos[2]);
+        fprintf(fp, " %+e %+e %+e", this->vel[0], this->vel[1], this->vel[2]);
+        fprintf(fp, " %+e %+e %+e", this->acc[0], this->acc[1], this->acc[2]);
+        fprintf(fp, " %+e %+e %+e", this->uene, this->alph, this->ksr);
+        fprintf(fp, " %+e %+e %+e", this->dens, this->vsnd, this->pres);
+        fprintf(fp, " %+e %+e %+e", this->divv, this->rotv, this->bswt);
+        fprintf(fp, " %+e %6d %+e", this->grdh, this->np, this->pot);
+        fprintf(fp, " %+e %+e %+e", this->accg[0], this->accg[1], this->accg[2]);
         fprintf(fp, "\n");
-
     }
 
     void referEquationOfState() {
-        this->pres = CalcEquationOfState::getPressure(this->dens, this->uene);
-        this->vsnd = CalcEquationOfState::getSoundVelocity(this->dens, this->uene);
-        this->temp = CalcEquationOfState::getTemperature(this->dens, this->uene);
+        this->pres = cinv * this->dens * this->uene;
+        this->vsnd = sqrt((1. + cinv) * this->pres / this->dens);
     }
 
     void calcBalsaraSwitch() {
@@ -294,30 +196,26 @@ public:
 //    }
 
     PS::F64 calcEnergy() {
+#ifdef GRAVITY
         return this->mass * (0.5 * this->vel * this->vel + this->uene + 0.5 * this->pot);
+#else
+        return this->mass * (0.5 * this->vel * this->vel + this->uene);
+#endif
     }
 
     static inline PS::F64 calcVolumeInverse(const PS::F64 hi);
     static inline PS::F64 calcPowerOfDimInverse(PS::F64 mass,
                                                 PS::F64 dens);
 
-#ifdef WD_DAMPING
+#ifdef DAMPING
     void predict(PS::F64 dt) {
         this->pos   = this->pos  +       this->vel  * dt  + 0.5 * this->acc * dt * dt;
         this->vel2  = this->vel  + 0.5 * this->acc  * dt;
         this->vel   = this->vel  +       this->acc  * dt;
-        this->uene2 = this->uene + 0.5 * this->udot * dt;
-        this->uene  = this->uene +       this->udot * dt;
-        this->alph2 = this->alph + 0.5 * this->adot * dt;
-        this->alph  = this->alph +       this->adot * dt;
     }
 
     void correct(PS::F64 dt) {
-        this->acc  -= this->vel / (128.d * dt); //// damping force
         this->vel   = this->vel2  + 0.5 * this->acc  * dt;
-        this->uene  = this->uene2 + 0.5 * this->udot * dt;
-        this->alph  = this->alph2 + 0.5 * this->adot * dt;
-        this->uene  = CalcEquationOfState::getEnergy(this->dens, this->uene); //// damping
     }
 #else
     void predict(PS::F64 dt) {
@@ -337,7 +235,8 @@ public:
     }
 #endif
 
-    inline void dampVelocity(PS::F64 dt) {
+    void dampVelocity(PS::F64 dt) {
+//        this->vel *= exp(- 0.1 * this->vsnd / this->ksr * dt);
         this->vel *= exp(- 0.1 * this->vsnd * KernelSph::ksrh / this->ksr * dt);
     }
 
@@ -347,6 +246,7 @@ PS::F64ort SPH::cbox;
 PS::F64    SPH::cinv;
 PS::F64    SPH::tceff;
 PS::F64    SPH::alphamax, SPH::alphamin;
+//PS::F64    SPH::eps = 1e-3;
 PS::F64    SPH::eps;
 
 #ifdef USE_AT1D
@@ -374,6 +274,7 @@ inline PS::F64 SPH::calcPowerOfDimInverse(PS::F64 mass,
 template <class Theader>
 void setParameterParticle(Theader & header) {
     SPH::cbox     = header.cbox;
+    SPH::cinv     = header.gamma - 1.d;
     SPH::alphamax = header.alphamax;
     SPH::alphamin = header.alphamin;
     SPH::tceff    = header.tceff;
@@ -381,3 +282,23 @@ void setParameterParticle(Theader & header) {
     
     return;
 }
+
+template <class Tptcl>
+void finalizeSimulation(PS::S32 nstp,
+                        Tptcl & system) {
+    char filename[64];
+
+    sprintf(filename, "snap/sph_t%04d.dat", nstp);
+    system.writeParticleAscii(filename);
+
+    PS::F64    msloc = 0.0d;
+    PS::F64vec xcloc = 0.0d;    
+    PS::F64vec vcloc = 0.0d;    
+    PS::S32 nloc = system.getNumberOfParticleLocal();
+    for(PS::S32 i = 0; i < nloc; i++) {
+        msloc += system[i].mass;
+        xcloc += system[i].mass * system[i].pos;
+        vcloc += system[i].mass * system[i].vel;
+    }
+}
+

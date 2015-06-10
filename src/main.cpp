@@ -109,7 +109,6 @@ int main(int argc, char **argv)
     dtime = calcTimeStep(sph, time, 1 / 64.);
 
     FILE *fplog = fopen("snap/time.log", "w");
-//    PS::F64 tout = 0.0;
     PS::F64 tout = time;
     PS::F64 dtdc = 0.25;
     PS::S32 nstp = 0;
@@ -164,11 +163,12 @@ int main(int argc, char **argv)
 
     fclose(fplog);
 
-    {
-        char filename[64];
-        sprintf(filename, "snap/sph_t%04d.dat", nstp);
-        sph.writeParticleAscii(filename);
-    }
+    finalizeSimulation(nstp, sph);
+//    {
+//        char filename[64];
+//        sprintf(filename, "snap/sph_t%04d.dat", nstp);
+//        sph.writeParticleAscii(filename);
+//    }
     
     PS::Finalize();
 
