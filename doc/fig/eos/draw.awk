@@ -1,6 +1,6 @@
 {
     if(NR == 6){
-        printf("%%%%BoundingBox: 75 50 330 260\n");
+        printf("%%%%BoundingBox: 75 50 320 170\n");
     }else{
         print $0;
     }

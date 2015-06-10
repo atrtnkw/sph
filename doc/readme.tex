@@ -195,6 +195,11 @@ each particle as follows:
 \item Return to step~1.
 \end{enumerate}
 
+\section{Helmholtz EOS}
+
+Coorporate Timmes's EOS. The compositions are 100~\% carbon, 50~\%
+carbon and 50~\% oxygen, and 100~\% helium.
+
 \appendix
 
 \section{Kernels}
@@ -267,14 +272,14 @@ where $C_{\rm W}=3/2$ ($D=1$), $9/\pi$ ($D=2$), and $495/(32\pi)$
 ($D=3$). For this kernel, $\eta=1.6$, and $H/h=1.936492(D=1)$,
 $2.171239(D=2)$, and $2.207940(D=3)$.
 
-\section{Test}
+\section{SPH tests}
 
 \begin{enumerate}
-\item 1D shock tube (CUBICSPLINE, USE_AT1D)
+\item 1D shock tube (CUBICSPLINE, USE\_AT1D)
 \item 3D shock tube (CUBICSPLINE)
-\item Strong shock (CUBICSPLINE, USE_AT1D)
+\item Strong shock (CUBICSPLINE, USE\_AT1D)
 \item Point like explosion (CUBICSPLINE)
-\item Evrard test (CUBICSPLINE, USE_AT3D, GRAVITY)
+\item Evrard test (CUBICSPLINE, USE\_AT3D, GRAVITY)
 \end{enumerate}
 
 \begin{figure}
@@ -308,10 +313,19 @@ $2.171239(D=2)$, and $2.207940(D=3)$.
 
 \begin{figure}
   \begin{center}
-    \includegraphics[width=16cm,bb=0 0 2120 2000]{fig/evrard/draw.png}
+    \includegraphics[width=14cm,bb=0 0 2120 2000]{fig/evrard/draw.png}
   \end{center}
   \caption{Evrard test (cubic spline, $\gamma=5/3$, $\alpha_{\rm
       min}=0.1$, $\alpha_{\rm max}=3.0$).}
+\end{figure}
+
+\section{EOS tests}
+
+\begin{figure}
+  \begin{center}
+    \includegraphics[width=14cm,bb=0 0 980 480]{fig/eos/draw.png}
+  \end{center}
+  \caption{Helmholtz EOS.}
 \end{figure}
 
 \end{document}
