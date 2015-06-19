@@ -62,7 +62,8 @@ namespace OTOO {
     {
         LoadHelmTable();
     }
-    
+
+#if 0 // for distributed memories
     void WDEOS::SetupEOSforDumping() {
         D_min = 1.0e2/sph_dunit;
         D_max = 1.0e10/sph_dunit;
@@ -95,6 +96,59 @@ namespace OTOO {
         }
         fclose(fp);
     }
+#else
+    void WDEOS::SetupEOSforDumping() {
+        D_min = 1.0e2/sph_dunit;
+        D_max = 1.0e10/sph_dunit;
+        
+        d_D = (log10(D_max)-log10(D_min))/N_TABLE;
+
+        if(PS::Comm::getRank() == 0) {
+            FILE *fp = fopen("EOS_table.dat", "w");
+            fprintf(fp, "#inittemp %e\n", initial_temperature);
+            fprintf(fp, "#D T E P C\n");
+            for(uint64 j = 0; j < N_TABLE; j++) {
+                double D, E;
+                double P, C, T;
+                
+                D = pow(10.0, log10(D_min)+d_D*j)*sph_dunit;
+                T = initial_temperature;
+                eosx_return_(&T, &D, &P, &E, &C);
+                
+                D_table[j]    = D/sph_dunit;
+                E_table[0][j] = E/sph_eunit;
+                T_table[0][j] = T;
+                P_table[0][j] = P/sph_punit;
+                C_table[0][j] = C/sph_vunit;
+                
+                fprintf(fp, "%e %e %e %e %e\n", 
+                        D_table[j], 
+                        T_table[0][j], 
+                        E_table[0][j], 
+                        P_table[0][j], 
+                        C_table[0][j]);
+            }
+            fclose(fp);
+        } else {
+            for(uint64 j = 0; j < N_TABLE; j++) {
+                double D, E;
+                double P, C, T;
+                
+                D = pow(10.0, log10(D_min)+d_D*j)*sph_dunit;
+                T = initial_temperature;
+                eosx_return_(&T, &D, &P, &E, &C);
+                
+                D_table[j]    = D/sph_dunit;
+                E_table[0][j] = E/sph_eunit;
+                T_table[0][j] = T;
+                P_table[0][j] = P/sph_punit;
+                C_table[0][j] = C/sph_vunit;                
+            }
+        }
+
+        PS::Comm::barrier();
+    }
+#endif
     
     void WDEOS::SetupEOS()
     {
@@ -129,7 +183,8 @@ namespace OTOO {
             } 
             fclose(fp2);
         }
-        
+
+#if 0 // for distributed memories
         if (flag == 0) {
             std::cerr << "Generating EOS with N = " << N_TABLE << "\n";
             double D, E, P, C, T;
@@ -163,6 +218,46 @@ namespace OTOO {
             fwrite(C_table, sizeof(double), n*n, fp2);
             fclose(fp2);
         }
+#else
+        if (flag == 0) {
+            if(PS::Comm::getRank() == 0) {
+                std::cerr << "Generating EOS with N = " << N_TABLE << "\n";
+            }
+            double D, E, P, C, T;
+            for(uint64 j = 0; j < N_TABLE; j++) {
+                D = pow(10.0, log10(D_min)+d_D*j);
+                D_table[j] = D;
+                D *= sph_dunit;
+                for(uint64 i = 0; i < N_TABLE; i++) {
+                    T = pow(10.0, log10(T_min)+d_T*i);
+                    
+                    eosx_return_(&T, &D, &P, &E, &C);
+                    
+                    E_table[j][i] = E/sph_eunit;
+                    T_table[j][i] = T;
+                    P_table[j][i] = P/sph_punit;
+                    C_table[j][i] = C/sph_vunit;
+                }
+                if (j % 25 == 0) fputs(".", stderr); fflush(stderr);
+            }
+            if(PS::Comm::getRank() == 0) {
+                std::cerr << "\n\n";
+                std::cerr.flush();
+                
+                int n = N_TABLE;
+                fp2 = fopen(eos_file.str().c_str(), "w");
+                fwrite(&n, sizeof(int), 1, fp2);
+                fwrite(&sph_dunit, sizeof(double), 1, fp2);
+                fwrite(D_table, sizeof(double), n, fp2);
+                fwrite(E_table, sizeof(double), n*n, fp2);
+                fwrite(T_table, sizeof(double), n*n, fp2);
+                fwrite(P_table, sizeof(double), n*n, fp2);
+                fwrite(C_table, sizeof(double), n*n, fp2);
+                fclose(fp2);
+            }
+            PS::Comm::barrier();
+        }
+#endif
         
         for(uint64 j = 0; j < N_TABLE-2; j++) {
             if (D_table[j]*sph_dunit < 100.0) {

@@ -126,6 +126,7 @@ struct calcDensity {
             PS::F64 grd_i = density[i].grdh;
             density[i].rotv = sqrt(rotv_i * rotv_i) * rhi_i * grd_i;
             density[i].divv = divv_i * rhi_i * grd_i;
+
         }        
 
     }

@@ -282,3 +282,23 @@ void setParameterParticle(Theader & header) {
     
     return;
 }
+
+template <class Tptcl>
+void finalizeSimulation(PS::S32 nstp,
+                        Tptcl & system) {
+    char filename[64];
+
+    sprintf(filename, "snap/sph_t%04d.dat", nstp);
+    system.writeParticleAscii(filename);
+
+    PS::F64    msloc = 0.0d;
+    PS::F64vec xcloc = 0.0d;    
+    PS::F64vec vcloc = 0.0d;    
+    PS::S32 nloc = system.getNumberOfParticleLocal();
+    for(PS::S32 i = 0; i < nloc; i++) {
+        msloc += system[i].mass;
+        xcloc += system[i].mass * system[i].pos;
+        vcloc += system[i].mass * system[i].vel;
+    }
+}
+

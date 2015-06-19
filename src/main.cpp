@@ -16,9 +16,9 @@
 
 static PS::S32 nptclmax = 65536;
 
-template <class Tptcl>
-void writeSnapshot(FILE *fp,
-                   Tptcl & system);
+//template <class Tptcl>
+//void writeSnapshot(FILE *fp,
+//                   Tptcl & system);
 
 template <class Tptcl>
 void referEquationOfState(Tptcl & system);
