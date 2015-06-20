@@ -298,7 +298,7 @@ public:
 //        return ((dthydro < dtenergy) ? dthydro : dtenergy);
 //    }
 
-#ifdef WD_DAMPING3
+#ifdef WD_DAMPINGB
     inline void addAdditionalForce() {
         this->acc  -= this->omg ^ (this->omg ^ this->pos) + 2.d * (this->omg ^ this->vel);
     }
@@ -351,7 +351,7 @@ public:
         PS::F64 delu = (unow < umin) ? 0.d : unow - umin;
         this->uene = (unow < umin) ? unow : ((unow - umin) * exp(-0.1 * dt) + umin);
     }
-#elif defined WD_DAMPING3
+#elif defined WD_DAMPINGB
     void correct(PS::F64 dt) {
         this->acc  -= this->vel / (128.d * dt);
         this->vel   = this->vel2  + 0.5 * this->acc  * dt;
@@ -445,12 +445,12 @@ template <class Tptcl>
 void reduceSeparation(PS::F64 time, 
                       Tptcl & system) {
 
-#ifdef WD_DAMPING3
+#ifdef WD_DAMPINGB
     static bool    firststep = true;
     static PS::F64 ReductionTime;
     static PS::F64 DeltaSystemTime = 1.d / 64.d;
     static PS::F64 CriticalRadius  = 1.5e9 * CodeUnit::UnitOfLengthInv;
-    static bool StopDamping2 = false;
+    static bool StopDampingB = false;
 
     if(firststep) {
         PS::F64    m1;
@@ -487,7 +487,7 @@ void reduceSeparation(PS::F64 time,
         calcCenterOfMass(system, m0, x0, v0, 0);
         calcCenterOfMass(system, m1, x1, v1, 1);
 
-        if(StopDamping2) {
+        if(StopDampingB) {
             PS::F64 mc;
             PS::F64vec xc;
             PS::F64vec vc;
@@ -500,18 +500,21 @@ void reduceSeparation(PS::F64 time,
 
             calcCenterOfMass(system, m0, x0, v0, 0);
             calcCenterOfMass(system, m1, x1, v1, 1);
-
-            PS::F64vec axisv = x0 - x1;
-            PS::F64    axis  = sqrt(axisv * axisv);
-            PS::F64    vel   = sqrt(CodeUnit::grav * (m0 + m1) / axis);
-            PS::F64    dv0   =   vel * m1 / (m0 + m1);
-            PS::F64    dv1   = - vel * m0 / (m0 + m1);
-            for(PS::S32 i = 0; i < nloc; i++) {
-                if(system[i].istar == 0) {
-                    system[i].vel[1] += dv0;
-                } else {
-                    system[i].vel[1] += dv1;
-                }
+            
+//            PS::F64vec axisv = x0 - x1;
+//            PS::F64    axis  = sqrt(axisv * axisv);
+//            PS::F64    vel   = sqrt(CodeUnit::grav * (m0 + m1) / axis);
+//            PS::F64    dv0   =   vel * m1 / (m0 + m1);
+//            PS::F64    dv1   = - vel * m0 / (m0 + m1);
+//            for(PS::S32 i = 0; i < nloc; i++) {
+//                if(system[i].istar == 0) {
+//                    system[i].vel[1] += dv0;
+//                } else {
+//                    system[i].vel[1] += dv1;
+//                }
+//            }
+            for(PS::S32 i = 0; i < nloc; i++) {                
+                system[i].vel += system[i].omg ^ system[i].pos;
             }
 
             char filename[64];
@@ -554,7 +557,7 @@ void reduceSeparation(PS::F64 time,
         }
 
         if(dr < CriticalRadius) {
-            StopDamping2 = true;
+            StopDampingB = true;
         }
    }
 #endif    
@@ -564,7 +567,7 @@ void reduceSeparation(PS::F64 time,
 template <class Tptcl>
 void calcFieldVariable(Tptcl & system) {
 
-#ifdef WD_DAMPING3
+#ifdef WD_DAMPINGB
     PS::F64    m0, m1;
     PS::F64vec x0, x1;
     PS::F64vec v0, v1;

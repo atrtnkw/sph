@@ -12,7 +12,7 @@ CFLAGS += -DCUBICSPLINE
 CFLAGS += -DGRAVITY
 #CFLAGS += -DWD_DAMPING1
 #CFLAGS += -DWD_DAMPING2
-#CFLAGS += -DWD_DAMPING3
+#CFLAGS += -DWD_DAMPINGB
 ######################
 
 FDPS_DIR = ../../../fdps-jenever0/src
