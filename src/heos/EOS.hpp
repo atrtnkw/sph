@@ -13,6 +13,7 @@ namespace OTOO {
     virtual float GetT(float d, float e) = 0;
     virtual void TestEOS(uint64 n, float *d, float *e= NULL) = 0;
     virtual float GetEmin(float d) = 0; 
+    virtual float GetEmin2(float d) = 0; 
   };
 }
 #endif

@@ -20,6 +20,7 @@ namespace OTOO {
         virtual float GetT(float d, float e) = 0;
         virtual void TestEOS(uint64 n, float *d, float *e= NULL) = 0;
         virtual float GetEmin(float d) = 0; 
+        virtual float GetEmin2(float d) = 0; 
         
     protected:
 #define N_TABLE 3999
@@ -410,6 +411,11 @@ namespace OTOO {
                 return E_table[0][0];
             }
         
+        float GetEmin2(float d)
+            {
+                return E_table[0][0];
+            }
+        
         float GetS(float d, float e = 0)
             {
                 uint64 D_index = get_index_D(d);
@@ -476,6 +482,11 @@ namespace OTOO {
         float GetEmin(float d) {
             uint64 D_index = get_index_D(d);
             return Emin_table[D_index];
+        }
+
+        float GetEmin2(float d) {
+            uint64 D_index = get_index_D(d);
+            return E_table[D_index][E_limit_];
         }
         
         float GetS(float d, float e) {

@@ -38,7 +38,7 @@ private:
     CalcEquationOfState() {
         using namespace OTOO;
         using namespace CodeUnit;
-#ifdef WD_DAMPING
+#ifdef WD_DAMPING1
         eos_ = new WDEOSforDumping(UnitOfDensity, UnitOfEnergy, UnitOfVelocity,
                                    UnitOfPressure, 1.0e6);
 #else
@@ -159,6 +159,7 @@ public:
 class SPH{
 public:
     PS::S64    id;
+    PS::S64    istar;
     PS::F64    mass;
     PS::F64vec pos;
     PS::F64vec vel;
@@ -189,6 +190,7 @@ public:
     static PS::F64    alphamax, alphamin;
     static PS::F64    tceff;
     static PS::F64    eps;
+    static PS::F64vec omg;
 
     PS::F64vec getPos() const {
         return this->pos;
@@ -222,8 +224,8 @@ public:
     void readAscii(FILE *fp) {        
         using namespace CodeUnit;
 
-        fscanf(fp, "%lld%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf",
-               &this->id, &this->mass,
+        fscanf(fp, "%lld%lld%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf",
+               &this->id, &this->istar, &this->mass,
                &this->pos[0], &this->pos[1], &this->pos[2],
                &this->vel[0], &this->vel[1], &this->vel[2],
                &this->uene,   &this->alph,   &this->ksr);
@@ -251,14 +253,14 @@ public:
         PS::F64    trotv = this->rotv * UnitOfTimeInv; // rotv [s^-1]
         PS::F64    tpot  = this->pot  * UnitOfEnergy;
         
-        fprintf(fp, "%6d %+e", this->id, tmass);
-        fprintf(fp, " %+e %+e %+e", tpos[0], tpos[1], tpos[2]);
-        fprintf(fp, " %+e %+e %+e", tvel[0], tvel[1], tvel[2]);
-        fprintf(fp, " %+e %+e %+e", tacc[0], tacc[1], tacc[2]);
-        fprintf(fp, " %+e %+e %+e", tuene, this->alph, tksr);
-        fprintf(fp, " %+e %+e %+e %+e", tdens, tvsnd, tpres, this->temp);
-        fprintf(fp, " %+e %+e %+e", tdivv, trotv, this->bswt);
-        fprintf(fp, " %+e %6d %+e", this->grdh, this->np, tpot);
+        fprintf(fp, "%6d %2d %+e", this->id, this->istar, tmass);
+        fprintf(fp, " %+.16e %+.16e %+.16e", tpos[0], tpos[1], tpos[2]);
+        fprintf(fp, " %+.16e %+.16e %+.16e", tvel[0], tvel[1], tvel[2]);
+        fprintf(fp, " %+.16e %+.16e %+.16e", tacc[0], tacc[1], tacc[2]);
+        fprintf(fp, " %+.16e %+.16e %+.16e", tuene, this->alph, tksr);
+        fprintf(fp, " %+.16e %+.16e %+.16e %+.16e", tdens, tvsnd, tpres, this->temp);
+        fprintf(fp, " %+.16e %+.16e %+.16e", tdivv, trotv, this->bswt);
+        fprintf(fp, " %+.16e %6d %+.16e", this->grdh, this->np, tpot);
         fprintf(fp, "\n");
 
     }
@@ -293,15 +295,30 @@ public:
 //        return ((dthydro < dtenergy) ? dthydro : dtenergy);
 //    }
 
+#ifdef WD_DAMPING2
+    inline void addAdditionalForce() {
+        this->acc  -= this->omg ^ (this->omg ^ this->pos) + 2.d * (this->omg ^ this->vel);
+    }
+
+    PS::F64 calcEnergy() {
+        PS::F64vec tv = this->omg ^ this->pos;
+        return this->mass * (0.5 * this->vel * this->vel + this->uene
+                             + 0.5 * (this->pot - tv * tv));
+    }
+#else
+    inline void addAdditionalForce() {
+       ;
+    }
+    
     PS::F64 calcEnergy() {
         return this->mass * (0.5 * this->vel * this->vel + this->uene + 0.5 * this->pot);
     }
+#endif
 
     static inline PS::F64 calcVolumeInverse(const PS::F64 hi);
     static inline PS::F64 calcPowerOfDimInverse(PS::F64 mass,
                                                 PS::F64 dens);
 
-#ifdef WD_DAMPING
     void predict(PS::F64 dt) {
         this->pos   = this->pos  +       this->vel  * dt  + 0.5 * this->acc * dt * dt;
         this->vel2  = this->vel  + 0.5 * this->acc  * dt;
@@ -311,23 +328,25 @@ public:
         this->alph2 = this->alph + 0.5 * this->adot * dt;
         this->alph  = this->alph +       this->adot * dt;
     }
-
+    
+#ifdef WD_DAMPING1
     void correct(PS::F64 dt) {
-        this->acc  -= this->vel / (128.d * dt); //// damping force
+        this->acc  -= this->vel / (128.d * dt);
         this->vel   = this->vel2  + 0.5 * this->acc  * dt;
         this->uene  = this->uene2 + 0.5 * this->udot * dt;
         this->alph  = this->alph2 + 0.5 * this->adot * dt;
-        this->uene  = CalcEquationOfState::getEnergy(this->dens, this->uene); //// damping
+        this->uene  = CalcEquationOfState::getEnergy(this->dens, this->uene);
+    }
+#elif defined WD_DAMPING2
+    void correct(PS::F64 dt) {
+        this->acc  -= this->vel / (128.d * dt);
+        this->vel   = this->vel2  + 0.5 * this->acc  * dt;
+        this->uene  = this->uene2 + 0.5 * this->udot * dt;
+        this->alph  = this->alph2 + 0.5 * this->adot * dt;
     }
 #else
-    void predict(PS::F64 dt) {
-        this->pos   = this->pos  +       this->vel  * dt  + 0.5 * this->acc * dt * dt;
-        this->vel2  = this->vel  + 0.5 * this->acc  * dt;
-        this->vel   = this->vel  +       this->acc  * dt;
-        this->uene2 = this->uene + 0.5 * this->udot * dt;
-        this->uene  = this->uene +       this->udot * dt;
-        this->alph2 = this->alph + 0.5 * this->adot * dt;
-        this->alph  = this->alph +       this->adot * dt;
+    inline void addAdditionalForce() {
+        ;
     }
 
     void correct(PS::F64 dt) {
@@ -348,6 +367,7 @@ PS::F64    SPH::cinv;
 PS::F64    SPH::tceff;
 PS::F64    SPH::alphamax, SPH::alphamin;
 PS::F64    SPH::eps;
+PS::F64vec SPH::omg;
 
 #ifdef USE_AT1D
 inline PS::F64 SPH::calcVolumeInverse(const PS::F64 hi) {return hi;}
@@ -379,6 +399,43 @@ void setParameterParticle(Theader & header) {
     SPH::tceff    = header.tceff;
     SPH::eps      = header.eps;
     
+    return;
+}
+
+template <class Tptcl>
+void calcFieldVariable(Tptcl & system) {
+
+#ifdef WD_DAMPING2
+    PS::F64    m0loc = 0.0d;
+    PS::F64    m1loc = 0.0d;
+    PS::F64vec x0loc = 0.0d;    
+    PS::F64vec x1loc = 0.0d;    
+    PS::S32 nloc = system.getNumberOfParticleLocal();
+    for(PS::S32 i = 0; i < nloc; i++) {
+        if(system[i].istar == 0) {
+            m0loc += system[i].mass;
+            x0loc += system[i].mass * system[i].pos;
+        } else {
+            m1loc += system[i].mass;
+            x1loc += system[i].mass * system[i].pos;          
+        }
+    }
+
+    PS::F64    m0glb = PS::Comm::getSum(m0loc);
+    PS::F64    m1glb = PS::Comm::getSum(m1loc);
+    PS::F64vec x0glb = PS::Comm::getSum(x0loc);
+    PS::F64vec x1glb = PS::Comm::getSum(x1loc);
+    PS::F64    m0inv = 1.d / m0glb;
+    PS::F64    m1inv = 1.d / m1glb;
+    PS::F64vec axisv = x0glb * m0inv - x1glb * m1inv;
+    PS::F64    axis  = sqrt(axisv * axisv);
+    PS::F64    vel   = sqrt(CodeUnit::grav * (m0glb + m1glb) / axis);
+    
+    SPH::omg[0] = 0.d;
+    SPH::omg[1] = 0.d;
+    SPH::omg[2] = vel / axis;
+#endif
+
     return;
 }
 

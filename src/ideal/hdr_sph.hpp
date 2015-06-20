@@ -208,6 +208,10 @@ public:
                                                 PS::F64 dens);
 
 #ifdef DAMPING
+    inline void addAdditionalForce() {
+        ;
+    }
+
     void predict(PS::F64 dt) {
         this->pos   = this->pos  +       this->vel  * dt  + 0.5 * this->acc * dt * dt;
         this->vel2  = this->vel  + 0.5 * this->acc  * dt;
@@ -218,6 +222,10 @@ public:
         this->vel   = this->vel2  + 0.5 * this->acc  * dt;
     }
 #else
+    inline void addAdditionalForce() {
+        ;
+    }
+
     void predict(PS::F64 dt) {
         this->pos   = this->pos  +       this->vel  * dt  + 0.5 * this->acc * dt * dt;
         this->vel2  = this->vel  + 0.5 * this->acc  * dt;

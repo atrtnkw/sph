@@ -11,7 +11,8 @@ CFLAGS += -DCUBICSPLINE
 #CFLAGS += -DUSE_AT2D
 CFLAGS += -DGRAVITY
 #CFLAGS += -DWD_DAMPING1
-CFLAGS += -DWD_DAMPING2
+#CFLAGS += -DWD_DAMPING2
+#CFLAGS += -DWD_DAMPING3
 ######################
 
 FDPS_DIR = ../../../fdps-jenever0/src
@@ -72,3 +73,11 @@ allclean:
 	make distclean
 	rm -f run EOS_*.dat
 	make -C heos -f Makefile.heos allclean
+
+change:
+	cp hdr_sph.hpp heos/hdr_sph.hpp
+	cp main.cpp heos/main.cpp
+	cp Makefile heos/Makefile.all
+	cp ideal/hdr_sph.hpp .
+	cp ideal/Makefile.all Makefile
+	cp ideal/main.cpp main.cpp

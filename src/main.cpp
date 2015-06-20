@@ -42,6 +42,10 @@ template <class Tptcl>
 void correct(Tptcl & system,
              PS::F64 dt);
 
+template <class Tptcl>
+void addAdditionalForce(Tptcl & system,
+                        PS::F64 dt);
+
 template <class Tdinfo,
           class Tpsys,
           class Ttree1,
@@ -91,6 +95,8 @@ int main(int argc, char **argv)
     density.initialize(nptclmax);
     derivative.initialize(nptclmax);
 
+    calcFieldVariable(sph);
+
     sph.exchangeParticle(dinfo);
     calcSPHKernel(dinfo, sph, density, derivative,
                   calcDensity(), calcDerivative());
@@ -106,13 +112,15 @@ int main(int argc, char **argv)
                                      dinfo);
 #endif
 
-    dtime = calcTimeStep(sph, time, 1 / 64.);
-
     FILE *fplog = fopen("snap/time.log", "w");
     PS::F64 tout = time;
     PS::F64 dtdc = 0.25;
     PS::S32 nstp = 0;
     while(time < tend){
+        reduceSeparation(time, sph);
+
+        dtime = calcTimeStep(sph, time, 1 / 64.);
+
         if(time >= tout) {
             char filename[64];
             sprintf(filename, "snap/sph_t%04d.dat", nstp);
@@ -121,6 +129,9 @@ int main(int argc, char **argv)
             nstp++;
         }
         
+//        PS::Finalize();
+//        exit(0);
+
         PS::F64 etot = calcEnergy(sph);
         if(rank == 0) {
             fprintf(fplog, "time: %.10f %+e %+e\n", time, dtime, etot);
@@ -138,6 +149,9 @@ int main(int argc, char **argv)
         }
 
         sph.exchangeParticle(dinfo);
+
+        calcFieldVariable(sph);
+
         calcSPHKernel(dinfo, sph, density, derivative,
                       calcDensity(), calcDerivative());
 
@@ -150,25 +164,12 @@ int main(int argc, char **argv)
 
         correct(sph, dtime);
 
-#ifdef DAMPING
-        DampVelocity::dampVelocity(sph, dtime);
-        if(DampVelocity::stopDamping(time, sph)) {
-            break;
-        }
-#endif
-
         time += dtime;
-        dtime = calcTimeStep(sph, time, dtime);
     }
 
     fclose(fplog);
 
     finalizeSimulation(nstp, sph);
-//    {
-//        char filename[64];
-//        sprintf(filename, "snap/sph_t%04d.dat", nstp);
-//        sph.writeParticleAscii(filename);
-//    }
     
     PS::Finalize();
 
@@ -256,6 +257,15 @@ void correct(Tptcl & system,
     return;
 }
 
+template <class Tptcl>
+void addAdditionalForce(Tptcl & system) {
+    PS::S32 nloc = system.getNumberOfParticleLocal();
+    for(PS::S32 i = 0 ; i < nloc; i++)
+        system[i].addAdditionalForce();    
+    
+    return;
+}
+
 template <class Tdinfo,
           class Tpsys,
           class Ttree1,
@@ -297,6 +307,7 @@ void calcSPHKernel(Tdinfo & dinfo,
     referEquationOfState(sph);
     calcBalsaraSwitch(sph);
     derivative.calcForceAllAndWriteBack(calcDerivative, sph, dinfo);
+    addAdditionalForce(sph);
     for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
         sph[i].calcAlphaDot();
     }

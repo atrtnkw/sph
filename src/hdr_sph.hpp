@@ -70,6 +70,9 @@ public:
                              PS::F64 energy) {
         return getInstance().eos_->GetE(density, energy);
     }
+    static PS::F64 getEnergyMin(PS::F64 density) {
+        return getInstance().eos_->GetEmin2(density);
+    }
 };
 
 class Density{
@@ -159,6 +162,7 @@ public:
 class SPH{
 public:
     PS::S64    id;
+    PS::S64    istar;
     PS::F64    mass;
     PS::F64vec pos;
     PS::F64vec vel;
@@ -223,8 +227,8 @@ public:
     void readAscii(FILE *fp) {        
         using namespace CodeUnit;
 
-        fscanf(fp, "%lld%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf",
-               &this->id, &this->mass,
+        fscanf(fp, "%lld%lld%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf",
+               &this->id, &this->istar, &this->mass,
                &this->pos[0], &this->pos[1], &this->pos[2],
                &this->vel[0], &this->vel[1], &this->vel[2],
                &this->uene,   &this->alph,   &this->ksr);
@@ -252,7 +256,7 @@ public:
         PS::F64    trotv = this->rotv * UnitOfTimeInv; // rotv [s^-1]
         PS::F64    tpot  = this->pot  * UnitOfEnergy;
         
-        fprintf(fp, "%6d %+e", this->id, tmass);
+        fprintf(fp, "%6d %2d %+e", this->id, this->istar, tmass);
         fprintf(fp, " %+.16e %+.16e %+.16e", tpos[0], tpos[1], tpos[2]);
         fprintf(fp, " %+.16e %+.16e %+.16e", tvel[0], tvel[1], tvel[2]);
         fprintf(fp, " %+.16e %+.16e %+.16e", tacc[0], tacc[1], tacc[2]);
@@ -294,16 +298,30 @@ public:
 //        return ((dthydro < dtenergy) ? dthydro : dtenergy);
 //    }
 
+#ifdef WD_DAMPING3
+    inline void addAdditionalForce() {
+        this->acc  -= this->omg ^ (this->omg ^ this->pos) + 2.d * (this->omg ^ this->vel);
+    }
+
+    PS::F64 calcEnergy() {
+        PS::F64vec tv = this->omg ^ this->pos;
+        return this->mass * (0.5 * this->vel * this->vel + this->uene
+                             + 0.5 * (this->pot - tv * tv));
+    }
+#else
+    inline void addAdditionalForce() {
+       ;
+    }
+    
     PS::F64 calcEnergy() {
         return this->mass * (0.5 * this->vel * this->vel + this->uene + 0.5 * this->pot);
     }
+#endif
 
     static inline PS::F64 calcVolumeInverse(const PS::F64 hi);
     static inline PS::F64 calcPowerOfDimInverse(PS::F64 mass,
                                                 PS::F64 dens);
 
-    /*
-#ifdef WD_DAMPING
     void predict(PS::F64 dt) {
         this->pos   = this->pos  +       this->vel  * dt  + 0.5 * this->acc * dt * dt;
         this->vel2  = this->vel  + 0.5 * this->acc  * dt;
@@ -313,55 +331,29 @@ public:
         this->alph2 = this->alph + 0.5 * this->adot * dt;
         this->alph  = this->alph +       this->adot * dt;
     }
-
-    void correct(PS::F64 dt) {
-        this->acc  -= this->vel / (128.d * dt); //// damping force
-        this->vel   = this->vel2  + 0.5 * this->acc  * dt;
-        this->uene  = this->uene2 + 0.5 * this->udot * dt;
-        this->alph  = this->alph2 + 0.5 * this->adot * dt;
-        this->uene  = CalcEquationOfState::getEnergy(this->dens, this->uene); //// damping
-    }
-#else
-    void predict(PS::F64 dt) {
-        this->pos   = this->pos  +       this->vel  * dt  + 0.5 * this->acc * dt * dt;
-        this->vel2  = this->vel  + 0.5 * this->acc  * dt;
-        this->vel   = this->vel  +       this->acc  * dt;
-        this->uene2 = this->uene + 0.5 * this->udot * dt;
-        this->uene  = this->uene +       this->udot * dt;
-        this->alph2 = this->alph + 0.5 * this->adot * dt;
-        this->alph  = this->alph +       this->adot * dt;
-    }
-
-    void correct(PS::F64 dt) {
-        this->vel   = this->vel2  + 0.5 * this->acc  * dt;
-        this->uene  = this->uene2 + 0.5 * this->udot * dt;
-        this->alph  = this->alph2 + 0.5 * this->adot * dt;
-    }
-#endif
-    */
-    void predict(PS::F64 dt) {
-        this->pos   = this->pos  +       this->vel  * dt  + 0.5 * this->acc * dt * dt;
-        this->vel2  = this->vel  + 0.5 * this->acc  * dt;
-        this->vel   = this->vel  +       this->acc  * dt;
-        this->uene2 = this->uene + 0.5 * this->udot * dt;
-        this->uene  = this->uene +       this->udot * dt;
-        this->alph2 = this->alph + 0.5 * this->adot * dt;
-        this->alph  = this->alph +       this->adot * dt;
-    }
-
+    
 #ifdef WD_DAMPING1
     void correct(PS::F64 dt) {
-        this->acc  -= this->vel / (128.d * dt); //// damping force
+        this->acc  -= this->vel / (128.d * dt);
         this->vel   = this->vel2  + 0.5 * this->acc  * dt;
         this->uene  = this->uene2 + 0.5 * this->udot * dt;
         this->alph  = this->alph2 + 0.5 * this->adot * dt;
-        this->uene  = CalcEquationOfState::getEnergy(this->dens, this->uene); //// damping
+        this->uene  = CalcEquationOfState::getEnergy(this->dens, this->uene);
     }
 #elif defined WD_DAMPING2
     void correct(PS::F64 dt) {
-        this->acc  -= this->vel / (128.d * dt);
-        this->acc  -= this->omg ^ (this->omg ^ this->pos) + 2.d * (this->omg ^ this->vel);
+        this->vel   = this->vel2  + 0.5 * this->acc  * dt;
+        this->uene  = this->uene2 + 0.5 * this->udot * dt;
+        this->alph  = this->alph2 + 0.5 * this->adot * dt;
 
+        PS::F64 unow = this->uene;
+        PS::F64 umin = CalcEquationOfState::getEnergyMin(this->dens);
+        PS::F64 delu = (unow < umin) ? 0.d : unow - umin;
+        this->uene = (unow < umin) ? unow : ((unow - umin) * exp(-0.1 * dt) + umin);
+    }
+#elif defined WD_DAMPING3
+    void correct(PS::F64 dt) {
+        this->acc  -= this->vel / (128.d * dt);
         this->vel   = this->vel2  + 0.5 * this->acc  * dt;
         this->uene  = this->uene2 + 0.5 * this->udot * dt;
         this->alph  = this->alph2 + 0.5 * this->adot * dt;
@@ -409,6 +401,35 @@ inline PS::F64 SPH::calcPowerOfDimInverse(PS::F64 mass,
 #endif
 #endif
 
+template <class Tptcl>
+void calcCenterOfMass(Tptcl & system,
+                      PS::F64    & mc,
+                      PS::F64vec & xc,
+                      PS::F64vec & vc,
+                      PS::S64 istar = -1) {
+    PS::F64    mloc = 0.d;
+    PS::F64vec xloc = 0.d;
+    PS::F64vec vloc = 0.d;
+
+    assert(istar < 2);
+
+    PS::S32 nloc = system.getNumberOfParticleLocal();
+    for(PS::S32 i = 0; i < nloc; i++) {
+        if(system[i].istar == istar || istar < 0) {
+            mloc += system[i].mass;
+            xloc += system[i].mass * system[i].pos;
+            vloc += system[i].mass * system[i].vel;
+        }
+    }
+
+    mc = PS::Comm::getSum(mloc);
+    xc = PS::Comm::getSum(xloc);
+    vc = PS::Comm::getSum(vloc);
+    PS::F64 minv = 1.d / mc;
+    xc *= minv;
+    vc *= minv;    
+}
+
 template <class Theader>
 void setParameterParticle(Theader & header) {
     SPH::cbox     = header.cbox;
@@ -421,6 +442,149 @@ void setParameterParticle(Theader & header) {
 }
 
 template <class Tptcl>
+void reduceSeparation(PS::F64 time, 
+                      Tptcl & system) {
+
+#ifdef WD_DAMPING3
+    static bool    firststep = true;
+    static PS::F64 ReductionTime;
+    static PS::F64 DeltaSystemTime = 1.d / 64.d;
+    static PS::F64 CriticalRadius  = 1.5e9 * CodeUnit::UnitOfLengthInv;
+    static bool StopDamping2 = false;
+
+    if(firststep) {
+        PS::F64    m1;
+        PS::F64vec x1;
+        PS::F64vec v1;
+        calcCenterOfMass(system, m1, x1, v1, 1);
+
+        PS::F64 r2loc = 0.d;
+        PS::S32 nloc = system.getNumberOfParticleLocal();
+        for(PS::S32 i = 0; i < nloc; i++) {
+            if(system[i].istar == 1) {
+                PS::F64vec dr = system[i].pos - x1;
+                PS::F64    r2 = dr * dr;
+                if(r2 > r2loc) {
+                    r2loc = r2;
+                }
+            }
+        }        
+
+        PS::F64 r2glb = PS::Comm::getMaxValue(r2loc);
+        PS::F64 rmax  = sqrt(r2glb);
+        PS::F64 rho2  = m1 / ((4.d * M_PI / 3.d * rmax * rmax * rmax));
+
+        ReductionTime = 1.d / (0.05 * sqrt(CodeUnit::grav * rho2));;
+
+        firststep = false;
+    }
+
+    if(time / DeltaSystemTime - (PS::S64)(time / DeltaSystemTime) == 0.d
+        && time != 0.d) {
+        PS::F64    m0, m1;
+        PS::F64vec x0, x1;
+        PS::F64vec v0, v1;
+        calcCenterOfMass(system, m0, x0, v0, 0);
+        calcCenterOfMass(system, m1, x1, v1, 1);
+
+        if(StopDamping2) {
+            PS::F64 mc;
+            PS::F64vec xc;
+            PS::F64vec vc;
+            calcCenterOfMass(system, mc, xc, vc);            
+            PS::S32    nloc  = system.getNumberOfParticleLocal();
+            for(PS::S32 i = 0; i < nloc; i++) {
+                system[i].pos -= xc;
+                system[i].vel -= vc;
+            }    
+
+            calcCenterOfMass(system, m0, x0, v0, 0);
+            calcCenterOfMass(system, m1, x1, v1, 1);
+
+            PS::F64vec axisv = x0 - x1;
+            PS::F64    axis  = sqrt(axisv * axisv);
+            PS::F64    vel   = sqrt(CodeUnit::grav * (m0 + m1) / axis);
+            PS::F64    dv0   =   vel * m1 / (m0 + m1);
+            PS::F64    dv1   = - vel * m0 / (m0 + m1);
+            for(PS::S32 i = 0; i < nloc; i++) {
+                if(system[i].istar == 0) {
+                    system[i].vel[1] += dv0;
+                } else {
+                    system[i].vel[1] += dv1;
+                }
+            }
+
+            char filename[64];
+            sprintf(filename, "snap/final.dat");
+            system.writeParticleAscii(filename);
+
+            PS::Finalize();
+            exit(0);
+        }
+    
+        PS::F64vec dx = x1 - x0;
+        PS::F64    dr = sqrt(dx * dx);
+        PS::F64    ds = dr / ReductionTime * DeltaSystemTime;
+    
+        dx *= (- ds / dr);
+
+        PS::S32 nloc = system.getNumberOfParticleLocal();
+        for(PS::S32 i = 0; i < nloc; i++) {
+            if(system[i].istar == 1) {
+                system[i].pos += dx;
+            }
+        }
+
+        PS::F64    mc;
+        PS::F64vec xc;
+        PS::F64vec vc;
+        calcCenterOfMass(system, mc, xc, vc);
+
+        for(PS::S32 i = 0; i < nloc; i++) {
+            system[i].pos -= xc;
+        }
+
+        calcCenterOfMass(system, m0, x0, v0, 0);
+        calcCenterOfMass(system, m1, x1, v1, 1);
+        dx = x1 - x0;
+        dr = sqrt(dx * dx);
+
+        if(PS::Comm::getRank() == 0) {
+            fprintf(stderr, "bsep: %.10f %+e\n", time, dr);
+        }
+
+        if(dr < CriticalRadius) {
+            StopDamping2 = true;
+        }
+   }
+#endif    
+    
+}
+
+template <class Tptcl>
+void calcFieldVariable(Tptcl & system) {
+
+#ifdef WD_DAMPING3
+    PS::F64    m0, m1;
+    PS::F64vec x0, x1;
+    PS::F64vec v0, v1;
+    calcCenterOfMass(system, m0, x0, v0, 0);
+    calcCenterOfMass(system, m1, x1, v1, 1);
+
+    PS::F64vec axisv = x0 - x1;
+    PS::F64    axis  = sqrt(axisv * axisv);
+    PS::F64    vel   = sqrt(CodeUnit::grav * (m0 + m1) / axis);
+    
+    SPH::omg[0] = 0.d;
+    SPH::omg[1] = 0.d;
+    SPH::omg[2] = vel / axis;
+
+#endif
+
+    return;
+}
+
+template <class Tptcl>
 void finalizeSimulation(PS::S32 nstp,
                         Tptcl & system) {
     char filename[64];
@@ -428,25 +592,14 @@ void finalizeSimulation(PS::S32 nstp,
     sprintf(filename, "snap/sph_t%04d.dat", nstp);
     system.writeParticleAscii(filename);
 
-    PS::F64    msloc = 0.0d;
-    PS::F64vec xcloc = 0.0d;    
-    PS::F64vec vcloc = 0.0d;    
+    PS::F64    mc;
+    PS::F64vec xc;
+    PS::F64vec vc;
+    calcCenterOfMass(system, mc, xc, vc);
     PS::S32 nloc = system.getNumberOfParticleLocal();
     for(PS::S32 i = 0; i < nloc; i++) {
-        msloc += system[i].mass;
-        xcloc += system[i].mass * system[i].pos;
-        vcloc += system[i].mass * system[i].vel;
-    }
-
-    PS::F64    msglb = PS::Comm::getSum(msloc);
-    PS::F64vec xcglb = PS::Comm::getSum(xcloc);
-    PS::F64vec vcglb = PS::Comm::getSum(vcloc);
-    PS::F64    msinv = 1.d / msglb;
-    xcglb *= msinv;
-    vcglb *= msinv;
-    for(PS::S32 i = 0; i < nloc; i++) {
-        system[i].pos -= xcglb;
-        system[i].vel -= vcglb;
+        system[i].pos -= xc;
+        system[i].vel -= vc;
     }
 
     sprintf(filename, "snap/final.dat");

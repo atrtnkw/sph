@@ -16,7 +16,7 @@ CFLAGS = -O3 -ffast-math -funroll-loops #-Wall
 CFLAGS += -DPARTICLE_SIMULATOR_THREAD_PARALLEL -fopenmp
 CFLAGS += -DPARTICLE_SIMULATOR_MPI_PARALLEL
 #CFLAGS += -DPARTICLE_SIMULATOR_TWO_DIMENSION
-CFLAGS += -DSANITY_CHECK_REALLOCATABLE_ARRAY
+#CFLAGS += -DSANITY_CHECK_REALLOCATABLE_ARRAY
 
 CLIBS += -L${PHANTOM_DIR} -lpg5
 
@@ -50,3 +50,11 @@ distclean:
 allclean:
 	make distclean
 	rm -f run
+
+change:
+	cp hdr_sph.hpp ideal/hdr_sph.hpp
+	cp main.cpp ideal/main.cpp
+	cp Makefile ideal/Makefile.all
+	cp heos/hdr_sph.hpp .
+	cp heos/main.cpp .
+	cp heos/Makefile.all Makefile
