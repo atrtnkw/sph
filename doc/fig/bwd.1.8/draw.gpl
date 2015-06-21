@@ -1,0 +1,125 @@
+set lmargin 7
+set rmargin 2
+set tmargin 2
+set bmargin 3
+
+set size ratio 1
+set size 0.5
+
+set term po co eps enhanced font "TimesNewRoman"
+set output "tmp.eps"
+
+set multiplot
+dx=0.26
+dy=0.37
+
+set grid
+
+black="#000000"
+col00="#0000ff"        
+col01="#0080ff"
+col02="#00ffff"
+col03="#00ff80"
+col04="#00ff00"
+col05="#80ff00"
+col06="#ffff00"
+col07="#ff8000"
+col08="#ff0000"
+
+set log x
+set xrange [1e4:9e7]
+set xtic 1e4, 1e1, 1e8
+set mxtic 10
+
+unset key
+
+#============================================
+#============================================
+
+set origin dx*0, dy*2
+
+set title "1.1 WD" offset 0., -0.5
+
+set format x ""
+
+set yrange [0:5.2]
+set ytic 0, 1, 6
+set mytic 5
+set format y "%g"
+set ylabel "T [10^8K]"
+
+set label 1 "t=010 s (red)"  at 2e4, 4.8 left
+set label 2 "t=000 s (blue)" at 2e4, 4.4 left
+
+pl \
+"sph_t0010.dat.0" u 16:($19*1e-8) lc 1 pt 1, \
+"sph_t0000.dat.0" u 16:($19*1e-8) lc 3 pt 2
+
+#============================================
+
+set origin dx*1, dy*2
+
+set title "1.0 WD"
+
+set format y ""
+unset ylabel
+
+pl \
+"sph_t0010.dat.1" u 16:($19*1e-8) lc 1 pt 1, \
+"sph_t0000.dat.1" u 16:($19*1e-8) lc 3 pt 2
+
+#============================================
+#============================================
+
+set origin dx*0, dy*1
+
+unset title
+
+set format y "%g"
+set ylabel "T [10^8K]"
+
+set label 1 "t=030 s"
+unset label 2
+
+pl \
+"sph_t0030.dat.0" u 16:($19*1e-8) lc 1 pt 1
+
+#============================================
+
+set origin dx*1, dy*1
+
+set format y ""
+unset ylabel
+
+set label 1 "t=030 s"
+
+pl \
+"sph_t0030.dat.1" u 16:($19*1e-8) lc 1 pt 1
+
+#============================================
+#============================================
+
+set origin dx*0, dy*0
+
+set format x "10^{%T}"
+set xlabel "{/Symbol r} [gcm^{-3}]"
+
+set format y "%g"
+set ylabel "T [10^8K]"
+
+set label 1 "t=100 s"
+
+pl \
+"final.dat.0" u 16:($19*1e-8) lc 1 pt 1
+
+#============================================
+
+set origin dx*1, dy*0
+
+set format y ""
+unset ylabel
+
+set label 1 "t=100 s"
+
+pl \
+"final.dat.1" u 16:($19*1e-8) lc 1 pt 1

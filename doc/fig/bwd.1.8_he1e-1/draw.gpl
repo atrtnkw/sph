@@ -1,0 +1,67 @@
+set lmargin 7
+set rmargin 2
+set tmargin 2
+set bmargin 3
+
+set size ratio 1
+set size 0.5
+
+set term po co eps enhanced font "TimesNewRoman"
+set output "tmp.eps"
+
+set multiplot
+dx=0.26
+dy=0.37
+
+set grid
+
+black="#000000"
+col00="#0000ff"        
+col01="#0080ff"
+col02="#00ffff"
+col03="#00ff80"
+col04="#00ff00"
+col05="#80ff00"
+col06="#ffff00"
+col07="#ff8000"
+col08="#ff0000"
+
+set xrange [-1.6:1.6]
+set xtic -2, 0.5, 2
+set mxtic 5
+
+set yrange [-1.6:1.6]
+set ytic -2, 0.5, 2
+set mytic 5
+
+unset key
+
+#============================================
+#============================================
+
+set origin dx*0, dy*0
+
+set format x "%g"
+set xlabel "x [10^9cm]"
+
+set format y "%g"
+set ylabel "y [10^9cm]"
+
+set label 1 "t=000 s" at -1.5, 1.4
+
+pl \
+"sph_t0000.dat.dz"        u ($4*1e-9):($5*1e-9) lc 1 ps 0.25 pt 6, \
+"sph_t0000.dat.he1e-1.dz" u ($4*1e-9):($5*1e-9) lc 3 ps 0.25 pt 6
+
+#============================================
+
+set origin dx*1, dy*0
+
+set format y ""
+unset ylabel
+
+set label 1 "t=100 s"
+
+pl \
+"sph_t0100.dat.dz"        u ($4*1e-9):($5*1e-9) lc 1 ps 0.25 pt 6, \
+"sph_t0100.dat.he1e-1.dz" u ($4*1e-9):($5*1e-9) lc 3 ps 0.25 pt 6

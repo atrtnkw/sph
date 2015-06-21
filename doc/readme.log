@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.15 (TeX Live 2014) (preloaded format=latex 2014.12.12)  20 JUN 2015 18:39
+This is pdfTeX, Version 3.14159265-2.6-1.40.15 (TeX Live 2014) (preloaded format=latex 2014.12.12)  21 JUN 2015 12:38
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -168,31 +168,46 @@ Overfull \hbox (53.33858pt too wide) in paragraph at lines 326--327
  [] 
  []
 
-File: fig/wdeq/draw.png Graphic file (type bmp)
-<fig/wdeq/draw.png>
 File: fig/wddamp/draw.png Graphic file (type bmp)
- <fig/wddamp/draw.png>
-Overfull \hbox (53.33858pt too wide) in paragraph at lines 341--342
+<fig/wddamp/draw.png>
+Overfull \hbox (53.33858pt too wide) in paragraph at lines 333--334
  [] 
  []
 
-File: fig/bwdrun/draw.png Graphic file (type bmp)
-<fig/bwdrun/draw.png>
+File: fig/wdeq/draw.png Graphic file (type bmp)
+<fig/wdeq/draw.png>
+File: fig/bwd.1.8/draw.png Graphic file (type bmp)
+ <fig/bwd.1.8/draw.png>
 Overfull \hbox (53.33858pt too wide) in paragraph at lines 351--352
  [] 
  []
 
 
-LaTeX Warning: Float too large for page by 46.80417pt on input line 355.
+LaTeX Warning: Float too large for page by 57.1375pt on input line 355.
 
-[4] [5] [6] [7] [8] [9] [10] (./readme.aux) ) 
+File: fig/bwd.1.5/draw.png Graphic file (type bmp)
+<fig/bwd.1.5/draw.png>
+Overfull \hbox (53.33858pt too wide) in paragraph at lines 359--360
+ [] 
+ []
+
+
+LaTeX Warning: Float too large for page by 57.1375pt on input line 363.
+
+File: fig/bwd.1.8_he1e-1/draw.png Graphic file (type bmp)
+<fig/bwd.1.8_he1e-1/draw.png>
+Overfull \hbox (53.33858pt too wide) in paragraph at lines 367--368
+ [] 
+ []
+
+[4] [5] [6] [7] [8] [9] [10] [11] [12] [13] (./readme.aux) ) 
 Here is how much of TeX's memory you used:
- 1494 strings out of 493110
- 18406 string characters out of 6135029
+ 1498 strings out of 493110
+ 18494 string characters out of 6135029
  83413 words of memory out of 5000000
- 4958 multiletter control sequences out of 15000+600000
+ 4960 multiletter control sequences out of 15000+600000
  13635 words of font info for 48 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  27i,16n,24p,359b,344s stack positions out of 5000i,500n,10000p,200000b,80000s
 
-Output written on readme.dvi (10 pages, 19044 bytes).
+Output written on readme.dvi (13 pages, 20296 bytes).
