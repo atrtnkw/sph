@@ -1,0 +1,53 @@
+set lmargin 7
+set rmargin 2
+set tmargin 2
+set bmargin 3
+
+set size ratio 1
+set size 0.5
+
+set term po co eps enhanced font "TimesNewRoman"
+set output "tmp.eps"
+
+set multiplot
+dx=0.26
+dy=0.37
+
+set grid
+
+black="#000000"
+col00="#0000ff"        
+col01="#0080ff"
+col02="#00ffff"
+col03="#00ff80"
+col04="#00ff00"
+col05="#80ff00"
+col06="#ffff00"
+col07="#ff8000"
+col08="#ff0000"
+
+#============================================
+#============================================
+
+set origin dx*0, dy*0
+
+set log x
+set xrange [1e4:1e12]
+set xtic 1e4, 1e1, 1e12
+set mxtic 10
+set format x "%T"
+set xlabel "log {/Symbol r}_c [gcm^{-3}]"
+
+set yrange [0:1.6]
+set ytic 0, 0.5, 2.0
+set mytic 5
+set format y "%g"
+set ylabel "Mass [M_{sun}]"
+
+set key bottom right
+set key samplen 0
+set key font "TimesNewRoman,10"
+
+pl \
+"r001k_dm.dat" ti "1k/0.1M_{sun}"   lc 1 pt 1, \
+"byeye_dm.dat" ti "Timmes w/ Coulomb cor" lc 3 pt 2
