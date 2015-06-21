@@ -443,13 +443,15 @@ void setParameterParticle(Theader & header) {
 
 template <class Tptcl>
 void reduceSeparation(PS::F64 time, 
-                      Tptcl & system) {
+                      Tptcl & system,
+                      FILE * fplog = NULL) {
 
 #ifdef WD_DAMPINGB
     static bool    firststep = true;
     static PS::F64 ReductionTime;
     static PS::F64 DeltaSystemTime = 1.d / 64.d;
-    static PS::F64 CriticalRadius  = 1.5e9 * CodeUnit::UnitOfLengthInv;
+//    static PS::F64 CriticalRadius  = 1.5e9 * CodeUnit::UnitOfLengthInv;
+    static PS::F64 CriticalRadius  = 1.8e9 * CodeUnit::UnitOfLengthInv;
     static bool StopDampingB = false;
 
     if(firststep) {
@@ -501,18 +503,6 @@ void reduceSeparation(PS::F64 time,
             calcCenterOfMass(system, m0, x0, v0, 0);
             calcCenterOfMass(system, m1, x1, v1, 1);
             
-//            PS::F64vec axisv = x0 - x1;
-//            PS::F64    axis  = sqrt(axisv * axisv);
-//            PS::F64    vel   = sqrt(CodeUnit::grav * (m0 + m1) / axis);
-//            PS::F64    dv0   =   vel * m1 / (m0 + m1);
-//            PS::F64    dv1   = - vel * m0 / (m0 + m1);
-//            for(PS::S32 i = 0; i < nloc; i++) {
-//                if(system[i].istar == 0) {
-//                    system[i].vel[1] += dv0;
-//                } else {
-//                    system[i].vel[1] += dv1;
-//                }
-//            }
             for(PS::S32 i = 0; i < nloc; i++) {                
                 system[i].vel += system[i].omg ^ system[i].pos;
             }
@@ -553,7 +543,9 @@ void reduceSeparation(PS::F64 time,
         dr = sqrt(dx * dx);
 
         if(PS::Comm::getRank() == 0) {
-            fprintf(stderr, "bsep: %.10f %+e\n", time, dr);
+            fprintf(stderr, "bsep: %.10f %+e\n", time, dr * CodeUnit::UnitOfLength);
+            fprintf(fplog,  "bsep: %.10f %+e\n", time, dr * CodeUnit::UnitOfLength);
+            fflush(fplog);
         }
 
         if(dr < CriticalRadius) {
@@ -588,11 +580,42 @@ void calcFieldVariable(Tptcl & system) {
 }
 
 template <class Tptcl>
-void finalizeSimulation(PS::S32 nstp,
+void doThisEveryTime(PS::F64 & time,
+                     PS::F64 & dtime,
+                     PS::F64 & tout,
+                     PS::F64 & dtsp,
+                     Tptcl & system,
+                     FILE * fplog) {
+    reduceSeparation(time, system, fplog);
+
+    calcFieldVariable(system);
+
+    if(time >= tout) {
+        char filename[64];
+        sprintf(filename, "snap/sph_t%04d.dat", (PS::S32)time);
+        system.writeParticleAscii(filename);
+        tout += dtsp;
+    }
+    
+    PS::F64 etot = calcEnergy(system);
+    if(PS::Comm::getRank() == 0) {
+        using namespace CodeUnit;
+        fprintf(fplog,  "time: %.10f %+e %+e\n", time * UnitOfTime, dtime * UnitOfTime,
+                etot * UnitOfEnergy * UnitOfMass);
+        fflush(fplog);
+        fprintf(stderr, "time: %.10f %+e %+e\n", time * UnitOfTime, dtime * UnitOfTime,
+                etot * UnitOfEnergy * UnitOfMass);
+    }
+
+}
+
+template <class Tptcl>
+//void finalizeSimulation(PS::S32 nstp,
+void finalizeSimulation(PS::S32 time,
                         Tptcl & system) {
     char filename[64];
 
-    sprintf(filename, "snap/sph_t%04d.dat", nstp);
+    sprintf(filename, "snap/sph_t%04d.dat", (PS::S32)time);
     system.writeParticleAscii(filename);
 
     PS::F64    mc;

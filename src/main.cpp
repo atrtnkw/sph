@@ -117,10 +117,13 @@ int main(int argc, char **argv)
     PS::F64 dtdc = 0.25;
     PS::S32 nstp = 0;
     while(time < tend){
-        reduceSeparation(time, sph);
+        doThisEveryTime(time, dtime, tout, dtsp, sph, fplog);
+
+//        reduceSeparation(time, sph, fplog);
 
         dtime = calcTimeStep(sph, time, 1 / 64.);
 
+        /*
         if(time >= tout) {
             char filename[64];
             sprintf(filename, "snap/sph_t%04d.dat", nstp);
@@ -129,15 +132,16 @@ int main(int argc, char **argv)
             nstp++;
         }
         
-//        PS::Finalize();
-//        exit(0);
-
         PS::F64 etot = calcEnergy(sph);
         if(rank == 0) {
-            fprintf(fplog, "time: %.10f %+e %+e\n", time, dtime, etot);
+            using namespace CodeUnit;
+            fprintf(fplog,  "time: %.10f %+e %+e\n", time * UnitOfTime, dtime * UnitOfTime,
+                    etot * UnitOfEnergy);
             fflush(fplog);
-            fprintf(stderr, "time: %.10f %+e %+e\n", time, dtime, etot);
+            fprintf(stderr, "time: %.10f %+e %+e\n", time * UnitOfTime, dtime * UnitOfTime,
+                    etot * UnitOfEnergy);
         }
+        */
 
         predict(sph, dtime);
         if(SPH::cbox.low_[0] != SPH::cbox.high_[0]) {
@@ -150,7 +154,7 @@ int main(int argc, char **argv)
 
         sph.exchangeParticle(dinfo);
 
-        calcFieldVariable(sph);
+//        calcFieldVariable(sph);
 
         calcSPHKernel(dinfo, sph, density, derivative,
                       calcDensity(), calcDerivative());
@@ -169,7 +173,8 @@ int main(int argc, char **argv)
 
     fclose(fplog);
 
-    finalizeSimulation(nstp, sph);
+//    finalizeSimulation(nstp, sph);
+    finalizeSimulation(time, sph);
     
     PS::Finalize();
 

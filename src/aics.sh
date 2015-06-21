@@ -14,6 +14,6 @@ then
     mkdir $odir
 fi
 
-#export OMP_NUM_THREADS=1
-export OMP_NUM_THREADS=2
+export OMP_NUM_THREADS=1
+#export OMP_NUM_THREADS=2
 mpirun -np $nproc ./run $ifile
