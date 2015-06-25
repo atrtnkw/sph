@@ -32,6 +32,11 @@ int main(int argc, char **argv)
     double enemax  = 1e30;
     double enetol  = 1e-3;
 
+//    printf("%+e\n", eos->GetEmin(1e5 / UnitOfDensity) * UnitOfEnergy);
+//    printf("%+e\n", eos->GetEmin(1e6 / UnitOfDensity) * UnitOfEnergy);
+//    printf("%+e\n", eos->GetEmin(1e7 / UnitOfDensity) * UnitOfEnergy);
+
+#if 1
     FILE *fp = fopen("heos.log", "w");
     int    ntemp = 6;
     double temp  = 1e5;
@@ -52,7 +57,7 @@ int main(int argc, char **argv)
                     el = em;
                 }
             }while(eu / el > 1. + enetol);
-            
+
             fprintf(fp, "%+e %+e %+e %+e\n", den, em,
                    eos->GetP(den / UnitOfDensity, em / UnitOfEnergy) * UnitOfPressure,
                    temp);
@@ -61,6 +66,7 @@ int main(int argc, char **argv)
         fprintf(fp, "\n");
     }
     fclose(fp);
+#endif
 
     return 0;
 }
