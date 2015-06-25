@@ -48,7 +48,9 @@ set key bottom right
 pl \
 "test_src/heos_c.log"  u 1:3 ti "C"  w l, \
 "test_src/heos_co.log" u 1:3 ti "CO" w l, \
-"test_src/heos_he.log" u 1:3 ti "He" w l
+"test_src/heos_he.log" u 1:3 ti "He" w l, \
+"test_src/heos_si.log" u 1:3 ti "Si" w l, \
+"test_src/heos_ni.log" u 1:3 ti "Ni" w l
 
 #============================================
 
@@ -72,4 +74,6 @@ set label 1 "10^5 - 10^{10} [K]" at 1e9, 1e28 right
 pl \
 "test_src/heos_c.log"  u 1:2 w l, \
 "test_src/heos_co.log" u 1:2 w l, \
-"test_src/heos_he.log" u 1:2 w l
+"test_src/heos_he.log" u 1:2 w l, \
+"test_src/heos_si.log" u 1:2 w l, \
+"test_src/heos_ni.log" u 1:2 w l
