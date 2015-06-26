@@ -1,5 +1,16 @@
 #include "eos/WDEOS.hpp"
 
+#include <sys/resource.h>
+#include <sys/time.h>
+
+double getTime(void){
+    struct timeval tv;
+
+    gettimeofday(&tv, NULL);
+    return ((double)(tv.tv_sec) + (double)(tv.tv_usec) * 0.001 * 0.001);
+}
+
+
 namespace CodeUnit {
     double SolarRadius        = 6.9599e10; // cm
     double SolarMass          = 1.9891e33; // g
@@ -24,7 +35,8 @@ int main(int argc, char **argv)
     eos = new WDEOS_D_E(UnitOfDensity, UnitOfEnergy, UnitOfVelocity,
                         UnitOfPressure, 1.0e6);
     
-    int    nden    = 128;
+//    const int nden = 128;
+    const int nden = 1048576;
     double denmin  = 1e-3;
     double denmax  = 1e10;
     double dden    = pow(denmax / denmin, 1. / nden);
@@ -32,11 +44,23 @@ int main(int argc, char **argv)
     double enemax  = 1e30;
     double enetol  = 1e-3;
 
-//    printf("%+e\n", eos->GetEmin(1e5 / UnitOfDensity) * UnitOfEnergy);
-//    printf("%+e\n", eos->GetEmin(1e6 / UnitOfDensity) * UnitOfEnergy);
-//    printf("%+e\n", eos->GetEmin(1e7 / UnitOfDensity) * UnitOfEnergy);
+    {
+        static double d[nden], p[nden], u[nden], c[nden];
+        double dd = denmin;
+        double tt = 1e7;
+        double t1 = getTime();
+        for(int i = 0; i < nden; i++, dd *= dden) {
+            d[i] = dd;
+            eosx_return_(&tt, &dd, &p[i], &u[i], &c[i]);
+        }
+        fprintf(stderr, "%+e\n", getTime() - t1);
+        for(int i = 0; i < nden; i++) {
+            if(i % 100 == 0)
+                printf("%+e %+e %+e %+e %+e\n", tt, d[i], p[i], u[i], c[i]);
+        }        
+    }
 
-#if 1
+#if 0
     FILE *fp = fopen("heos.log", "w");
     int    ntemp = 6;
     double temp  = 1e5;
