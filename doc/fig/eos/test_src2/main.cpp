@@ -2,6 +2,7 @@
 
 #include <sys/resource.h>
 #include <sys/time.h>
+#include <cassert>
 
 double getTime(void){
     struct timeval tv;
@@ -38,9 +39,73 @@ int main(int argc, char **argv)
     const int ntmp = 6;
     double tmp     = 1e5;
 
-    double abar = 56.0;
-    double zbar = 28.0;
+//    double abar = 14.0;
+//    double zbar =  7.0;
 
+    {
+        double tt, dd, abar, zbar, pp, u, du, cs;
+        bool   eosfail;
+        dd   = 1e7;
+        abar = 12.0;
+        zbar = 6.0;
+        tt = 1e10;
+        helmeos2_(&tt, &dd, &abar, &zbar, &pp, &u, &du, &cs, &eosfail);
+        printf("%+e %+e\n", pp, u);
+        tt = 1e9;
+        helmeos2_(&tt, &dd, &abar, &zbar, &pp, &u, &du, &cs, &eosfail);
+        printf("%+e %+e\n", pp, u);
+    }
+
+#if 0
+    double t1 = getTime();
+    {
+        double tttol = 1e-5;
+        for(double energy  = 1e14; energy < 5e19; energy *= 1e1) {
+            char filename[64];
+            sprintf(filename, "heos_u%.0e.log", energy);
+            FILE *fp = fopen(filename, "w");
+            double density = denmin;
+            for(int i = 0; i < nden; i++, density *= dden) {
+                double ttmax = 1e11;
+                double ttmin = 1e5;
+                int    cnt = 2;
+                double umax, umin;
+                double u, pp, du, cs;
+                bool   eosfail;            
+                helmeos2_(&ttmax, &density, &abar, &zbar, &pp, &umax, &du, &cs, &eosfail);
+                helmeos2_(&ttmin, &density, &abar, &zbar, &pp, &umin, &du, &cs, &eosfail);
+                
+                if(energy > umax) {
+                    fprintf(fp, "Too large energy!\n");
+                    exit(0);
+                } else if (energy < umin) {
+                    fprintf(fp, "%+e %+e %+e %+e %+e %4d\n", density, energy, pp, ttmin,
+                            (umin - energy) / energy, cnt);
+                    continue;
+                } 
+                
+                double ttmid;
+                do {
+                    ttmid = sqrt(ttmax * ttmin);
+                    helmeos2_(&ttmid, &density, &abar, &zbar, &pp, &u, &du, &cs, &eosfail);
+                    cnt++;
+                    if(u < energy) {
+                        ttmin = ttmid;
+                    } else {
+                        ttmax = ttmid;
+                    }
+                    assert(cnt < 100);
+                }while(ttmax / ttmin > 1. + tttol);
+                fprintf(fp, "%+e %+e %+e %+e %+e %4d\n", density, energy, pp, ttmin,
+                        (u - energy) / energy, cnt);                    
+            }
+            fclose(fp);
+        }
+    }
+    printf("%+e\n", getTime() - t1);
+#endif
+
+#if 0
     FILE *fp = fopen("heos.log", "w");
     for(int i = 0; i < ntmp; i++, tmp *= 1e1) {
         double den = denmin;
@@ -55,6 +120,7 @@ int main(int argc, char **argv)
         fprintf(fp, "\n");
     }
     fclose(fp);
+#endif
 
     return 0;
 }
