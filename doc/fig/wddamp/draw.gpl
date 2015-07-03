@@ -36,7 +36,7 @@ unset key
 #============================================
 #============================================
 
-set origin dx*0, dy*1
+set origin dx*0, dy*2
 
 set format x ""
 
@@ -49,7 +49,36 @@ set ylabel "T [10^8K]"
 set label 1 "AT code w/o new damping" at 2e4, 4.8 left
 
 pl \
-"s1.00_damp1.dat" u 16:($19*1e-8)
+"s1.00_damp1.dat" u 16:($19*1e-8) lc 7
+
+#============================================
+
+set origin dx*1, dy*2
+
+set format y ""
+unset ylabel
+
+set label 1 "OTOO 050 w/o new damping" font "TimesNewRoman,12" textcolor lt 3
+
+pl \
+"s1.00_otoo.dat.050" u 12:($13*1e-8) lc 3 pt 1, \
+"r256k_b1.1-1.0.init.paper1.omt" u 12:($13*1e-8) w d lc 5
+
+#============================================
+#============================================
+
+set origin dx*0, dy*1
+
+set yrange [0:1.04]
+set ytic 0, 0.2, 1.2
+set mytic 5
+set format y "%g"
+set ylabel "T [10^8K]"
+
+set label 1 "AT code w/ new damping" at 2e4, 0.96 left font "TimesNewRoman,15" textcolor lt 7
+
+pl \
+"s1.00_damp2.dat" u 16:($19*1e-8) lc 7
 
 #============================================
 
@@ -58,11 +87,10 @@ set origin dx*1, dy*1
 set format y ""
 unset ylabel
 
-set label 1 "OTOO w/o new damping"
+set label 1 "100s after new damping" textcolor lt 1
 
 pl \
-"s1.00_otoo.dat" u 12:($13*1e-8) lc 1 pt 1, \
-"r256k_b1.1-1.0.init.paper1.omt" u 12:($13*1e-8) w d lc 3
+"s1.00_free.dat" u 16:($19*1e-8)
 
 #============================================
 #============================================
@@ -70,17 +98,25 @@ pl \
 set origin dx*0, dy*0
 
 set format x "10^{%T}"
+set xlabel "{/Symbol r} [gcm^{-3}]"
 
-set yrange [0:1.04]
-set ytic 0, 0.2, 1.2
-set mytic 5
-set format y "%g"
-set ylabel "T [10^8K]"
+set log y
+set yrange [1e16:3e18]
+set ytic 1e16, 1e1, 1e18
+set mytic 10
+set format y "10^{%T}"
+set ylabel "u [cm^2s^{-2}]"
 
-set label 1 "AT code w/ new damping" at 2e4, 0.96 left
+set label 1 "10^7 - 10^9 [K]" at 8e7, 2e16 right textcolor lt 7
+set label 2 "100s after new damping"   at 2e4, 1.8e18 left textcolor lt 1
+set label 3 "OTOO 050 w/o new damping" at 2e4, 1.0e18 left textcolor lt 3 font "TimesNewRoman,12"
+
+unset key
 
 pl \
-"s1.00_damp2.dat" u 16:($19*1e-8)
+"s1.00_otoo.dat.050" u 12:9   ti "OTOO 050" w d lc 3, \
+"../eos/test_src/heos_co.log" not w l lt 1 lc 5, \
+"s1.00_free.dat"     u 16:13  ti "AT code"  w d lc 1
 
 #============================================
 
@@ -89,7 +125,9 @@ set origin dx*1, dy*0
 set format y ""
 unset ylabel
 
-set label 1 "100s after new damping"
+set label 3 "OTOO 150 w/o new damping"
 
 pl \
-"s1.00_free.dat" u 16:($19*1e-8)
+"s1.00_otoo.dat.150" u 12:9   ti "OTOO 150" w d lc 3, \
+"../eos/test_src/heos_co.log" not w l lt 1 lc 5, \
+"s1.00_free.dat"     u 16:13  ti "AT code"  w d lc 1
