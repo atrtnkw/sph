@@ -16,10 +16,6 @@
 
 static PS::S32 nptclmax = 65536;
 
-//template <class Tptcl>
-//void writeSnapshot(FILE *fp,
-//                   Tptcl & system);
-
 template <class Tptcl>
 void referEquationOfState(Tptcl & system);
 
@@ -103,7 +99,7 @@ int main(int argc, char **argv)
 
 #ifdef GRAVITY
     PS::TreeForForceLong<Gravity, GravityEPI, GravityEPJ>::Monopole gravity;
-    gravity.initialize(nptclmax);
+    gravity.initialize(nptclmax, 0.5);
     g5_open();
     g5_set_eps_to_all(SPH::eps);
     gravity.calcForceAllAndWriteBack(calcGravity<GravityEPJ>(),
@@ -119,29 +115,10 @@ int main(int argc, char **argv)
     while(time < tend){
         doThisEveryTime(time, dtime, tout, dtsp, sph, fplog);
 
-//        reduceSeparation(time, sph, fplog);
+//        PS::Finalize();
+//        exit(0);
 
         dtime = calcTimeStep(sph, time, 1 / 64.);
-
-        /*
-        if(time >= tout) {
-            char filename[64];
-            sprintf(filename, "snap/sph_t%04d.dat", nstp);
-            sph.writeParticleAscii(filename);
-            tout += dtsp;
-            nstp++;
-        }
-        
-        PS::F64 etot = calcEnergy(sph);
-        if(rank == 0) {
-            using namespace CodeUnit;
-            fprintf(fplog,  "time: %.10f %+e %+e\n", time * UnitOfTime, dtime * UnitOfTime,
-                    etot * UnitOfEnergy);
-            fflush(fplog);
-            fprintf(stderr, "time: %.10f %+e %+e\n", time * UnitOfTime, dtime * UnitOfTime,
-                    etot * UnitOfEnergy);
-        }
-        */
 
         predict(sph, dtime);
         if(SPH::cbox.low_[0] != SPH::cbox.high_[0]) {
@@ -153,8 +130,6 @@ int main(int argc, char **argv)
         }
 
         sph.exchangeParticle(dinfo);
-
-//        calcFieldVariable(sph);
 
         calcSPHKernel(dinfo, sph, density, derivative,
                       calcDensity(), calcDerivative());
@@ -173,7 +148,6 @@ int main(int argc, char **argv)
 
     fclose(fplog);
 
-//    finalizeSimulation(nstp, sph);
     finalizeSimulation(time, sph);
     
     PS::Finalize();
@@ -307,7 +281,6 @@ void calcSPHKernel(Tdinfo & dinfo,
         }
         repeat = PS::Comm::synchronizeConditionalBranchOR(repeat_loc);
         cnt++;
-
     }
     referEquationOfState(sph);
     calcBalsaraSwitch(sph);

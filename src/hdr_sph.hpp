@@ -1,79 +1,6 @@
 #pragma once
 
-#include "heos/WDEOS.hpp"
-
-namespace CodeUnit {
-    PS::F64 SolarRadius        = 6.9599e10; // cm
-    PS::F64 SolarMass          = 1.9891e33; // g
-    PS::F64 GravityConstant    = 6.6738480e-8;  // [cm^3 g^-1 g^-2]
-
-    PS::F64 UnitOfLength       = SolarRadius * 1.0e-3d;
-    PS::F64 UnitOfMass         = SolarMass   * 1.0e-6d;
-    PS::F64 UnitOfTime         = 1.0d;
-
-    PS::F64 UnitOfVelocity     = UnitOfLength / UnitOfTime;
-    PS::F64 UnitOfDensity      = UnitOfMass / (UnitOfLength * UnitOfLength * UnitOfLength);
-    PS::F64 UnitOfEnergy       = UnitOfVelocity * UnitOfVelocity;
-    PS::F64 UnitOfPressure     = UnitOfMass * UnitOfLength
-        / (UnitOfTime * UnitOfTime * UnitOfLength * UnitOfLength);
-    PS::F64 UnitOfAcceleration = UnitOfVelocity / UnitOfTime;
-
-    PS::F64 UnitOfLengthInv    = 1.d / UnitOfLength;
-    PS::F64 UnitOfMassInv      = 1.d / UnitOfMass;
-    PS::F64 UnitOfTimeInv      = 1.d / UnitOfTime;
-    PS::F64 UnitOfVelocityInv  = 1.d / UnitOfVelocity;
-    PS::F64 UnitOfDensityInv   = 1.d / UnitOfDensity;
-    PS::F64 UnitOfEnergyInv    = 1.d / UnitOfEnergy;
-    PS::F64 UnitOfPressureInv  = 1.d / UnitOfPressure;
-
-    // different from OTOO code in time unit !!
-    PS::F64 grav               = GravityConstant /
-        ((UnitOfLength * UnitOfLength * UnitOfLength) * UnitOfMassInv
-         * (UnitOfTimeInv * UnitOfTimeInv));
-}
-
-class CalcEquationOfState {
-private:
-    OTOO::EOS * eos_;
-    CalcEquationOfState() {
-        using namespace OTOO;
-        using namespace CodeUnit;
-#ifdef WD_DAMPING1
-        eos_ = new WDEOSforDumping(UnitOfDensity, UnitOfEnergy, UnitOfVelocity,
-                                   UnitOfPressure, 1.0e6);
-#else
-        eos_ = new WDEOS_D_E(UnitOfDensity, UnitOfEnergy, UnitOfVelocity,
-                             UnitOfPressure, 1.0e6);
-#endif
-    };
-    ~CalcEquationOfState() {};
-    CalcEquationOfState(const CalcEquationOfState & c);
-    CalcEquationOfState & operator=(const CalcEquationOfState & c);
-    static CalcEquationOfState & getInstance() {
-        static CalcEquationOfState inst;
-        return inst;
-    }
-public:
-    static PS::F64 getPressure(PS::F64 density,
-                               PS::F64 energy) {
-        return getInstance().eos_->GetP(density, energy);
-    }
-    static PS::F64 getTemperature(PS::F64 density,
-                                  PS::F64 energy) {
-        return getInstance().eos_->GetT(density, energy);
-    }
-    static PS::F64 getSoundVelocity(PS::F64 density,
-                                    PS::F64 energy) {
-        return getInstance().eos_->GetS(density, energy);
-    }
-    static PS::F64 getEnergy(PS::F64 density,
-                             PS::F64 energy) {
-        return getInstance().eos_->GetE(density, energy);
-    }
-    static PS::F64 getEnergyMin(PS::F64 density) {
-        return getInstance().eos_->GetEmin2(density);
-    }
-};
+#include "hdr_eos.hpp"
 
 class Density{
 public:
@@ -188,6 +115,9 @@ public:
     PS::F64    pot;
     PS::F64vec accg;
     PS::F64    temp;
+    PS::S32    cnteos;
+    static PS::F64    abar;
+    static PS::F64    zbar;
     static PS::F64ort cbox;
     static PS::F64    cinv;
     static PS::F64    alphamax, alphamin;
@@ -255,7 +185,7 @@ public:
         PS::F64    tdivv = this->divv * UnitOfTimeInv; // divv [s^-1]
         PS::F64    trotv = this->rotv * UnitOfTimeInv; // rotv [s^-1]
         PS::F64    tpot  = this->pot  * UnitOfEnergy;
-        
+
         fprintf(fp, "%6d %2d %+e", this->id, this->istar, tmass);
         fprintf(fp, " %+.16e %+.16e %+.16e", tpos[0], tpos[1], tpos[2]);
         fprintf(fp, " %+.16e %+.16e %+.16e", tvel[0], tvel[1], tvel[2]);
@@ -264,14 +194,31 @@ public:
         fprintf(fp, " %+.16e %+.16e %+.16e %+.16e", tdens, tvsnd, tpres, this->temp);
         fprintf(fp, " %+.16e %+.16e %+.16e", tdivv, trotv, this->bswt);
         fprintf(fp, " %+.16e %6d %+.16e", this->grdh, this->np, tpot);
+        fprintf(fp, " %3d", this->cnteos);
         fprintf(fp, "\n");
 
     }
 
     void referEquationOfState() {
+#ifdef WD_DAMPING1
         this->pres = CalcEquationOfState::getPressure(this->dens, this->uene);
         this->vsnd = CalcEquationOfState::getSoundVelocity(this->dens, this->uene);
         this->temp = CalcEquationOfState::getTemperature(this->dens, this->uene);
+#else
+        this->pres = CalcEquationOfState::getPressure(this->dens, this->uene);
+        this->vsnd = CalcEquationOfState::getSoundVelocity(this->dens, this->uene);
+        this->temp = CalcEquationOfState::getTemperature(this->dens, this->uene);
+        /*
+        CalcEquationOfState::getThermodynamicQuantity(this->dens,
+                                                      this->uene,
+                                                      this->abar,
+                                                      this->zbar,
+                                                      this->pres,
+                                                      this->vsnd,
+                                                      this->temp,
+                                                      this->cnteos);
+        */
+#endif
     }
 
     void calcBalsaraSwitch() {
@@ -347,7 +294,7 @@ public:
         this->alph  = this->alph2 + 0.5 * this->adot * dt;
 
         PS::F64 unow = this->uene;
-        PS::F64 umin = CalcEquationOfState::getEnergyMin(this->dens);
+        PS::F64 umin = CalcEquationOfState::getEnergyMin(this->dens, this->abar, this->zbar);
         PS::F64 delu = (unow < umin) ? 0.d : unow - umin;
         this->uene = (unow < umin) ? unow : ((unow - umin) * exp(-0.1 * dt) + umin);
     }
@@ -372,6 +319,8 @@ public:
 
 };
 
+PS::F64    SPH::abar = 13.7142857143d;
+PS::F64    SPH::zbar =  6.85714285714d;
 PS::F64ort SPH::cbox;
 PS::F64    SPH::cinv;
 PS::F64    SPH::tceff;
@@ -610,7 +559,6 @@ void doThisEveryTime(PS::F64 & time,
 }
 
 template <class Tptcl>
-//void finalizeSimulation(PS::S32 nstp,
 void finalizeSimulation(PS::S32 time,
                         Tptcl & system) {
     char filename[64];

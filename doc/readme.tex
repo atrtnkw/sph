@@ -43,7 +43,7 @@
 
 \begin{document}
 
-\section{Variable kernel w/ grad-h}
+\section{SPH w/ nuclear reaction}
 
 Suppose we know acceleration, time derviative of energy, coefficient
 viscosity, and the next timestep at the initial time. We integrate
@@ -93,8 +93,8 @@ each particle as follows:
     \end{align}
     where $h$ is the kernel length. The values of $\eta$ and $H/h$ are
     described in Appendix~\ref{sec:kernels}.
-  \item Return to step~(\ref{item:estimatedensity}) if this is the
-    first time.
+  \item Return to step~(\ref{item:estimatedensity}) unless this is the
+    3rd time.
   \item Calculate divergence and rotation of $\bm{v}$:
     \begin{align}
       \nabla \cdot \tilde{\bm{v}}_i &= - \frac{1}{\Omega_i \rho_i} \sum
@@ -118,8 +118,17 @@ each particle as follows:
   ($\tilde{c}_{{\rm s},i}$) as follows:
   \begin{align}
     P_i &= (\gamma - 1) \rho_i \tilde{u}_i \\
-    c_{{\rm s},i} &= \left( \gamma \frac{P_i}{\rho_i} \right)^{1/2}.
+    c_{{\rm s},i} &= \left( \gamma \frac{P_i}{\rho_i} \right)^{1/2},
   \end{align}
+  or Helmholtz EOS\redtext{, in which case the temperature
+    ($\tilde{T}_i$) is also obtained}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\item \redtext{Calculate energy generation ($\epsilon_{{\rm nuc},i}$)
+  through nuclear reaction. When the reaction is exothermic, the
+  density ($\rho_i$) and temperature ($\tilde{T}_i$) are fixed. On the
+  other hand, when the reaction is endothermic, only the density
+  ($\rho_i$) is fixed.}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \item Calculate the Balsara switch:
@@ -177,7 +186,8 @@ each particle as follows:
   \begin{align}
     \bm{v}_i &= \bm{v}^{(1/2)}_i + \frac{1}{2} \bm{a}_i \Delta t \\
     %%
-    u_i &= u^{(1/2)}_i + \frac{1}{2} \dot{u}_i \Delta t \\
+    u_i &= u^{(1/2)}_i + \frac{1}{2} \dot{u}_i \Delta t \redtext{+
+      \epsilon_{{\rm nuc},i}} \\
     %%
     \alpha_i &= \alpha^{(1/2)}_i + \frac{1}{2} \dot{\alpha}_i \Delta
     t.
@@ -185,10 +195,15 @@ each particle as follows:
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \item Calculate the next timestep:
+%%  \begin{align}
+%%    \Delta t = C \min_i \left[ \min \left( \frac{2H_i}{\max_j \left(
+%%        v_{ij}^{\rm sig} \right) }, \frac{u_i}{|\dot{u}_i|} \right)
+%%      \right].
+%%  \end{align}
   \begin{align}
-    \Delta t = C \min_i \left[ \min \left( \frac{2H_i}{\max_j \left(
-        v_{ij}^{\rm sig} \right) }, \frac{u_i}{|\dot{u}_i|} \right)
-      \right].
+    \Delta t_{\rm next} = C \min_i \left[ \frac{2H_i}{\max_j \left(
+        v_{ij}^{\rm sig} \right) }, \redtext{\Delta t \left|
+        \frac{u_i^{(0)}}{u_i-u_i^{(0)}} \right|} \right].
   \end{align}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -198,7 +213,7 @@ each particle as follows:
 \section{Helmholtz EOS}
 
 Coorporate Timmes's EOS. The compositions are 100~\% carbon, 50~\%
-carbon and 50~\% oxygen, and 100~\% helium.
+carbon and 50~\% oxygen, and will be 100~\% helium.
 
 \appendix
 
@@ -325,25 +340,40 @@ $2.171239(D=2)$, and $2.207940(D=3)$.
   \begin{center}
     \includegraphics[width=14cm,bb=0 0 980 480]{fig/eos/draw.png}
   \end{center}
-  \caption{Helmholtz EOS.}
-\end{figure}
-
-\begin{figure}
-  \begin{center}
-    \includegraphics[width=14cm,bb=0 0 880 840]{fig/wddamp/draw.png}
-  \end{center}
-  \caption{Density and temperature of $1M_\odot$ COWD
-    ($1k/0.1M_{\odot}$. A new damping mode with cooling during 100 s,
-    such that $u_{{\rm new},i} = (u_{{\rm old},i} - u_{\rm
-      min}(\rho_i)) \exp(-0.1 \Delta t) + u_{\rm min}(\rho_i)$.}
+  \caption{Helmholtz EOS w/ lookup table (top) and w/o (bottom).}
 \end{figure}
 
 \begin{figure}
   \begin{center}
     \includegraphics[width=10cm,bb=0 0 520 480]{fig/wdeq/draw.png}
   \end{center}
-  \caption{Single COWD equilibrium ($1k/0.1M_{\odot}$ w/ new
-    damping.}
+  \caption{Single COWD equilibrium ($1k/0.1M_{\odot}$) w/ new
+    damping. The new damping mode is the addtion of a sort of cooling
+    during 100 s, such that $u_{{\rm new},i} = (u_{{\rm old},i} -
+    u_{\rm min}(\rho_i)) \exp(-0.1 \Delta t) + u_{\rm min}(\rho_i)$.}
+\end{figure}
+
+\begin{figure}
+  \begin{center}
+    \includegraphics[width=14cm,bb=0 0 880 480]{fig/bwd.1.8_he1e-1/draw.png}
+  \end{center}
+  \caption{Density and temperature of $1.1M_\odot$ and $1.0M_\odot$
+    COWDs ($1k/0.1M_{\odot}$) from $1.8 \times 10^9$cm. Blue points
+    indicate helium particles ($f_{\rm He}=0.1$).}
+\end{figure}
+
+\begin{figure}
+  \begin{center}
+    \includegraphics[width=14cm,bb=0 0 880 1200]{fig/wddamp/draw.png}
+  \end{center}
+  \caption{$1M_\odot$ COWD ($1k/0.1M_{\odot}$).}
+\end{figure}
+
+\begin{figure}
+  \begin{center}
+    \includegraphics[width=14cm,bb=0 0 1000 960]{fig/wddamp/draw2.png}
+  \end{center}
+  \caption{$1M_\odot$ COWD ($1k/0.1M_{\odot}$).}
 \end{figure}
 
 \begin{figure}
@@ -360,15 +390,6 @@ $2.171239(D=2)$, and $2.207940(D=3)$.
   \end{center}
   \caption{Density and temperature of $1.1M_\odot$ and $1.0M_\odot$
     COWDs ($1k/0.1M_{\odot}$) from $1.5 \times 10^9$cm.}
-\end{figure}
-
-\begin{figure}
-  \begin{center}
-    \includegraphics[width=14cm,bb=0 0 880 480]{fig/bwd.1.8_he1e-1/draw.png}
-  \end{center}
-  \caption{Density and temperature of $1.1M_\odot$ and $1.0M_\odot$
-    COWDs ($1k/0.1M_{\odot}$) from $1.8 \times 10^9$cm. Blue points
-    indicate helium particles ($f_{\rm He}=0.1$).}
 \end{figure}
 
 \end{document}

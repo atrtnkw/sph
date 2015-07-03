@@ -11,7 +11,7 @@ CFLAGS += -DCUBICSPLINE
 #CFLAGS += -DUSE_AT2D
 CFLAGS += -DGRAVITY
 #CFLAGS += -DWD_DAMPING1
-CFLAGS += -DWD_DAMPING2
+#CFLAGS += -DWD_DAMPING2
 #CFLAGS += -DWD_DAMPINGB
 ######################
 
@@ -46,7 +46,7 @@ CLIBS  += -lmpi_cxx
 endif
 
 OBJ = main.o heos/eos.o
-HDR = hdr_sph.hpp hdr_kernel.hpp hdr_density.hpp hdr_hydro.hpp \
+HDR = hdr_sph.hpp hdr_eos.hpp hdr_kernel.hpp hdr_density.hpp hdr_hydro.hpp \
 	hdr_gravity.hpp hdr_damp.hpp
 ETC = Makefile
 

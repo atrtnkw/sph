@@ -1734,7 +1734,7 @@ c..do this stuff once
 
 c..open the table
 c      open(unit=2,file='helm_table_large.dat',status='old')
-      open(unit=2,file='heos/helm_table_large.dat',status='old')
+       open(unit=2,file='heos/helm_table_large.dat',status='old')
 
 c..read the helmholtz free energy table
 c       tlo   = 4.0d0

@@ -2,6 +2,11 @@
 
 #include "heos/WDEOS.hpp"
 
+extern "C" {
+    void helmeos2_(double * tt, double * dd, double * abar, double * zbar,
+                   double * pp, double * u, double * du, double * cs, bool * eosfail);
+}
+
 namespace CodeUnit {
     PS::F64 SolarRadius        = 6.9599e10; // cm
     PS::F64 SolarMass          = 1.9891e33; // g
@@ -25,6 +30,13 @@ namespace CodeUnit {
     PS::F64 UnitOfDensityInv   = 1.d / UnitOfDensity;
     PS::F64 UnitOfEnergyInv    = 1.d / UnitOfEnergy;
     PS::F64 UnitOfPressureInv  = 1.d / UnitOfPressure;
+
+    PS::F64 MaximumOfTemperature       = 1e10;
+    PS::F64 MinimumOfTemperature       = 1e5;
+    PS::F64 BoundaryTemperature        = 1e8;
+//    PS::F64 TolaranceOfLowTemperature  = 1e-1;
+    PS::F64 TolaranceOfLowTemperature  = 1e-4;
+    PS::F64 TolaranceOfHighTemperature = 1e-4;
 
     // different from OTOO code in time unit !!
     PS::F64 grav               = GravityConstant /
@@ -72,5 +84,70 @@ public:
     }
     static PS::F64 getEnergyMin(PS::F64 density) {
         return getInstance().eos_->GetEmin2(density);
+    }
+    static PS::F64 getEnergyMin(PS::F64 density,
+                                PS::F64 abar,
+                                PS::F64 zbar) {
+        PS::F64 ttmin = CodeUnit::MinimumOfTemperature;
+        PS::F64 dd = density * CodeUnit::UnitOfDensity;
+        PS::F64 uu, pp, du, cs;
+        bool    eosfail;
+
+        helmeos2_(&ttmin, &dd, &abar, &zbar, &pp, &uu, &du, &cs, &eosfail);
+        PS::F64 eg = uu * CodeUnit::UnitOfEnergyInv;
+        return eg;
+    }
+    static void getThermodynamicQuantity(PS::F64 density,
+                                         PS::F64 energy,
+                                         PS::F64 abar,
+                                         PS::F64 zbar,
+                                         PS::F64 & pressure,
+                                         PS::F64 & soundvelocity,
+                                         PS::F64 & temperature,
+                                         PS::S32 & counteos) {
+        using namespace CodeUnit;
+
+        PS::F64 ttmax = (temperature != 0.d && 10.d * temperature < MaximumOfTemperature) ?
+            10.d * temperature : MaximumOfTemperature;
+        PS::F64 ttmin = MinimumOfTemperature;
+        PS::S32 cnt   = 2;
+        PS::F64 umax, umin;
+        PS::F64 uu, pp, du, cs;
+        bool    eosfail;
+
+        PS::F64 dd = density * UnitOfDensity;
+        PS::F64 eg = energy  * UnitOfEnergy;
+
+        helmeos2_(&ttmax, &dd, &abar, &zbar, &pp, &umax, &du, &cs, &eosfail);
+        helmeos2_(&ttmin, &dd, &abar, &zbar, &pp, &umin, &du, &cs, &eosfail);
+        if(eg > umax) {
+            fprintf(stderr, "Too large energy!\n");
+            PS::Abort();
+        } else if (eg > umin) {
+            PS::F64 ttmid;
+            PS::F64 eginv = 1.d / eg;
+            PS::F64 tttol;
+            PS::F64 tterr;
+            do {
+                ttmid = sqrt(ttmax * ttmin);
+                helmeos2_(&ttmid, &dd, &abar, &zbar, &pp, &uu, &du, &cs, &eosfail);
+                cnt++;
+                if(uu < eg) {
+                    ttmin = ttmid;
+                } else {
+                    ttmax = ttmid;
+                }
+                assert(cnt < 100);
+                tterr = ttmax / ttmin - 1.d;
+                tttol = (ttmax < BoundaryTemperature) ?
+                    TolaranceOfLowTemperature :
+                    TolaranceOfHighTemperature;
+            }while(tterr > tttol);
+            ttmin = ttmid;
+        }
+        pressure      = pp * UnitOfPressureInv;
+        soundvelocity = cs * UnitOfVelocityInv;
+        temperature   = ttmin;
+        counteos      = cnt;
     }
 };
