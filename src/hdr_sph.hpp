@@ -193,7 +193,9 @@ public:
         fprintf(fp, " %+.16e %+.16e %+.16e", tuene, this->alph, tksr);
         fprintf(fp, " %+.16e %+.16e %+.16e %+.16e", tdens, tvsnd, tpres, this->temp);
         fprintf(fp, " %+.16e %+.16e %+.16e", tdivv, trotv, this->bswt);
-        fprintf(fp, " %+.16e %6d %+.16e", this->grdh, this->np, tpot);
+        fprintf(fp, " %+.16e %6d %+.16e", this->grdh, this->np, tpot);        
+//        PS::F64vec taccg = this->accg * UnitOfAcceleration;
+//        fprintf(fp, " %+.16e %+.16e %+.16e", taccg[0], taccg[1], taccg[2]);
         fprintf(fp, " %3d", this->cnteos);
         fprintf(fp, "\n");
 
@@ -205,10 +207,9 @@ public:
         this->vsnd = CalcEquationOfState::getSoundVelocity(this->dens, this->uene);
         this->temp = CalcEquationOfState::getTemperature(this->dens, this->uene);
 #else
-        this->pres = CalcEquationOfState::getPressure(this->dens, this->uene);
-        this->vsnd = CalcEquationOfState::getSoundVelocity(this->dens, this->uene);
-        this->temp = CalcEquationOfState::getTemperature(this->dens, this->uene);
-        /*
+//        this->pres = CalcEquationOfState::getPressure(this->dens, this->uene);
+//        this->vsnd = CalcEquationOfState::getSoundVelocity(this->dens, this->uene);
+//        this->temp = CalcEquationOfState::getTemperature(this->dens, this->uene);
         CalcEquationOfState::getThermodynamicQuantity(this->dens,
                                                       this->uene,
                                                       this->abar,
@@ -217,7 +218,6 @@ public:
                                                       this->vsnd,
                                                       this->temp,
                                                       this->cnteos);
-        */
 #endif
     }
 
