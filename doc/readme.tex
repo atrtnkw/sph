@@ -57,15 +57,21 @@ each particle as follows:
     \bm{v}^{(1/2)}_i &= \bm{v}^{(0)}_i + \frac{1}{2} \bm{a}^{(0)}
     \Delta t \\
     %%
-    u^{(1/2)}_i &= u^{(0)}_i + \frac{1}{2} \dot{u}^{(0)} \Delta t \\
+    u^{(1/2)}_i &= u^{(0)}_i + \frac{1}{2} \dot{u}^{(0)} \Delta t
+    \redtext{+ \epsilon_{{\rm nuc},i}(\Delta t/2)} \\
     %%
     \tilde{\bm{v}}_{i} &= \bm{v}^{(0)}_i + \bm{a}^{(0)}_i \Delta t \\
     %%
     \tilde{\bm{u}}_{i} &= \bm{u}^{(0)}_i + \dot{\bm{u}}^{(0)}_i \Delta
-    t \\
+    t \redtext{+ \epsilon_{{\rm nuc},i}(\Delta t)} \\
     %%
-    \tilde{\alpha}_i &= \alpha^{(0)}_i + \dot{\alpha}^{(0)}_i \Delta t.
+    \tilde{\alpha}_i &= \alpha^{(0)}_i + \dot{\alpha}^{(0)}_i \Delta t,
   \end{align}
+  \redtext{where ($\epsilon_{{\rm nuc},i}$) is energy generated
+    through nuclear reaction. When the reaction is exothermic, the
+    density and temperature are fixed at this time. On the other hand,
+    when the reaction is endothermic, only the density is fixed at
+    this time.}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \item Calculate the density, kernel-support length and grad-h term of
@@ -124,13 +130,6 @@ each particle as follows:
     ($\tilde{T}_i$) is also obtained}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\item \redtext{Calculate energy generation ($\epsilon_{{\rm nuc},i}$)
-  through nuclear reaction. When the reaction is exothermic, the
-  density ($\rho_i$) and temperature ($\tilde{T}_i$) are fixed. On the
-  other hand, when the reaction is endothermic, only the density
-  ($\rho_i$) is fixed.}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \item Calculate the Balsara switch:
   \begin{align}
     f_i &= \frac{|\nabla \cdot \tilde{\bm{v}}_i|}{|\nabla \cdot
@@ -187,11 +186,14 @@ each particle as follows:
     \bm{v}_i &= \bm{v}^{(1/2)}_i + \frac{1}{2} \bm{a}_i \Delta t \\
     %%
     u_i &= u^{(1/2)}_i + \frac{1}{2} \dot{u}_i \Delta t \redtext{+
-      \epsilon_{{\rm nuc},i}} \\
+      \epsilon_{{\rm nuc},i}(\Delta t / 2)} \\
     %%
     \alpha_i &= \alpha^{(1/2)}_i + \frac{1}{2} \dot{\alpha}_i \Delta
     t.
   \end{align}
+  \redtext{When the reaction is exothermic, the density and
+    temperature are fixed at this time. On the other hand, when the
+    reaction is endothermic, only the density is fixed at this time.}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \item Calculate the next timestep:
@@ -232,7 +234,7 @@ We describe the cubic spline kernel:
 %%
     0 & (q \ge 1)
   \end{array}
-  \right. \\
+  \right. \label{eq:cubicspline0-1} \\
 %%
   \frac{\partial w(q)}{\partial q} &= (-6) 2^D \sigma
   \times \left\{
@@ -244,11 +246,17 @@ We describe the cubic spline kernel:
     (1 - q)^2 & (1/2 \le q < 1) \\
     0 & (q \ge 1)
   \end{array}
-  \right., \\
+  \right., \label{eq:cubicspline0-2}
 \end{align}
 where $\sigma = 2/3$ (1D), $10/7\pi$ (2D), and $1/\pi$ (3D).
 
 For this kernel, $\eta=1.2$, and $H/h=2$.
+
+The equation~(\ref{eq:cubicspline0-1}) can be rewritten as
+\begin{align}
+  w(r/H) = 2^D \sigma \times 2 \left[ (1-q)^3_+ - 4 (1/2 - q)^3_+ \right],
+\end{align}
+where $(x)_+ \equiv \max(0, x)$.
 
 \subsection{Wendland C$^2$ kernel}
 
