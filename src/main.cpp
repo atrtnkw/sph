@@ -3,8 +3,9 @@
 #include <cassert>
 
 #include "particle_simulator.hpp"
-#include "hdr_kernel.hpp"
 
+#include "vector_x86.hpp"
+#include "hdr_kernel.hpp"
 #include "hdr_sph.hpp"
 #include "hdr_density.hpp"
 #include "hdr_hydro.hpp"
@@ -95,11 +96,12 @@ int main(int argc, char **argv)
 
     sph.exchangeParticle(dinfo);
     calcSPHKernel(dinfo, sph, density, derivative,
-                  calcDensity(), calcDerivative());
+//                  calcDensity(), calcDerivative());
+                  calcDensityX(), calcDerivative());
 
 #ifdef GRAVITY
     PS::TreeForForceLong<Gravity, GravityEPI, GravityEPJ>::Monopole gravity;
-    gravity.initialize(nptclmax, 0.5);
+    gravity.initialize(nptclmax);
     g5_open();
     g5_set_eps_to_all(SPH::eps);
     gravity.calcForceAllAndWriteBack(calcGravity<GravityEPJ>(),
@@ -113,12 +115,24 @@ int main(int argc, char **argv)
     PS::F64 dtdc = 0.25;
     PS::S32 nstp = 0;
     while(time < tend){
-        doThisEveryTime(time, dtime, tout, dtsp, sph, fplog);
-
-//        PS::Finalize();
-//        exit(0);
-
         dtime = calcTimeStep(sph, time, 1 / 64.);
+
+        if(time >= tout) {
+            char filename[64];
+            sprintf(filename, "snap/sph_t%04d.dat", nstp);
+            sph.writeParticleAscii(filename);
+            tout += dtsp;
+            nstp++;
+//            PS::Finalize();
+//            exit(0);
+        }
+        
+        PS::F64 etot = calcEnergy(sph);
+        if(rank == 0) {
+            fprintf(fplog, "time: %.10f %+e %+e\n", time, dtime, etot);
+            fflush(fplog);
+            fprintf(stderr, "time: %.10f %+e %+e\n", time, dtime, etot);
+        }
 
         predict(sph, dtime);
         if(SPH::cbox.low_[0] != SPH::cbox.high_[0]) {
@@ -131,8 +145,11 @@ int main(int argc, char **argv)
 
         sph.exchangeParticle(dinfo);
 
+        calcFieldVariable(sph);
+
         calcSPHKernel(dinfo, sph, density, derivative,
-                      calcDensity(), calcDerivative());
+//                      calcDensity(), calcDerivative());
+                      calcDensityX(), calcDerivative());
 
 #ifdef GRAVITY
         gravity.calcForceAllAndWriteBack(calcGravity<GravityEPJ>(),
@@ -143,12 +160,19 @@ int main(int argc, char **argv)
 
         correct(sph, dtime);
 
+#ifdef DAMPING
+        DampVelocity::dampVelocity(sph, dtime);
+        if(DampVelocity::stopDamping(time, sph)) {
+            break;
+        }
+#endif
+
         time += dtime;
     }
 
     fclose(fplog);
 
-    finalizeSimulation(time, sph);
+    finalizeSimulation(nstp, sph);
     
     PS::Finalize();
 
@@ -281,6 +305,7 @@ void calcSPHKernel(Tdinfo & dinfo,
         }
         repeat = PS::Comm::synchronizeConditionalBranchOR(repeat_loc);
         cnt++;
+
     }
     referEquationOfState(sph);
     calcBalsaraSwitch(sph);

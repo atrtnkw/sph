@@ -134,6 +134,13 @@ namespace CubicSpline {
             w0 = 2.d * (1.d - r) * (1.d - r) * (1.d - r);
         }
         return ceff0 * w0;
+        /*
+        PS::F64 t1 = 1.0d - r;
+        PS::F64 t2 = 0.5d - r;
+        t1 = (t1 > 0.d) ? t1 : 0.d;
+        t2 = (t2 > 0.d) ? t2 : 0.d;
+        return 2.d * ceff0 * (t1 * t1 * t1 - 4.d * t2 * t2 * t2);
+        */
     }
     inline PS::F64 kernel1st(const PS::F64 r) {
         PS::F64 w1 = 0.d;
@@ -145,6 +152,15 @@ namespace CubicSpline {
             w1 = (1.d - r) * (1.d - r);
         }
         return ceff1 * w1;
+    }
+
+    inline v4df kernel0thX(const v4df r) {
+        v4df t1 = v4df(1.d)  - r;
+        v4df t2 = v4df(0.5d) - r;
+        t1 = v4df::max(t1, 0.d);
+        t2 = v4df::max(t2, 0.d);
+        v4df w0 = v4df(2.d * ceff0) * (t1 * t1 * t1 - v4df(4.d) * t2 * t2 * t2);
+        return w0;
     }
     
 }
