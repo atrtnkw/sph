@@ -88,15 +88,25 @@ int main(int argc, char **argv)
         dinfo.setPosRootDomain(SPH::cbox.low_, SPH::cbox.high_);
     }
 
+    WT::clear();
+
+    WT::start();
     sph.adjustPositionIntoRootDomain(dinfo);
+    WT::accumulateOthers();
+    WT::start();
     dinfo.decomposeDomainAll(sph);
+    WT::accumulateDecomposeDomain();
 
     density.initialize(nptclmax);
     derivative.initialize(nptclmax);
 
+    WT::start();
     calcFieldVariable(sph);
+    WT::accumulateOthers();
 
+    WT::start();
     sph.exchangeParticle(dinfo);
+    WT::accumulateExchangeParticle();
     calcSPHKernel(dinfo, sph, density, derivative,
                   calcDensity(), calcDerivative());
 
@@ -105,18 +115,19 @@ int main(int argc, char **argv)
     gravity.initialize(nptclmax);
     g5_open();
     g5_set_eps_to_all(SPH::eps);
+    WT::start();
     gravity.calcForceAllAndWriteBack(calcGravity<GravityEPJ>(),
                                      calcGravity<PS::SPJMonopole>(),
                                      sph,
                                      dinfo);
+    WT::accumulateCalcGravity();
 #endif
 
     FILE *fplog = fopen("snap/time.log", "w");
+    FILE *fptim = fopen("snap/prof.log", "w");
     PS::F64 tout = time;
     PS::F64 dtdc = 0.25;
     PS::S32 nstp = 0;
-    PS::F64 wtim0 = getWallclockTime();
-    PS::F64 wtim1;
     while(time < tend){
         dtime = calcTimeStep(sph, time, 1 / 64.);
 
@@ -131,38 +142,54 @@ int main(int argc, char **argv)
         }
         
         PS::F64 etot = calcEnergy(sph);
+        WT::reduceInterProcess();
         if(rank == 0) {
-            wtim1 = getWallclockTime();
-            fprintf(fplog, "time: %.10f %+e %+e %+e\n", time, dtime, etot, wtim1 - wtim0);
+            fprintf(fplog, "time: %.10f %+e %+e\n", time, dtime, etot);
             fflush(fplog);
-            fprintf(stderr, "time: %.10f %+e %+e %+e\n", time, dtime, etot, wtim1 - wtim0);
-            wtim0 = getWallclockTime();
+//            fprintf(stderr, "time: %.10f %+e %+e\n", time, dtime, etot);
+            WT::dump(time, fptim);
+            fflush(fptim);
         }
+        WT::clear();
 
+        WT::start();
         predict(sph, dtime);
+        WT::accumulateIntegrateOrbit();
+        WT::start();
         if(SPH::cbox.low_[0] != SPH::cbox.high_[0]) {
             sph.adjustPositionIntoRootDomain(dinfo);
         }
+        WT::accumulateOthers();
 
+        WT::start();
         if(time - (PS::S64)(time / dtdc) * dtdc == 0.){
             dinfo.decomposeDomainAll(sph);
         }
+        WT::accumulateDecomposeDomain();
 
+        WT::start();
         sph.exchangeParticle(dinfo);
+        WT::accumulateExchangeParticle();
 
+        WT::start();
         calcFieldVariable(sph);
+        WT::accumulateOthers();
 
         calcSPHKernel(dinfo, sph, density, derivative,
                       calcDensity(), calcDerivative());
 
+        WT::start();
 #ifdef GRAVITY
         gravity.calcForceAllAndWriteBack(calcGravity<GravityEPJ>(),
                                          calcGravity<PS::SPJMonopole>(),
                                          sph,
                                          dinfo);
 #endif
+        WT::accumulateCalcGravity();
 
+        WT::start();
         correct(sph, dtime);
+        WT::accumulateIntegrateOrbit();
 
 #ifdef DAMPING
         DampVelocity::dampVelocity(sph, dtime);
@@ -175,6 +202,7 @@ int main(int argc, char **argv)
     }
 
     fclose(fplog);
+    fclose(fptim);
 
     finalizeSimulation(nstp, sph);
     
@@ -291,6 +319,7 @@ void calcSPHKernel(Tdinfo & dinfo,
         sph[i].rs = expand * sph[i].ksr;
     }
 
+    WT::start();
     PS::S32 cnt = 0;
     for(bool repeat = true; repeat == true;) {
         bool repeat_loc = false;
@@ -311,13 +340,22 @@ void calcSPHKernel(Tdinfo & dinfo,
         cnt++;
 
     }
+    WT::accumulateCalcDensity();
+    WT::start();
     referEquationOfState(sph);
+    WT::accumulateReferEquationOfState();
+    WT::start();
     calcBalsaraSwitch(sph);
+    WT::accumulateOthers();
+    WT::start();
     derivative.calcForceAllAndWriteBack(calcDerivative, sph, dinfo);
+    WT::accumulateCalcHydro();
+    WT::start();
     addAdditionalForce(sph);
     for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
         sph[i].calcAlphaDot();
     }
+    WT::accumulateOthers();
 
     return;
 }

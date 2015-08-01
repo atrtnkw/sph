@@ -166,6 +166,21 @@ namespace CubicSpline {
         
         return w0;
     }
+    inline v4df kernel1stX(const v4df r) {
+        v4df t1 = v4df(1.d)  - r;
+        v4df t2 = v4df(0.5d) - r;
+        v4df t3 = v4df(0.33333333333333333d) - r;
+        t1 = v4df::max(t1, 0.d);
+        t2 = v4df::max(t2, 0.d);
+        t3 = v4df::max(t3, 0.d);
+        v4df t12 = t1 * t1;
+        v4df t22 = t2 * t2;
+        v4df t32 = t3 * t3;
+        v4df w0  = v4df::nmadd(t12, v4df(4.d), t22);
+        w0  = v4df::madd(w0, v4df(3.d), t32);
+        w0 *= v4df(ceff1);
+        return w0;
+    }
     
 }
 

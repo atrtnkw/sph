@@ -24,7 +24,7 @@ CLIBS += -L${PHANTOM_DIR} -lpg5
 CFLAGS += -DENABLE_SIMDX86
 #CFLAGS += -DWENDLANDC2
 CFLAGS += -DCUBICSPLINE
-CFLAGS += -DUSE_AT1D
+#CFLAGS += -DUSE_AT1D
 #CFLAGS += -DUSE_AT2D
 #CFLAGS += -DGRAVITY
 #CFLAGS += -DDAMPING
@@ -32,7 +32,7 @@ CFLAGS += -DUSE_AT1D
 
 OBJ = main.o
 HDR = hdr_sph.hpp hdr_kernel.hpp hdr_density.hpp hdr_hydro.hpp \
-	hdr_gravity.hpp hdr_damp.hpp
+	hdr_gravity.hpp hdr_damp.hpp hdr_time.hpp
 ETC = Makefile
 
 run: $(OBJ) $(HDR) $(ETC)

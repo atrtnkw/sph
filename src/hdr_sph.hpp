@@ -163,6 +163,7 @@ public:
         fprintf(fp, " %+e %+e %+e", this->divv, this->rotv, this->bswt);
         fprintf(fp, " %+e %6d %+e", this->grdh, this->np, this->pot);
         fprintf(fp, " %+e %+e %+e", this->accg[0], this->accg[1], this->accg[2]);
+//        fprintf(fp, " %+e %+e", this->udot, this->vsmx);
         fprintf(fp, "\n");
     }
 
