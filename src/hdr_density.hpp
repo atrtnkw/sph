@@ -47,7 +47,7 @@ public:
     }
 };
 
-struct calcDensity {
+struct calcDensityBasic {
 
     void operator () (const DensityEPI *epi,
                       const PS::S32 nip,
@@ -131,7 +131,7 @@ struct calcDensity {
     }
 };
 
-struct calcDensityX {
+struct calcDensityX86 {
 
     void operator () (const DensityEPI *epi,
                       const PS::S32 nip,
@@ -288,3 +288,9 @@ struct calcDensityX {
 
     }
 };
+
+#ifdef ENABLE_SIMDX86
+typedef calcDensityX86 calcDensity;
+#else
+typedef calcDensityBasic calcDensity;
+#endif

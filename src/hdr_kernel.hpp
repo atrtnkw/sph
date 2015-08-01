@@ -159,7 +159,11 @@ namespace CubicSpline {
         v4df t2 = v4df(0.5d) - r;
         t1 = v4df::max(t1, 0.d);
         t2 = v4df::max(t2, 0.d);
-        v4df w0 = v4df(2.d * ceff0) * (t1 * t1 * t1 - v4df(4.d) * t2 * t2 * t2);
+        v4df t13 = t1 * t1 * t1;
+        v4df t23 = t2 * t2 * t2;
+        v4df w0  = v4df::nmadd(t13, v4df(4.d), t23);
+        w0 *= v4df(2.d * ceff0);
+        
         return w0;
     }
     

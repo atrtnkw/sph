@@ -1,13 +1,14 @@
 #PBS -N test
-#PBS -l mppwidth=48
+#PBS -l mppwidth=1
 #PBS -j oe
 #PBS -q short-b
 
-NPARALLEL=48
+NPARALLEL=1
 NPROCESS=$NPARALLEL
+
 tempodir=snap
-odir=evrard
-ifile=init/evrard.init
+odir=shock_1d
+ifile=../init.ideal/shock_1d.init
 fexe=run
 
 cd $PBS_O_WORKDIR

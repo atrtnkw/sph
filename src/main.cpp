@@ -98,8 +98,7 @@ int main(int argc, char **argv)
 
     sph.exchangeParticle(dinfo);
     calcSPHKernel(dinfo, sph, density, derivative,
-//                  calcDensity(), calcDerivative());
-                  calcDensityX(), calcDerivative());
+                  calcDensity(), calcDerivative());
 
 #ifdef GRAVITY
     PS::TreeForForceLong<Gravity, GravityEPI, GravityEPJ>::Monopole gravity;
@@ -154,8 +153,7 @@ int main(int argc, char **argv)
         calcFieldVariable(sph);
 
         calcSPHKernel(dinfo, sph, density, derivative,
-//                      calcDensity(), calcDerivative());
-                      calcDensityX(), calcDerivative());
+                      calcDensity(), calcDerivative());
 
 #ifdef GRAVITY
         gravity.calcForceAllAndWriteBack(calcGravity<GravityEPJ>(),
