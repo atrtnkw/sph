@@ -15,6 +15,8 @@
 
 #include "hdr_damp.hpp"
 
+#include "hdr_time.hpp"
+
 static PS::S32 nptclmax = 65536;
 
 template <class Tptcl>
@@ -114,6 +116,8 @@ int main(int argc, char **argv)
     PS::F64 tout = time;
     PS::F64 dtdc = 0.25;
     PS::S32 nstp = 0;
+    PS::F64 wtim0 = getWallclockTime();
+    PS::F64 wtim1;
     while(time < tend){
         dtime = calcTimeStep(sph, time, 1 / 64.);
 
@@ -129,9 +133,11 @@ int main(int argc, char **argv)
         
         PS::F64 etot = calcEnergy(sph);
         if(rank == 0) {
-            fprintf(fplog, "time: %.10f %+e %+e\n", time, dtime, etot);
+            wtim1 = getWallclockTime();
+            fprintf(fplog, "time: %.10f %+e %+e %+e\n", time, dtime, etot, wtim1 - wtim0);
             fflush(fplog);
-            fprintf(stderr, "time: %.10f %+e %+e\n", time, dtime, etot);
+            fprintf(stderr, "time: %.10f %+e %+e %+e\n", time, dtime, etot, wtim1 - wtim0);
+            wtim0 = getWallclockTime();
         }
 
         predict(sph, dtime);
