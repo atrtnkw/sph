@@ -263,7 +263,7 @@ struct calcDerivativeX86 {
                 v4df q_j = r1_ij * hi_j;
 
                 v4df dw_ij = v4df(0.5d) * m_j * ri_ij
-                    * (hi4_i * KernelSph::kernel1stX(q_i) + hi4_j * KernelSph::kernel1stX(q_j));
+                    * (hi4_i * KernelSph::kernel1st(q_i) + hi4_j * KernelSph::kernel1st(q_j));
 
                 v4df mu_ij = xv_ij * ri_ij;
                 mu_ij = ((xv_ij < v4df(0.d)) & mu_ij);

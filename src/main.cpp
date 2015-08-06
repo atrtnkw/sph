@@ -146,7 +146,6 @@ int main(int argc, char **argv)
         if(rank == 0) {
             fprintf(fplog, "time: %.10f %+e %+e\n", time, dtime, etot);
             fflush(fplog);
-//            fprintf(stderr, "time: %.10f %+e %+e\n", time, dtime, etot);
             WT::dump(time, fptim);
             fflush(fptim);
         }

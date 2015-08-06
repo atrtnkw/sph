@@ -145,49 +145,6 @@ struct calcDensityX86 {
 
             PS::S32 nii = ((nip - i) < nvector) ? (nip - i) : nvector;
 
-#if 0
-
-            for(PS::S32 ii = 0; ii < nvector; ii++) {
-
-                PS::S32    id_i = epi[i+ii].id;
-                PS::F64vec x_i  = epi[i+ii].pos;
-                PS::F64vec v_i  = epi[i+ii].vel;
-                PS::F64    h_i  = epi[i+ii].ksr;
-                
-                for(PS::S32 repeat = 0; repeat < 3; repeat++) {
-                    PS::F64 hi_i  = 1.d / h_i;
-                    PS::F64 hi3_i = SPH::calcVolumeInverse(hi_i);
-                    PS::F64 hi4_i = hi_i * hi3_i;
-                    PS::F64 rh_i  = 0.;
-                    PS::S32 nj_i  = 0;
-                    for(PS::S32 j = 0; j < njp; j++) {
-                        PS::F64    m_j = epj[j].mass;
-                        PS::F64vec x_j = epj[j].pos;
-                        
-                        PS::F64vec dx_ij = x_i - x_j;
-                        PS::F64    r2_ij = dx_ij * dx_ij;
-                        PS::F64    r1_ij = sqrt(r2_ij);
-                        PS::F64    q_i   = r1_ij * hi_i;
-                        
-                        PS::F64 kw0 = KernelSph::kernel0th(q_i);
-                        
-                        PS::F64 rhj =   m_j * hi3_i * kw0;
-                        
-                        rh_i   += rhj;
-                        nj_i   += (q_i < 1.d) ? 1 : 0;
-                    }
-                    density[i+ii].dens = rh_i;
-                    density[i+ii].np   = nj_i;
-                    
-                    h_i = KernelSph::eta * KernelSph::ksrh
-                        * SPH::calcPowerOfDimInverse(epi[i+ii].mass, rh_i);
-                    density[i+ii].ksr = h_i;
-                    density[i+ii].itr = (h_i > epi[i+ii].rs) ? true : false;
-                }
-            }
-#else
-
-//            v4df id_i(epi[i].id, epi[i+1].id, epi[i+2].id, epi[i+3].id);
             v4df px_i(epi[i].pos[0], epi[i+1].pos[0], epi[i+2].pos[0], epi[i+3].pos[0]);
             v4df py_i(epi[i].pos[1], epi[i+1].pos[1], epi[i+2].pos[1], epi[i+3].pos[1]);
             v4df pz_i(epi[i].pos[2], epi[i+1].pos[2], epi[i+2].pos[2], epi[i+3].pos[2]);
@@ -219,7 +176,7 @@ struct calcDensityX86 {
                     v4df r1_ij = v4df::sqrt(r2_ij);
                     v4df q_i   = r1_ij * hi_i;
 
-                    v4df kw0 = KernelSph::kernel0thX(q_i);
+                    v4df kw0 = KernelSph::kernel0th(q_i);
                     v4df rhj = m_j * hi3_i * kw0;
 
                     rh_i += rhj;
@@ -241,8 +198,8 @@ struct calcDensityX86 {
 
                 h_i.load(hs);
             }
-#endif
 
+#if 0
             for(PS::S32 ii = 0; ii < nvector; ii++) {
                 PS::S32    id_i = epi[i+ii].id;
                 PS::F64vec x_i  = epi[i+ii].pos;
@@ -283,6 +240,81 @@ struct calcDensityX86 {
                 density[i+ii].rotv = sqrt(rotv_i * rotv_i) * rhi_i * grd_i;
                 density[i+ii].divv = divv_i * rhi_i * grd_i;
             }
+#else
+            v4df id_i(epi[i].id, epi[i+1].id, epi[i+2].id, epi[i+3].id);
+            h_i  = v4df(density[i].ksr, density[i+1].ksr, density[i+2].ksr, density[i+3].ksr);
+            v4df hi_i  = v4df(1.d) / h_i;
+            v4df hi4_i = hi_i * SPH::calcVolumeInverse(hi_i);
+            v4df gh_i(0.d);
+            v4df divv_i(0.d);
+            v4df rotv_i(0.d);
+            for(PS::S32 j = 0; j < njp; j++) {
+                v4df id_j(epj[j].id);
+                v4df m_j(epj[j].mass);
+                v4df px_j(epj[j].pos[0]);
+                v4df py_j(epj[j].pos[1]);
+                v4df pz_j(epj[j].pos[2]);                
+                v4df vx_j(epj[j].vel[0]);
+                v4df vy_j(epj[j].vel[1]);
+                v4df vz_j(epj[j].vel[2]);
+
+                v4df dpx_ij = px_i - px_j;
+                v4df dpy_ij = py_i - py_j;
+                v4df dpz_ij = pz_i - pz_j;
+                v4df dvx_ij = vx_i - vx_j;
+                v4df dvy_ij = vy_i - vy_j;
+                v4df dvz_ij = vz_i - vz_j;
+
+                v4df r2_ij = dpx_ij * dpx_ij;
+                r2_ij = v4df::madd(r2_ij, dpy_ij, dpy_ij);
+                r2_ij = v4df::madd(r2_ij, dpz_ij, dpz_ij);
+                v4df r1_ij = v4df::sqrt(r2_ij);
+                v4df ri_ij = v4df(1.d) / r1_ij;
+                ri_ij = ((id_i != id_j) & ri_ij);
+                v4df q_i = r1_ij * hi_i;
+
+                v4df kw0 = KernelSph::kernel0th(q_i);
+                v4df kw1 = KernelSph::kernel1st(q_i);
+
+                v4df ghj = v4df(KernelSph::dim) * kw0;
+                ghj  = v4df::madd(ghj, q_i, kw1);
+                ghj *= hi4_i;
+                ghj *= v4df(-1.d) * m_j;
+                gh_i   += ghj;
+
+                v4df dw_ij  = m_j * hi4_i * kw1 * ri_ij;
+                v4df dwx_ij = dw_ij * dpx_ij;
+                v4df dwy_ij = dw_ij * dpy_ij;
+                v4df dwz_ij = dw_ij * dpz_ij;
+
+                divv_i = v4df::nmadd(divv_i, dvx_ij, dwx_ij);
+                divv_i = v4df::nmadd(divv_i, dvy_ij, dwy_ij);
+                divv_i = v4df::nmadd(divv_i, dvz_ij, dwz_ij);
+
+                rotv_i = v4df::madd( rotv_i, dvy_ij, dwz_ij);
+                rotv_i = v4df::madd( rotv_i, dvz_ij, dwx_ij);
+                rotv_i = v4df::madd( rotv_i, dvx_ij, dwy_ij);
+                rotv_i = v4df::nmadd(rotv_i, dvz_ij, dwy_ij);
+                rotv_i = v4df::nmadd(rotv_i, dvx_ij, dwz_ij);
+                rotv_i = v4df::nmadd(rotv_i, dvy_ij, dwx_ij);                
+            }
+
+            v4df rh_i(density[i].dens, density[i+1].dens, density[i+2].dens, density[i+3].dens);
+            v4df rhi_i = v4df(1.d) / rh_i;
+            v4df grd_i = v4df(1.d) / (v4df(1.d) + h_i * rhi_i * gh_i / v4df(KernelSph::dim));
+            v4df rotv  = v4df::sqrt(rotv_i * rotv_i) * rhi_i * grd_i;
+            v4df divv  = divv_i * rhi_i * grd_i;
+
+            PS::F64 buf0[nvector], buf1[nvector], buf2[nvector];
+            grd_i.store(buf0);
+            rotv.store(buf1);
+            divv.store(buf2);
+            for(PS::S32 ii = 0; ii < nii; ii++) {
+                density[i+ii].grdh = buf0[ii];
+                density[i+ii].rotv = buf1[ii];
+                density[i+ii].divv = buf2[ii];
+            }
+#endif
 
         }        
 

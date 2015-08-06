@@ -154,7 +154,7 @@ namespace CubicSpline {
         return ceff1 * w1;
     }
 
-    inline v4df kernel0thX(const v4df r) {
+    inline v4df kernel0th(const v4df r) {
         v4df t1 = v4df(1.d)  - r;
         v4df t2 = v4df(0.5d) - r;
         t1 = v4df::max(t1, 0.d);
@@ -166,7 +166,7 @@ namespace CubicSpline {
         
         return w0;
     }
-    inline v4df kernel1stX(const v4df r) {
+    inline v4df kernel1st(const v4df r) {
         v4df t1 = v4df(1.d)  - r;
         v4df t2 = v4df(0.5d) - r;
         v4df t3 = v4df(0.33333333333333333d) - r;

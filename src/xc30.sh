@@ -6,11 +6,9 @@
 NPARALLEL=24
 NPROCESS=$NPARALLEL
 
-tempodir=snap
 odir=pex
-#odir=hoge
 ifile=../init.ideal/pex.init
-#ifile=../init.ideal/shock_1d.init
+tempodir=snap
 fexe=run
 
 cd $PBS_O_WORKDIR
