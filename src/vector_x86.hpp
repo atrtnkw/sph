@@ -73,6 +73,10 @@ struct v4sf {
     static v4sf rsqrt(const v4sf rhs) {
         return v4sf(_mm_rsqrt_ps(rhs.val));
     }
+    static v4sf rsqrt_1st(const v4sf rhs) {
+        v4sf x0 = v4sf(_mm_rsqrt_ps(rhs.val));
+        return v4sf(-0.5) * x0 * (rhs * x0 * x0 - v4sf(3.));
+    }
     static v4sf rsqrt_1st_phantom(const v4sf rhs) {
         v4sf x0 = v4sf(_mm_rsqrt_ps(rhs.val));
         return v4sf(x0 * (rhs * x0 * x0 - v4sf(3.)));
