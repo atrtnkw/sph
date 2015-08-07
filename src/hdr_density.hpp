@@ -265,45 +265,69 @@ struct calcDensityX86 {
                 v4df dvy_ij = vy_i - vy_j;
                 v4df dvz_ij = vz_i - vz_j;
 
-                v4df r2_ij = dpx_ij * dpx_ij;
-                r2_ij = v4df::madd(r2_ij, dpy_ij, dpy_ij);
-                r2_ij = v4df::madd(r2_ij, dpz_ij, dpz_ij);
-                v4df r1_ij = v4df::sqrt(r2_ij);
-                v4df ri_ij = v4df(1.d) / r1_ij;
+                //v4df r2_ij = dpx_ij * dpx_ij;
+                //r2_ij = v4df::madd(r2_ij, dpy_ij, dpy_ij);
+                //r2_ij = v4df::madd(r2_ij, dpz_ij, dpz_ij);
+                v4df r2_ij = dpx_ij * dpx_ij + dpy_ij * dpy_ij + dpz_ij * dpz_ij;
+                //v4df r1_ij = v4df::sqrt(r2_ij);
+                //v4df ri_ij = v4df(1.d) / r1_ij;
+                //ri_ij = ((id_i != id_j) & ri_ij);
+                v4df ri_ij = v4df::rsqrt_4th(r2_ij);
                 ri_ij = ((id_i != id_j) & ri_ij);
+                v4df r1_ij = r2_ij * ri_ij;
                 v4df q_i = r1_ij * hi_i;
 
                 v4df kw0 = KernelSph::kernel0th(q_i);
                 v4df kw1 = KernelSph::kernel1st(q_i);
 
                 v4df ghj = v4df(KernelSph::dim) * kw0;
-                ghj  = v4df::madd(ghj, q_i, kw1);
-                ghj *= hi4_i;
-                ghj *= v4df(-1.d) * m_j;
-                gh_i   += ghj;
+                //ghj  = v4df::madd(ghj, q_i, kw1);
+                ghj += q_i * kw1;
+                //ghj *= hi4_i;
+                //ghj *= v4df(-1.d) * m_j;
+                //gh_i += ghj;
+                gh_i -= ghj * hi4_i * m_j;
 
                 v4df dw_ij  = m_j * hi4_i * kw1 * ri_ij;
                 v4df dwx_ij = dw_ij * dpx_ij;
                 v4df dwy_ij = dw_ij * dpy_ij;
                 v4df dwz_ij = dw_ij * dpz_ij;
 
-                divv_i = v4df::nmadd(divv_i, dvx_ij, dwx_ij);
-                divv_i = v4df::nmadd(divv_i, dvy_ij, dwy_ij);
-                divv_i = v4df::nmadd(divv_i, dvz_ij, dwz_ij);
+                //divv_i = v4df::nmadd(divv_i, dvx_ij, dwx_ij);
+                //divv_i = v4df::nmadd(divv_i, dvy_ij, dwy_ij);
+                //divv_i = v4df::nmadd(divv_i, dvz_ij, dwz_ij);
+                divv_i -= dvx_ij * dwx_ij;
+                divv_i -= dvy_ij * dwy_ij;
+                divv_i -= dvz_ij * dwz_ij;
 
-                rotv_i = v4df::madd( rotv_i, dvy_ij, dwz_ij);
-                rotv_i = v4df::madd( rotv_i, dvz_ij, dwx_ij);
-                rotv_i = v4df::madd( rotv_i, dvx_ij, dwy_ij);
-                rotv_i = v4df::nmadd(rotv_i, dvz_ij, dwy_ij);
-                rotv_i = v4df::nmadd(rotv_i, dvx_ij, dwz_ij);
-                rotv_i = v4df::nmadd(rotv_i, dvy_ij, dwx_ij);                
+                //rotv_i = v4df::madd( rotv_i, dvy_ij, dwz_ij);
+                //rotv_i = v4df::madd( rotv_i, dvz_ij, dwx_ij);
+                //rotv_i = v4df::madd( rotv_i, dvx_ij, dwy_ij);
+                //rotv_i = v4df::nmadd(rotv_i, dvz_ij, dwy_ij);
+                //rotv_i = v4df::nmadd(rotv_i, dvx_ij, dwz_ij);
+                //rotv_i = v4df::nmadd(rotv_i, dvy_ij, dwx_ij);                
+                rotv_i += dvy_ij * dwz_ij;
+                rotv_i += dvz_ij * dwx_ij;
+                rotv_i += dvx_ij * dwy_ij;
+                rotv_i -= dvz_ij * dwy_ij;
+                rotv_i -= dvx_ij * dwz_ij;
+                rotv_i -= dvy_ij * dwx_ij;
             }
 
             v4df rh_i(density[i].dens, density[i+1].dens, density[i+2].dens, density[i+3].dens);
-            v4df rhi_i = v4df(1.d) / rh_i;
-            v4df grd_i = v4df(1.d) / (v4df(1.d) + h_i * rhi_i * gh_i / v4df(KernelSph::dim));
+            //v4df rhi_i = v4df(1.d) / rh_i;
+            v4df rhi_i = v4df::rcp_4th(rh_i);
+            //v4df grd_i = v4df(1.d) / (v4df(1.d) + h_i * rhi_i * gh_i / v4df(KernelSph::dim));
+            v4df grd_i = v4df::rcp_4th(v4df(1.d)
+                                       + h_i * rhi_i * gh_i * v4df::rcp_4th(KernelSph::dim));
             v4df rotv  = v4df::sqrt(rotv_i * rotv_i) * rhi_i * grd_i;
             v4df divv  = divv_i * rhi_i * grd_i;
+
+            v4df hogehoge(1., -2., -5., 4.);
+            hogehoge = v4df::fabs(hogehoge);
+            hogehoge.print();
+            PS::Finalize();
+            exit(0);
 
             PS::F64 buf0[nvector], buf1[nvector], buf2[nvector];
             grd_i.store(buf0);

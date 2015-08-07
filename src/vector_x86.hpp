@@ -527,6 +527,12 @@ struct v4df {
         v4sf x1 = v4sf::rsqrt_1st_phantom(rhs.cvtpd2ps());
         return x1.cvtps2pd();
     }
+
+    static v4df fabs(v4df rhs) {
+        v4df signmask(-0.0d);
+        return _mm256_andnot_pd(signmask, rhs);
+    }
+
     static v4df hadd(v4df x0, v4df x1) {
         return _mm256_hadd_pd(x0, x1);
     }

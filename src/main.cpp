@@ -137,8 +137,8 @@ int main(int argc, char **argv)
             sph.writeParticleAscii(filename);
             tout += dtsp;
             nstp++;
-            //PS::Finalize();
-            //exit(0);
+            PS::Finalize();
+            exit(0);
         }
         
         PS::F64 etot = calcEnergy(sph);
