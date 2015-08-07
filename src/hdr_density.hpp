@@ -145,6 +145,7 @@ struct calcDensityX86 {
 
             PS::S32 nii = ((nip - i) < nvector) ? (nip - i) : nvector;
 
+            v4df id_i(epi[i].id,     epi[i+1].id,     epi[i+2].id,     epi[i+3].id);
             v4df px_i(epi[i].pos[0], epi[i+1].pos[0], epi[i+2].pos[0], epi[i+3].pos[0]);
             v4df py_i(epi[i].pos[1], epi[i+1].pos[1], epi[i+2].pos[1], epi[i+3].pos[1]);
             v4df pz_i(epi[i].pos[2], epi[i+1].pos[2], epi[i+2].pos[2], epi[i+3].pos[2]);
@@ -154,12 +155,13 @@ struct calcDensityX86 {
             v4df h_i(epi[i].ksr, epi[i+1].ksr, epi[i+2].ksr, epi[i+3].ksr);
 
             for(PS::S32 repeat = 0; repeat < 3; repeat++) {
-                v4df hi_i  = v4df(1.d) / h_i;
+                v4df hi_i  = v4df::rcp_4th(h_i);
                 v4df hi3_i = SPH::calcVolumeInverse(hi_i);
                 v4df hi4_i = hi_i * hi3_i;
                 v4df rh_i(0.d);
                 v4df nj_i(0.d);
                 for(PS::S32 j = 0; j < njp; j++) {
+                    v4df id_j(epj[j].id);
                     v4df m_j(epj[j].mass);
                     v4df px_j(epj[j].pos[0]);
                     v4df py_j(epj[j].pos[1]);
@@ -168,18 +170,11 @@ struct calcDensityX86 {
                     v4df dx_ij = px_i - px_j;
                     v4df dy_ij = py_i - py_j;
                     v4df dz_ij = pz_i - pz_j;
-
-                    v4df r2_ij = dx_ij * dx_ij;
-                    r2_ij = v4df::madd(r2_ij, dy_ij, dy_ij);
-                    r2_ij = v4df::madd(r2_ij, dz_ij, dz_ij);
                     
-                    //v4df r1_ij = v4df::sqrt(r2_ij);
-                    v4df hg_ij = v4df::sqrt(r2_ij);
+                    v4df r2_ij = dx_ij * dx_ij + dy_ij * dy_ij + dz_ij * dz_ij;
+                    
                     v4df r1_ij = r2_ij * v4df::rsqrt_4th(r2_ij);
-                    hg_ij.print();
-                    r1_ij.print();
-                    PS::Finalize();
-                    exit(0);
+                    r1_ij = ((id_i != id_j) & r1_ij);
                     v4df q_i   = r1_ij * hi_i;
 
                     v4df kw0 = KernelSph::kernel0th(q_i);
@@ -247,9 +242,8 @@ struct calcDensityX86 {
                 density[i+ii].divv = divv_i * rhi_i * grd_i;
             }
 #else
-            v4df id_i(epi[i].id, epi[i+1].id, epi[i+2].id, epi[i+3].id);
             h_i  = v4df(density[i].ksr, density[i+1].ksr, density[i+2].ksr, density[i+3].ksr);
-            v4df hi_i  = v4df(1.d) / h_i;
+            v4df hi_i  = v4df::rcp_4th(h_i);
             v4df hi4_i = hi_i * SPH::calcVolumeInverse(hi_i);
             v4df gh_i(0.d);
             v4df divv_i(0.d);

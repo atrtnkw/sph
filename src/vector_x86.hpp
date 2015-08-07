@@ -146,13 +146,16 @@ struct v8sf {
     }
 
     v8sf operator + (const v8sf rhs) const {
-        return v8sf(_mm256_add_ps(val, rhs.val));
+        //return v8sf(_mm256_add_ps(val, rhs.val));
+        return val + rhs.val;
     }
     v8sf operator - (const v8sf rhs) const {
-        return v8sf(_mm256_sub_ps(val, rhs.val));
+        //return v8sf(_mm256_sub_ps(val, rhs.val));
+        return val - rhs.val;
     }
     v8sf operator * (const v8sf rhs) const {
-        return v8sf(_mm256_mul_ps(val, rhs.val));
+        //return v8sf(_mm256_mul_ps(val, rhs.val));
+        return val * rhs.val;
     }
     v8sf operator / (const v8sf rhs) const {
         return v8sf(_mm256_div_ps(val, rhs.val));
@@ -165,15 +168,18 @@ struct v8sf {
     }
 
     v8sf operator += (const v8sf rhs) {
-        val = _mm256_add_ps(val, rhs.val);
+        //val = _mm256_add_ps(val, rhs.val);
+        val = val + rhs.val;
         return (*this);
     }
     v8sf operator -= (const v8sf rhs) {
-        val = _mm256_sub_ps(val, rhs.val);
+        //val = _mm256_sub_ps(val, rhs.val);
+        val = val - rhs.val;
         return (*this);
     }
     v8sf operator *= (const v8sf rhs) {
-        val = _mm256_mul_ps(val, rhs.val);
+        //val = _mm256_mul_ps(val, rhs.val);
+        val = val * rhs.val;
         return (*this);
     }
     v8sf operator /= (const v8sf rhs) {
@@ -289,13 +295,16 @@ struct v2df {
     operator _v2df() {return val;}
 
     v2df operator + (const v2df rhs) const {
-        return v2df(_mm_add_pd(val, rhs.val));
+        //return v2df(_mm_add_pd(val, rhs.val));
+        return val + rhs.val;
     }
     v2df operator - (const v2df rhs) const {
-        return v2df(_mm_sub_pd(val, rhs.val));
+        //return v2df(_mm_sub_pd(val, rhs.val));
+        return val - rhs.val;
     }
     v2df operator * (const v2df rhs) const {
-        return v2df(_mm_mul_pd(val, rhs.val));
+        //return v2df(_mm_mul_pd(val, rhs.val));
+        return val * rhs.val;
     }
     v2df operator / (const v2df rhs) const {
         return v2df(_mm_div_pd(val, rhs.val));
@@ -315,15 +324,18 @@ struct v2df {
     }
 
     v2df operator += (const v2df rhs) {
-        val = _mm_add_pd(val, rhs.val);
+        //val = _mm_add_pd(val, rhs.val);
+        val = val + rhs.val;
         return (*this);
     }
     v2df operator -= (const v2df rhs) {
-        val = _mm_sub_pd(val, rhs.val);
+        //val = _mm_sub_pd(val, rhs.val);
+        val = val - rhs.val;
         return (*this);
     }
     v2df operator *= (const v2df rhs) {
-        val = _mm_mul_pd(val, rhs.val);
+        //val = _mm_mul_pd(val, rhs.val);
+        val = val * rhs.val;
         return (*this);
     }
     v2df operator /= (const v2df rhs) {
@@ -396,13 +408,16 @@ struct v4df {
     operator _v4df() {return val;}
 
     v4df operator + (const v4df rhs) const {
-        return v4df(_mm256_add_pd(val, rhs.val));
+        //return v4df(_mm256_add_pd(val, rhs.val));
+        return val + rhs.val;
     }
     v4df operator - (const v4df rhs) const {
-        return v4df(_mm256_sub_pd(val, rhs.val));
+        //return v4df(_mm256_sub_pd(val, rhs.val));
+        return val - rhs.val;
     }
     v4df operator * (const v4df rhs) const {
-        return v4df(_mm256_mul_pd(val, rhs.val));
+        //return v4df(_mm256_mul_pd(val, rhs.val));
+        return val * rhs.val;
     }
     v4df operator / (const v4df rhs) const {
         return v4df(_mm256_div_pd(val, rhs.val));
@@ -422,15 +437,18 @@ struct v4df {
     }
 
     v4df operator += (const v4df rhs) {
-        val = _mm256_add_pd(val, rhs.val);
+        //val = _mm256_add_pd(val, rhs.val);
+        val = val + rhs.val;
         return (*this);
     }
     v4df operator -= (const v4df rhs) {
-        val = _mm256_sub_pd(val, rhs.val);
+        //val = _mm256_sub_pd(val, rhs.val);
+        val = val - rhs.val;
         return (*this);
     }
     v4df operator *= (const v4df rhs) {
-        val = _mm256_mul_pd(val, rhs.val);
+        //val = _mm256_mul_pd(val, rhs.val);
+        val = val * rhs.val;
         return (*this);
     }
     v4df operator /= (const v4df rhs) {

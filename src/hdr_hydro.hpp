@@ -250,15 +250,11 @@ struct calcDerivativeX86 {
                 v4df dvy_ij = vy_i - vy_j;
                 v4df dvz_ij = vz_i - vz_j;
 
-                v4df r2_ij = dpx_ij * dpx_ij;
-                r2_ij = v4df::madd(r2_ij, dpy_ij, dpy_ij);
-                r2_ij = v4df::madd(r2_ij, dpz_ij, dpz_ij);
-                v4df r1_ij = v4df::sqrt(r2_ij);
-                v4df ri_ij = v4df(1.d) / r1_ij;
+                v4df r2_ij = dpx_ij * dpx_ij + dpy_ij * dpy_ij + dpz_ij * dpz_ij;
+                v4df ri_ij = v4df::rsqrt_4th(r2_ij);
                 ri_ij = ((id_i != id_j) & ri_ij);
-                v4df xv_ij = dpx_ij * dvx_ij;
-                xv_ij = v4df::madd(xv_ij, dpy_ij, dvy_ij);
-                xv_ij = v4df::madd(xv_ij, dpz_ij, dvz_ij);
+                v4df r1_ij = r2_ij * ri_ij;
+                v4df xv_ij = dpx_ij * dvx_ij + dpy_ij * dvy_ij + dpz_ij * dvz_ij;
                 v4df q_i = r1_ij * hi_i;
                 v4df q_j = r1_ij * hi_j;
 
@@ -268,18 +264,19 @@ struct calcDerivativeX86 {
                 v4df mu_ij = xv_ij * ri_ij;
                 mu_ij = ((xv_ij < v4df(0.d)) & mu_ij);
                 v4df vs_ij  = cs_i + cs_j - v4df(3.d) * mu_ij;
-                v4df pi_ij  = v4df(-0.5d) * vs_ij * mu_ij * (alph_i + alph_j) / (rh_i + rh_j);
+                v4df pi_ij  = v4df(-0.5d) * vs_ij * mu_ij * (alph_i + alph_j)
+                    * v4df::rcp_4th(rh_i + rh_j);
                 v4df f_ij   = v4df(0.5d) * (bswt_i + bswt_j);
                 v4df vis_ij = f_ij * pi_ij;
 
                 v4df da_ij = dw_ij * (prhi2_i + prhi2_j + vis_ij);
-                accx_i = v4df::nmadd(accx_i, da_ij, dpx_ij);
-                accy_i = v4df::nmadd(accy_i, da_ij, dpy_ij);
-                accz_i = v4df::nmadd(accz_i, da_ij, dpz_ij);
+                accx_i -= da_ij * dpx_ij;
+                accy_i -= da_ij * dpy_ij;
+                accz_i -= da_ij * dpz_ij;
 
-                v4df de_ij = v4df::madd(prhi2_i, v4df(0.5d), vis_ij);
+                v4df de_ij = prhi2_i + v4df(0.5d) * vis_ij;
                 de_ij *= dw_ij;
-                ene_i = v4df::madd(ene_i, xv_ij, de_ij);
+                ene_i += xv_ij * de_ij;
 
                 vsmx_i = v4df::max(vsmx_i, vs_ij);
             }
