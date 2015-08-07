@@ -320,14 +320,9 @@ struct calcDensityX86 {
             //v4df grd_i = v4df(1.d) / (v4df(1.d) + h_i * rhi_i * gh_i / v4df(KernelSph::dim));
             v4df grd_i = v4df::rcp_4th(v4df(1.d)
                                        + h_i * rhi_i * gh_i * v4df::rcp_4th(KernelSph::dim));
-            v4df rotv  = v4df::sqrt(rotv_i * rotv_i) * rhi_i * grd_i;
+            //v4df rotv  = v4df::sqrt(rotv_i * rotv_i) * rhi_i * grd_i;
+            v4df rotv  = v4df::fabs(rotv_i) * rhi_i * grd_i;
             v4df divv  = divv_i * rhi_i * grd_i;
-
-            v4df hogehoge(1., -2., -5., 4.);
-            hogehoge = v4df::fabs(hogehoge);
-            hogehoge.print();
-            PS::Finalize();
-            exit(0);
 
             PS::F64 buf0[nvector], buf1[nvector], buf2[nvector];
             grd_i.store(buf0);
