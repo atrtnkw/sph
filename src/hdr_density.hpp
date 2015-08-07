@@ -173,7 +173,13 @@ struct calcDensityX86 {
                     r2_ij = v4df::madd(r2_ij, dy_ij, dy_ij);
                     r2_ij = v4df::madd(r2_ij, dz_ij, dz_ij);
                     
-                    v4df r1_ij = v4df::sqrt(r2_ij);
+                    //v4df r1_ij = v4df::sqrt(r2_ij);
+                    v4df hg_ij = v4df::sqrt(r2_ij);
+                    v4df r1_ij = r2_ij * v4df::rsqrt_4th(r2_ij);
+                    hg_ij.print();
+                    r1_ij.print();
+                    PS::Finalize();
+                    exit(0);
                     v4df q_i   = r1_ij * hi_i;
 
                     v4df kw0 = KernelSph::kernel0th(q_i);

@@ -1,7 +1,8 @@
 #PBS -N test
 #PBS -l mppwidth=1
 #PBS -j oe
-#PBS -q short-b
+##PBS -q short-b
+#PBS -q debug
 
 NPARALLEL=1
 NPROCESS=$NPARALLEL
