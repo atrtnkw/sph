@@ -20,6 +20,16 @@ namespace WendlandC2 {
         PS::F64 rmin3 = rmin  * rmin2;
         return ceff1 * (rmin3 - rmin2 * (1.d + 3.d * r));
     }
+    inline v4df kernel0th(const v4df r) {
+        v4df rmin = v4df::max(v4df(1.d) - r, 0.d);
+        return v4df(ceff0) * rmin * rmin * rmin * (v4df(1.d) + v4df(3.d) * r);
+    }
+    inline v4df kernel1st(const v4df r) {
+        v4df rmin  = v4df::max(v4df(1.d) - r, 0.d);
+        v4df rmin2 = rmin * rmin;
+        v4df rmin3 = rmin * rmin2;
+        return v4df(ceff1) * (rmin3 - rmin2 * (v4df(1.d) + v4df(3.d) * r));
+    }
 
 #else
 
@@ -47,6 +57,18 @@ namespace WendlandC2 {
         PS::F64 rmin4 = rmin2 * rmin2;        
         return ceff1 * (rmin4 - rmin3 * (1.d + 4.d * r));
     }
+    inline v4df kernel0th(const v4df r) {
+        v4df rmin  = v4df::max(v4df(1.d) - r, 0.d);
+        v4df rmin2 = rmin * rmin;
+        return v4df(ceff0) * rmin2 * rmin2 * (v4df(1.d) + v4df(4.d) * r);
+    }
+    inline v4df kernel1st(const v4df r) {
+        v4df rmin  = v4df::max(v4df(1.d) - r, 0.d);
+        v4df rmin2 = rmin  * rmin;
+        v4df rmin3 = rmin  * rmin2;
+        v4df rmin4 = rmin2 * rmin2;        
+        return v4df(ceff1) * (rmin4 - rmin3 * (v4df(1.d) + v4df(4.d) * r));
+    }
     
 #endif
     
@@ -72,6 +94,19 @@ namespace WendlandC4 {
         PS::F64 rmin4 = rmin2 * rmin2;
         return ceff0 * rmin4 * (- (5.d + 25.d * r + 40.d * r * r)
                                 + rmin * (5.d + 16.d * r));
+    }
+    inline v4df kernel0th(const v4df r) {
+        v4df rmin  = v4df::max(v4df(1.d) - r, 0.d);
+        v4df rmin2 = rmin * rmin;
+        return v4df(ceff0) * rmin2 * rmin2 * rmin
+            * (v4df(1.d) + v4df(5.d) * r + v4df(8.d) * r * r);
+    }
+    inline v4df kernel1st(const v4df r) {
+        v4df rmin  = v4df::max(v4df(1.d) - r, 0.d);
+        v4df rmin2 = rmin  * rmin;
+        v4df rmin4 = rmin2 * rmin2;
+        return v4df(ceff0) * rmin4 * (rmin * (v4df(5.d) + v4df(16.d) * r)
+                                      - (v4df(5.d) + v4df(25.d) * r + v4df(40.d) * r * r));
     }
 
 #else
@@ -100,6 +135,19 @@ namespace WendlandC4 {
         return ceff0 * rmin2 * rmin3 * (- (6.d + 36.d * r + 70.d * r * r)
                                         + rmin * (6.d + ceff2 * r));
     }
+    inline v4df kernel0th(const v4df r) {
+        v4df rmin  = v4df::max(v4df(1.d) - r, 0.d);
+        v4df rmin2 = rmin * rmin;
+        return v4df(ceff0) * rmin2 * rmin2 * rmin2
+            * (v4df(1.d) + v4df(6.d) * r + v4df(ceff1) * r * r);
+    }
+    inline v4df kernel1st(const v4df r) {
+        v4df rmin  = v4df::max(v4df(1.d) - r, 0.d);
+        v4df rmin2 = rmin  * rmin;
+        v4df rmin3 = rmin  * rmin2;
+        return v4df(ceff0) * rmin2 * rmin3 * (rmin * (v4df(6.d) + v4df(ceff2) * r)
+                                              - (v4df(6.d) + v4df(36.d) * r + v4df(70.d) * r * r));
+    }
     
 #endif
     
@@ -108,7 +156,8 @@ namespace WendlandC4 {
 namespace CubicSpline {
     
     const PS::F64 eta   = 1.2d;
-//    const PS::F64 eta   = 4.8d;
+    //const PS::F64 eta   = 2.0d;
+    //const PS::F64 eta   = 4.8d;
 
 #ifdef USE_AT1D
     const PS::F64 dim   = +1.0;
@@ -134,13 +183,6 @@ namespace CubicSpline {
             w0 = 2.d * (1.d - r) * (1.d - r) * (1.d - r);
         }
         return ceff0 * w0;
-        /*
-        PS::F64 t1 = 1.0d - r;
-        PS::F64 t2 = 0.5d - r;
-        t1 = (t1 > 0.d) ? t1 : 0.d;
-        t2 = (t2 > 0.d) ? t2 : 0.d;
-        return 2.d * ceff0 * (t1 * t1 * t1 - 4.d * t2 * t2 * t2);
-        */
     }
     inline PS::F64 kernel1st(const PS::F64 r) {
         PS::F64 w1 = 0.d;
