@@ -65,12 +65,17 @@ struct v4sf {
         return (*this);
     }
 
+    v4df cvtps2pd();
+
     static v4sf sqrt(const v4sf rhs) {
         return v4sf(_mm_sqrt_ps(rhs.val));
     }
-
     static v4sf rsqrt(const v4sf rhs) {
         return v4sf(_mm_rsqrt_ps(rhs.val));
+    }
+    static v4sf rsqrt_1st_phantom(const v4sf rhs) {
+        v4sf x0 = v4sf(_mm_rsqrt_ps(rhs.val));
+        return v4sf(x0 * (rhs * x0 * x0 - v4sf(3.)));
     }
 
     void store(float *p) const {
@@ -178,7 +183,7 @@ struct v8sf {
     static v8sf rsqrt(const v8sf rhs) {
         return v8sf(_mm256_rsqrt_ps(rhs.val));
     }
-    static v8sf rsqrt_1st(const v8sf rhs) {
+    static v8sf rsqrt_1st_phantom(const v8sf rhs) {
         v8sf x0 = v8sf(_mm256_rsqrt_ps(rhs.val));
         return v8sf(x0 * (rhs * x0 * x0 - v8sf(3.)));
     }
@@ -194,8 +199,8 @@ struct v8sf {
     }
     void cvtpd2ps(v4df & x0, v4df & x1);
     void extractf128(v4sf & x0, v4sf & x1) {
-        x0 = _mm256_extractf128_pd(val, 0);
-        x1 = _mm256_extractf128_pd(val, 1);
+        x0 = _mm256_extractf128_ps(val, 0);
+        x1 = _mm256_extractf128_ps(val, 1);
     }
 
     void print(FILE * fp = stdout,
@@ -415,13 +420,6 @@ struct v4df {
         return v4df(_mm256_cmp_pd(val, rhs.val, _CMP_LT_OS));
     }
 
-    static v4df sqrt(const v4df rhs) {
-        return v4df(_mm256_sqrt_pd(rhs.val));
-    }
-    static v4df hadd(v4df x0, v4df x1) {
-        return _mm256_hadd_pd(x0, x1);
-    }
-
     void store(double *p) const {
         _mm256_store_pd(p, val);
     }
@@ -434,6 +432,17 @@ struct v4df {
     void extractf128(v2df & x0, v2df & x1) {
         x0 = _mm256_extractf128_pd(val, 0);
         x1 = _mm256_extractf128_pd(val, 1);
+    }
+
+    static v4df sqrt(const v4df rhs) {
+        return v4df(_mm256_sqrt_pd(rhs.val));
+    }
+    static v4df rsqrt_1st_phantom(v4df rhs) {
+        v4sf x1 = v4sf::rsqrt_1st_phantom(rhs.cvtpd2ps());
+        return x1.cvtps2pd();
+    }
+    static v4df hadd(v4df x0, v4df x1) {
+        return _mm256_hadd_pd(x0, x1);
     }
 
     void print(FILE * fp = stdout,
@@ -449,3 +458,8 @@ void v8sf::cvtpd2ps(v4df & x0, v4df & x1) {
     x0 = _mm256_cvtps_pd(_mm256_extractf128_ps(val, 0));
     x1 = _mm256_cvtps_pd(_mm256_extractf128_ps(val, 1));
 }
+
+v4df v4sf::cvtps2pd() {
+    return _mm256_cvtps_pd(val);
+}
+
