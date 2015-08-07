@@ -67,15 +67,25 @@ struct v4sf {
 
     v4df cvtps2pd();
 
+    static v4sf rcp_0th(const v4sf rhs) {
+        return _mm_rcp_ps(rhs.val);
+    }
+    static v4sf rcp_1st(const v4sf rhs) {
+        v4sf x0 = _mm_rcp_ps(rhs.val);
+        v4sf h  = v4sf(1.) - rhs * x0;
+        return x0 + h * x0;
+    }
+
     static v4sf sqrt(const v4sf rhs) {
         return v4sf(_mm_sqrt_ps(rhs.val));
     }
-    static v4sf rsqrt(const v4sf rhs) {
+    static v4sf rsqrt_0th(const v4sf rhs) {
         return v4sf(_mm_rsqrt_ps(rhs.val));
     }
     static v4sf rsqrt_1st(const v4sf rhs) {
         v4sf x0 = v4sf(_mm_rsqrt_ps(rhs.val));
-        return v4sf(-0.5) * x0 * (rhs * x0 * x0 - v4sf(3.));
+        v4sf h  = v4sf(1.) - rhs * x0 * x0;
+        return x0 + v4sf(0.5) * h * x0;
     }
     static v4sf rsqrt_1st_phantom(const v4sf rhs) {
         v4sf x0 = v4sf(_mm_rsqrt_ps(rhs.val));
@@ -181,11 +191,25 @@ struct v8sf {
         return v8sf(_mm256_cmp_ps(val, rhs.val, _CMP_LT_OS));
     }
 
+    static v8sf rcp_0th(const v8sf rhs) {
+        return _mm256_rcp_ps(rhs.val);
+    }
+    static v8sf rcp_1st(const v8sf rhs) {
+        v8sf x0 = _mm256_rcp_ps(rhs.val);
+        v8sf h  = v8sf(1.) - rhs * x0;
+        return x0 + h * x0;
+    }
+
     static v8sf sqrt(const v8sf rhs) {
         return v8sf(_mm256_sqrt_ps(rhs.val));
     }
-    static v8sf rsqrt(const v8sf rhs) {
+    static v8sf rsqrt_0th(const v8sf rhs) {
         return v8sf(_mm256_rsqrt_ps(rhs.val));
+    }
+    static v8sf rsqrt_1st(const v8sf rhs) {
+        v8sf x0 = v8sf(_mm256_rsqrt_ps(rhs.val));
+        v8sf h  = v8sf(1.) - rhs * x0 * x0;
+        return x0 + v8sf(0.5) * h * x0;
     }
     static v8sf rsqrt_1st_phantom(const v8sf rhs) {
         v8sf x0 = v8sf(_mm256_rsqrt_ps(rhs.val));
@@ -438,8 +462,48 @@ struct v4df {
         x1 = _mm256_extractf128_pd(val, 1);
     }
 
+    static v4df rcp_0th(v4df rhs) {
+        v4df x0 = (v4sf::rcp_0th(rhs.cvtpd2ps())).cvtps2pd();
+        return x0;
+    }
+    static v4df rcp_1st(v4df rhs) {
+        v4df x0 = (v4sf::rcp_0th(rhs.cvtpd2ps())).cvtps2pd();
+        v4df h  = v4df(1.) - rhs * x0;
+        return x0 + h * x0;
+    }
+    static v4df rcp_4th(v4df rhs) {
+        v4df x0 = (v4sf::rcp_0th(rhs.cvtpd2ps())).cvtps2pd();
+        v4df h  = v4df(1.) - rhs * x0;
+        return (v4df(1.) + h) * (v4df(1.) + h * h) * x0;
+    }
+
     static v4df sqrt(const v4df rhs) {
         return v4df(_mm256_sqrt_pd(rhs.val));
+    }
+    static v4df rsqrt_0th(v4df rhs) {
+        v4df x0 = (v4sf::rsqrt_0th(rhs.cvtpd2ps())).cvtps2pd();
+        return x0;
+    }
+    static v4df rsqrt_1st(v4df rhs) {
+        v4df x0 = (v4sf::rsqrt_0th(rhs.cvtpd2ps())).cvtps2pd();
+        v4df h  = v4df(1.) - rhs * x0 * x0;
+        return x0 + v4df(0.5) * h * x0;
+    }
+    static v4df rsqrt_2nd(v4df rhs) {
+        v4df x0 = (v4sf::rsqrt_0th(rhs.cvtpd2ps())).cvtps2pd();
+        v4df h  = v4df(1.) - rhs * x0 * x0;
+        return x0 + (v4df(0.5) + v4df(0.375) * h) * h * x0;
+    }
+    static v4df rsqrt_3rd(v4df rhs) {
+        v4df x0 = (v4sf::rsqrt_0th(rhs.cvtpd2ps())).cvtps2pd();
+        v4df h  = v4df(1.) - rhs * x0 * x0;
+        return x0 + (v4df(0.5) + (v4df(0.375) + v4df(0.3125) * h) * h) * h * x0;
+    }
+    static v4df rsqrt_4th(v4df rhs) {
+        v4df x0 = (v4sf::rsqrt_0th(rhs.cvtpd2ps())).cvtps2pd();
+        v4df h  = v4df(1.) - rhs * x0 * x0;
+        return x0
+            + (v4df(0.5) + (v4df(0.375) + (v4df(0.3125) + v4df(0.2734375) * h) * h) * h) * h * x0;
     }
     static v4df rsqrt_1st_phantom(v4df rhs) {
         v4sf x1 = v4sf::rsqrt_1st_phantom(rhs.cvtpd2ps());
