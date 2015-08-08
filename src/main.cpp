@@ -4,6 +4,8 @@
 
 #include "particle_simulator.hpp"
 
+#include "hdr_time.hpp"
+
 #include "vector_x86.hpp"
 #include "hdr_kernel.hpp"
 #include "hdr_sph.hpp"
@@ -14,8 +16,6 @@
 #include "hdr_gravity.hpp"
 
 #include "hdr_damp.hpp"
-
-#include "hdr_time.hpp"
 
 static PS::S32 nptclmax = 65536;
 
@@ -137,10 +137,8 @@ int main(int argc, char **argv)
             sph.writeParticleAscii(filename);
             tout += dtsp;
             nstp++;
-            //PS::Finalize();
-            //exit(0);
         }
-        
+
         PS::F64 etot = calcEnergy(sph);
         WT::reduceInterProcess();
         if(rank == 0) {
@@ -151,6 +149,32 @@ int main(int argc, char **argv)
         }
         WT::clear();
 
+#if TIMETEST
+        if(time > 0.d) {
+            fprintf(stdout, "dens: %6d grdh: %6d hydr: %6d\n", ncalcdens, ncalcgrdh, ncalchydr);
+            fprintf(stdout, "dens: %+e grdh: %+e hydr: %+e\n", tcalcdens, tcalcgrdh, tcalchydr);
+            fprintf(stdout, "dens: %+e grdh: %+e hydr: %+e\n",
+                    tcalcdens/ncalcdens, tcalcgrdh/ncalcgrdh, tcalchydr/ncalchydr);
+            fprintf(stdout, "ninteract: %d %d\n", ninteract, nintrhydr);
+            fprintf(stdout, "\n");
+            PS::Finalize();
+            exit(0);
+        } else {
+            tcalcdens = 0.d;
+            tcalcgrdh = 0.d;
+            tcalchydr = 0.d;
+            ncalcdens = 0;
+            ncalcgrdh = 0;
+            ncalchydr = 0;
+            ninteract = 0;
+            nintrhydr = 0;
+            //tcalcsqrt = 0.d;
+            //tcalcothr = 0.d;
+            //ncalcsqrt = 0;
+            //ncalcothr = 0;
+        }
+#endif
+        
         WT::start();
         predict(sph, dtime);
         WT::accumulateIntegrateOrbit();

@@ -49,6 +49,14 @@ public:
     }
 };
 
+#ifdef TIMETEST
+static PS::F64 tcalcdens = 0.d;
+static PS::F64 tcalcgrdh = 0.d;
+static PS::S32 ncalcdens = 0;
+static PS::S32 ncalcgrdh = 0;
+static PS::S64 ninteract = 0;
+#endif
+
 struct calcDensityBasic {
 
     void operator () (const DensityEPI *epi,
@@ -71,22 +79,34 @@ struct calcDensityBasic {
                 PS::F64 hi4_i = hi_i * hi3_i;
                 PS::F64 rh_i  = 0.;
                 PS::S32 nj_i  = 0;
+
+#ifdef TIMETEST
+                PS::F64 t1 = getWallclockTime();;
+#endif
+
                 for(PS::S32 j = 0; j < njp; j++) {
                     PS::F64    m_j = epj[j].mass;
                     PS::F64vec x_j = epj[j].pos;
                     
                     PS::F64vec dx_ij = x_i - x_j;
                     PS::F64    r2_ij = dx_ij * dx_ij;
+
                     PS::F64    r1_ij = sqrt(r2_ij);
                     PS::F64    q_i   = r1_ij * hi_i;
-                    
+
                     PS::F64 kw0 = KernelSph::kernel0th(q_i);
                     
                     PS::F64 rhj =   m_j * hi3_i * kw0;
                     
                     rh_i   += rhj;
                     nj_i   += (q_i < 1.d) ? 1 : 0;
+
                 }
+#ifdef TIMETEST
+                tcalcdens += getWallclockTime() - t1;
+                ncalcdens++;
+#endif
+
                 density[i].dens = rh_i;
                 density[i].np   = nj_i;
 
@@ -101,6 +121,10 @@ struct calcDensityBasic {
             PS::F64    gh_i  = 0.;
             PS::F64    divv_i = 0.;
             PS::F64vec rotv_i = 0.;            
+
+#ifdef TIMETEST
+            PS::F64 t1 = getWallclockTime();;
+#endif
             for(PS::S32 j = 0; j < njp; j++) {
                 PS::S32    id_j = epj[j].id;
                 PS::F64    m_j  = epj[j].mass;
@@ -124,6 +148,11 @@ struct calcDensityBasic {
                 divv_i -= dv_ij * dw_ij;
                 rotv_i += dv_ij ^ dw_ij;
             }
+#ifdef TIMETEST
+            tcalcgrdh += getWallclockTime() - t1;
+            ncalcgrdh++;
+#endif
+
             PS::F64 rhi_i = 1. / density[i].dens;
             density[i].grdh = 1.d / (1.d + h_i * rhi_i * gh_i / KernelSph::dim);
             PS::F64 grd_i = density[i].grdh;
@@ -147,6 +176,13 @@ struct calcDensityX86 {
 
         //for(PS::S32 repeat = 0; repeat < 10; repeat++) {
 
+#ifdef TIMETEST
+        ninteract += nip * njp;
+#endif
+
+        v4df (*rcp)(v4df)   = v4df::rcp_4th;
+        v4df (*rsqrt)(v4df) = v4df::rsqrt_4th;
+
         const PS::S32 nvector = v4df::getVectorLength();
         
         for(PS::S32 i = 0; i < nip; i += nvector) {
@@ -163,34 +199,48 @@ struct calcDensityX86 {
             v4df h_i(epi[i].ksr, epi[i+1].ksr, epi[i+2].ksr, epi[i+3].ksr);
 
             for(PS::S32 repeat = 0; repeat < 3; repeat++) {
-                v4df hi_i  = v4df::rcp_4th(h_i);
+                v4df hi_i  = rcp(h_i);
                 v4df hi3_i = SPH::calcVolumeInverse(hi_i);
                 v4df hi4_i = hi_i * hi3_i;
                 v4df rh_i(0.d);
                 v4df nj_i(0.d);
-                for(PS::S32 j = 0; j < njp; j++) {
-                    v4df id_j(epj[j].id);
-                    v4df m_j(epj[j].mass);
-                    v4df px_j(epj[j].pos[0]);
-                    v4df py_j(epj[j].pos[1]);
-                    v4df pz_j(epj[j].pos[2]);
 
-                    v4df dx_ij = px_i - px_j;
-                    v4df dy_ij = py_i - py_j;
-                    v4df dz_ij = pz_i - pz_j;
+#ifdef TIMETEST
+                PS::F64 t1 = getWallclockTime();;
+#endif
+                for(PS::S32 j = 0; j < njp; j++) {
+                    v4df dx_ij = px_i - v4df(epj[j].pos[0]);
+                    v4df dy_ij = py_i - v4df(epj[j].pos[1]);
+                    v4df dz_ij = pz_i - v4df(epj[j].pos[2]);
 
                     v4df r2_ij = dx_ij * dx_ij + dy_ij * dy_ij + dz_ij * dz_ij;
-                    
-                    v4df r1_ij = r2_ij * v4df::rsqrt_4th(r2_ij);
-                    r1_ij = ((id_i != id_j) & r1_ij);
+
+                    v4df r1_ij = r2_ij * rsqrt(r2_ij);
+                    r1_ij = ((id_i != v4df(epj[j].id)) & r1_ij);
                     v4df q_i   = r1_ij * hi_i;
 
                     v4df kw0 = KernelSph::kernel0th(q_i);
-                    v4df rhj = m_j * hi3_i * kw0;
+                    v4df rhj = v4df(epj[j].mass) * hi3_i * kw0;
 
                     rh_i += rhj;
                     nj_i += ((q_i < 1.d) & v4df(1.d));
+                    
+                    // vcvt       x 3
+                    // vbroadcast x 5
+                    // vmova      x 1
+                    // vcmp       x 2
+                    // vand       x 2
+                    // vmax       x 2
+                    // vrsqrt     x 1
+                    // vadd       x 6
+                    // vmul       x 11
+                    // vfmadd     x 9 
                 }
+#ifdef TIMETEST
+                tcalcdens += getWallclockTime() - t1;
+                ncalcdens++;
+#endif
+
                 PS::F64 buf0[nvector], buf1[nvector], hs[nvector];
                 rh_i.store(buf0);
                 nj_i.store(buf1);
@@ -206,39 +256,35 @@ struct calcDensityX86 {
             }
 
             h_i  = v4df(density[i].ksr, density[i+1].ksr, density[i+2].ksr, density[i+3].ksr);
-            v4df hi_i  = v4df::rcp_4th(h_i);
+            v4df hi_i  = rcp(h_i);
             v4df hi4_i = hi_i * SPH::calcVolumeInverse(hi_i);
             v4df gh_i(0.d);
             v4df divv_i(0.d);
             v4df rotx_i(0.d);
             v4df roty_i(0.d);
             v4df rotz_i(0.d);
-            for(PS::S32 j = 0; j < njp; j++) {
-                v4df id_j(epj[j].id);
-                v4df m_j(epj[j].mass);
-                v4df px_j(epj[j].pos[0]);
-                v4df py_j(epj[j].pos[1]);
-                v4df pz_j(epj[j].pos[2]);                
-                v4df vx_j(epj[j].vel[0]);
-                v4df vy_j(epj[j].vel[1]);
-                v4df vz_j(epj[j].vel[2]);
 
-                v4df dpx_ij = px_i - px_j;
-                v4df dpy_ij = py_i - py_j;
-                v4df dpz_ij = pz_i - pz_j;
-                v4df dvx_ij = vx_i - vx_j;
-                v4df dvy_ij = vy_i - vy_j;
-                v4df dvz_ij = vz_i - vz_j;
+#ifdef TIMETEST
+            PS::F64 t1 = getWallclockTime();;
+#endif
+            for(PS::S32 j = 0; j < njp; j++) {
+                v4df dpx_ij = px_i - v4df(epj[j].pos[0]);
+                v4df dpy_ij = py_i - v4df(epj[j].pos[1]);
+                v4df dpz_ij = pz_i - v4df(epj[j].pos[2]);
+                v4df dvx_ij = vx_i - v4df(epj[j].vel[0]);
+                v4df dvy_ij = vy_i - v4df(epj[j].vel[1]);
+                v4df dvz_ij = vz_i - v4df(epj[j].vel[2]);
 
                 v4df r2_ij = dpx_ij * dpx_ij + dpy_ij * dpy_ij + dpz_ij * dpz_ij;
-                v4df ri_ij = v4df::rsqrt_4th(r2_ij);
-                ri_ij = ((id_i != id_j) & ri_ij);
+                v4df ri_ij = rsqrt(r2_ij);
+                ri_ij = ((id_i != v4df(epj[j].id)) & ri_ij);
                 v4df r1_ij = r2_ij * ri_ij;
                 v4df q_i = r1_ij * hi_i;
 
                 v4df kw0 = KernelSph::kernel0th(q_i);
                 v4df kw1 = KernelSph::kernel1st(q_i);
 
+                v4df m_j(epj[j].mass);
                 v4df ghj = v4df(KernelSph::dim) * kw0;
                 ghj += q_i * kw1;
                 gh_i -= ghj * hi4_i * m_j;
@@ -259,13 +305,16 @@ struct calcDensityX86 {
                 roty_i -= dvx_ij * dwz_ij;
                 rotz_i -= dvy_ij * dwx_ij;
             }
+#ifdef TIMETEST
+            tcalcgrdh += getWallclockTime() - t1;
+            ncalcgrdh++;
+#endif
 
             v4df rh_i(density[i].dens, density[i+1].dens, density[i+2].dens, density[i+3].dens);
-            v4df rhi_i = v4df::rcp_4th(rh_i);
-            v4df grd_i = v4df::rcp_4th(v4df(1.d)
-                                       + h_i * rhi_i * gh_i * v4df::rcp_4th(KernelSph::dim));
+            v4df rhi_i = rcp(rh_i);
+            v4df grd_i = rcp(v4df(1.d) + h_i * rhi_i * gh_i * rcp(KernelSph::dim));
             v4df rot2  = rotx_i * rotx_i + roty_i * roty_i + rotz_i * rotz_i;
-            v4df roti  = v4df::rsqrt_4th(rot2);
+            v4df roti  = rsqrt(rot2);
             v4df rot1  = rot2 * ((rot2 != 0.d) & roti);
             v4df rotv  = rot1 * rhi_i * grd_i;
             v4df divv  = divv_i * rhi_i * grd_i;
@@ -296,6 +345,11 @@ struct calcDensityX86 {
 
         //for(PS::S32 repeat = 0; repeat < 10; repeat++) {
         
+        ninteract += nip * njp;
+
+        v4df (*rcp)(v4df)   = v4df::rcp_4th;
+        v4df (*rsqrt)(v4df) = v4df::rsqrt_4th;
+
         PS::S32 niv = 2;
         PS::S32 njv = 2;
 
@@ -345,11 +399,14 @@ struct calcDensityX86 {
             v4df h_i(epi[i].ksr, epi[i].ksr, epi[i+1].ksr, epi[i+1].ksr);
 
             for(PS::S32 repeat = 0; repeat < 3; repeat++) {
-                v4df hi_i  = v4df::rcp_4th(h_i);
+                v4df hi_i  = rcp(h_i);
                 v4df hi3_i = SPH::calcVolumeInverse(hi_i);
                 v4df hi4_i = hi_i * hi3_i;
                 v4df rh_i(0.d);
                 v4df nj_i(0.d);
+
+                PS::F64 t1 = getWallclockTime();;
+
                 for(PS::S32 j = 0, jj = 0; j < njp; j += njv, jj++) {
                     v4df dx_ij = px_i - px_j[jj];
                     v4df dy_ij = py_i - py_j[jj];
@@ -357,7 +414,7 @@ struct calcDensityX86 {
                     
                     v4df r2_ij = dx_ij * dx_ij + dy_ij * dy_ij + dz_ij * dz_ij;
                     
-                    v4df r1_ij = r2_ij * v4df::rsqrt_4th(r2_ij);
+                    v4df r1_ij = r2_ij * rsqrt(r2_ij);
                     r1_ij = ((id_i != id_j[jj]) & r1_ij);
                     v4df q_i   = r1_ij * hi_i;
 
@@ -367,6 +424,10 @@ struct calcDensityX86 {
                     rh_i += rhj;
                     nj_i += ((q_i < 1.d) & v4df(1.d));
                 }
+
+                tcalcdens += getWallclockTime() - t1;
+                ncalcdens++;
+
                 PS::F64 bufs[niv*njv], hs[niv];
                 v4df bufv = v4df::hadd(rh_i, nj_i);
                 bufv.store(bufs);                
@@ -382,13 +443,16 @@ struct calcDensityX86 {
             }
 
             h_i  = v4df(density[i].ksr, density[i].ksr, density[i+1].ksr, density[i+1].ksr);
-            v4df hi_i  = v4df::rcp_4th(h_i);
+            v4df hi_i  = rcp(h_i);
             v4df hi4_i = hi_i * SPH::calcVolumeInverse(hi_i);
             v4df gh_i(0.d);
             v4df divv_i(0.d);
             v4df rotx_i(0.d);
             v4df roty_i(0.d);
             v4df rotz_i(0.d);
+
+            PS::F64 t1 = getWallclockTime();;
+
             for(PS::S32 j = 0, jj = 0; j < njp; j += njv, jj++) {
                 v4df dpx_ij = px_i - px_j[jj];
                 v4df dpy_ij = py_i - py_j[jj];
@@ -398,7 +462,7 @@ struct calcDensityX86 {
                 v4df dvz_ij = vz_i - vz_j[jj];
 
                 v4df r2_ij = dpx_ij * dpx_ij + dpy_ij * dpy_ij + dpz_ij * dpz_ij;
-                v4df ri_ij = v4df::rsqrt_4th(r2_ij);
+                v4df ri_ij = rsqrt(r2_ij);
                 ri_ij = ((id_i != id_j[jj]) & ri_ij);
                 v4df r1_ij = r2_ij * ri_ij;
                 v4df q_i = r1_ij * hi_i;
@@ -427,6 +491,8 @@ struct calcDensityX86 {
                 rotz_i -= dvy_ij * dwx_ij;
 
             }
+            tcalcgrdh += getWallclockTime() - t1;
+            ncalcgrdh++;
 
             v4df ghr_i   = v4df::hadd(gh_i, gh_i);
             v4df divvr_i = v4df::hadd(divv_i, divv_i);

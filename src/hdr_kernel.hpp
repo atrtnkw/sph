@@ -169,13 +169,15 @@ namespace CubicSpline {
     const PS::F64 ceff1 = -10.913481812015681d;
 #else
     const PS::F64 dim   = +3.0;
-    const PS::F64 ceff0 = +2.5464790894703255d;
-    const PS::F64 ceff1 = -15.278874536821953d;
+    const PS::F64 ceff0  = +2.5464790894703255d;
+    const PS::F64 ceff1  = -15.278874536821953d;
 #endif
+    const PS::F64 ceff0x = ceff0 * 2.d;
 
     const  PS::F64 ksrh = 2.0d;
     
     inline PS::F64 kernel0th(const PS::F64 r) {
+#if 1
         PS::F64 w0 = 0.d;
         if(r < 0.5d) {
             w0 = 1.d - 6.d * r * r + 6.d * r * r * r;
@@ -183,8 +185,21 @@ namespace CubicSpline {
             w0 = 2.d * (1.d - r) * (1.d - r) * (1.d - r);
         }
         return ceff0 * w0;
+#else
+        PS::F64 t1 = 1.d  - r;
+        PS::F64 t2 = 0.5d - r;
+        t1 = (t1 > 0.d) ? t1 : 0.d;
+        t2 = (t2 > 0.d) ? t2 : 0.d;
+        PS::F64 t13 = t1 * t1 * t1;
+        PS::F64 t23 = t2 * t2 * t2;
+        PS::F64 w0  = t13 - 4.d * t23;
+        w0 *= 2.d * ceff0;
+        
+        return w0;
+#endif        
     }
     inline PS::F64 kernel1st(const PS::F64 r) {
+#if 1
         PS::F64 w1 = 0.d;
         if(r < 0.33333333333333333d) {
             w1 = 0.33333333333333333d;
@@ -194,6 +209,21 @@ namespace CubicSpline {
             w1 = (1.d - r) * (1.d - r);
         }
         return ceff1 * w1;
+#else
+        PS::F64 t1 = 1.d  - r;
+        PS::F64 t2 = 0.5d - r;
+        PS::F64 t3 = 0.33333333333333333d - r;
+        t1 = (t1 > 0.d) ? t1 : 0.d;
+        t2 = (t2 > 0.d) ? t2 : 0.d;
+        t3 = (t3 > 0.d) ? t3 : 0.d;
+        PS::F64 t12 = t1 * t1;
+        PS::F64 t22 = t2 * t2;
+        PS::F64 t32 = t3 * t3;
+        PS::F64 w0  = t12 - 4.d * t22;
+        w0 += 3.d * t32;
+        w0 *= ceff1;
+        return w0;
+#endif
     }
 
     inline v4df kernel0th(const v4df r) {
@@ -204,7 +234,7 @@ namespace CubicSpline {
         v4df t13 = t1 * t1 * t1;
         v4df t23 = t2 * t2 * t2;
         v4df w0  = t13 - v4df(4.d) * t23;
-        w0 *= v4df(2.d * ceff0);
+        w0 *= v4df(ceff0x);
         
         return w0;
     }
