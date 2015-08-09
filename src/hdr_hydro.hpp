@@ -253,8 +253,134 @@ struct calcDerivativeX86 {
     }
 };
 
+struct calcDerivativeSingleX86 {
+
+    void operator () (const DerivativeEPI *epi,
+                      const PS::S32 nip,
+                      const DerivativeEPJ *epj,
+                      const PS::S32 njp,
+                      Derivative *derivative) {
+#ifdef TIMETEST
+        nintrhydr += nip * njp;
+#endif
+        v8sf (*rcp)(v8sf)   = v8sf::rcp_1st;
+        v8sf (*rsqrt)(v8sf) = v8sf::rsqrt_1st;
+
+        PS::S32 nvector = v8sf::getVectorLength();
+        
+        for(PS::S32 i = 0; i < nip; i += nvector) {
+            v8sf id_i(epi[i].id,   epi[i+1].id, epi[i+2].id, epi[i+3].id,
+                      epi[i+4].id, epi[i+5].id, epi[i+6].id, epi[i+7].id);
+            v8sf px_i(epi[i].pos[0],   epi[i+1].pos[0], epi[i+2].pos[0], epi[i+3].pos[0],
+                      epi[i+4].pos[0], epi[i+5].pos[0], epi[i+6].pos[0], epi[i+7].pos[0]);
+            v8sf py_i(epi[i].pos[1],   epi[i+1].pos[1], epi[i+2].pos[1], epi[i+3].pos[1],
+                      epi[i+4].pos[1], epi[i+5].pos[1], epi[i+6].pos[1], epi[i+7].pos[1]);
+            v8sf pz_i(epi[i].pos[2],   epi[i+1].pos[2], epi[i+2].pos[2], epi[i+3].pos[2],
+                      epi[i+4].pos[2], epi[i+5].pos[2], epi[i+6].pos[2], epi[i+7].pos[2]);
+            v8sf vx_i(epi[i].vel[0],   epi[i+1].vel[0], epi[i+2].vel[0], epi[i+3].vel[0],
+                      epi[i+4].vel[0], epi[i+5].vel[0], epi[i+6].vel[0], epi[i+7].vel[0]);
+            v8sf vy_i(epi[i].vel[1],   epi[i+1].vel[1], epi[i+2].vel[1], epi[i+3].vel[1],
+                      epi[i+4].vel[1], epi[i+5].vel[1], epi[i+6].vel[1], epi[i+7].vel[1]);
+            v8sf vz_i(epi[i].vel[2],   epi[i+1].vel[2], epi[i+2].vel[2], epi[i+3].vel[2],
+                      epi[i+4].vel[2], epi[i+5].vel[2], epi[i+6].vel[2], epi[i+7].vel[2]);
+            v8sf hi_i(epi[i].hinv,   epi[i+1].hinv, epi[i+2].hinv, epi[i+3].hinv,
+                      epi[i+4].hinv, epi[i+5].hinv, epi[i+6].hinv, epi[i+7].hinv);
+            v8sf rh_i(epi[i].rho,   epi[i+1].rho, epi[i+2].rho, epi[i+3].rho,
+                      epi[i+4].rho, epi[i+5].rho, epi[i+6].rho, epi[i+7].rho);
+            v8sf prhi2_i(epi[i].pres,   epi[i+1].pres, epi[i+2].pres, epi[i+3].pres,
+                         epi[i+4].pres, epi[i+5].pres, epi[i+6].pres, epi[i+7].pres);
+            v8sf bswt_i(epi[i].bswt,   epi[i+1].bswt, epi[i+2].bswt, epi[i+3].bswt,
+                        epi[i+4].bswt, epi[i+5].bswt, epi[i+6].bswt, epi[i+7].bswt);
+            v8sf cs_i(epi[i].vsnd,   epi[i+1].vsnd, epi[i+2].vsnd, epi[i+3].vsnd,
+                      epi[i+4].vsnd, epi[i+5].vsnd, epi[i+6].vsnd, epi[i+7].vsnd);
+            v8sf alph_i(epi[i].alph,   epi[i+1].alph, epi[i+2].alph, epi[i+3].alph,
+                        epi[i+4].alph, epi[i+5].alph, epi[i+6].alph, epi[i+7].alph);
+            v8sf hi4_i = hi_i * SPH::calcVolumeInverse(hi_i);
+            v8sf accx_i(0.d);
+            v8sf accy_i(0.d);
+            v8sf accz_i(0.d);
+            v8sf ene_i(0.d);
+            v8sf vsmx_i(0.d);
+
+#ifdef TIMETEST
+            PS::F64 t1 = getWallclockTime();
+#endif
+
+            for(PS::S32 j = 0; j < njp; j++) {
+                v8sf dpx_ij = px_i - v8sf(epj[j].pos[0]);
+                v8sf dpy_ij = py_i - v8sf(epj[j].pos[1]);
+                v8sf dpz_ij = pz_i - v8sf(epj[j].pos[2]);
+                v8sf dvx_ij = vx_i - v8sf(epj[j].vel[0]);
+                v8sf dvy_ij = vy_i - v8sf(epj[j].vel[1]);
+                v8sf dvz_ij = vz_i - v8sf(epj[j].vel[2]);
+
+                v8sf r2_ij = dpx_ij * dpx_ij + dpy_ij * dpy_ij + dpz_ij * dpz_ij;
+                v8sf ri_ij = rsqrt(r2_ij);
+                ri_ij = ((id_i != v8sf(epj[j].id)) & ri_ij);
+                v8sf r1_ij = r2_ij * ri_ij;
+                v8sf xv_ij = dpx_ij * dvx_ij + dpy_ij * dvy_ij + dpz_ij * dvz_ij;
+
+                v8sf hi_j(epj[j].hinv);
+                v8sf hi4_j = hi_j * SPH::calcVolumeInverse(hi_j);
+                v8sf q_i = r1_ij * hi_i;
+                v8sf q_j = r1_ij * hi_j;
+
+                v8sf dw_ij = v8sf(0.5d) * v8sf(epj[j].mass) * ri_ij
+                    * (hi4_i * KernelSph::kernel1st(q_i) + hi4_j * KernelSph::kernel1st(q_j));
+
+                v8sf mu_ij = xv_ij * ri_ij;
+                mu_ij = ((xv_ij < v8sf(0.d)) & mu_ij);
+                v8sf vs_ij  = cs_i + v8sf(epj[j].vsnd) - v8sf(3.d) * mu_ij;
+                v8sf pi_ij  = v8sf(-0.5d) * vs_ij * mu_ij * (alph_i + v8sf(epj[j].alph))
+                    * rcp(rh_i + v8sf(epj[j].rho));
+                v8sf f_ij   = v8sf(0.5d) * (bswt_i + v8sf(epj[j].bswt));
+                v8sf vis_ij = f_ij * pi_ij;
+
+                v8sf da_ij = dw_ij * (prhi2_i + v8sf(epj[j].pres) + vis_ij);
+                accx_i -= da_ij * dpx_ij;
+                accy_i -= da_ij * dpy_ij;
+                accz_i -= da_ij * dpz_ij;
+
+                v8sf de_ij = prhi2_i + v8sf(0.5d) * vis_ij;
+                de_ij *= dw_ij;
+                ene_i += xv_ij * de_ij;
+
+                vsmx_i = v8sf::max(vsmx_i, vs_ij);
+            }
+#ifdef TIMETEST
+            tcalchydr += getWallclockTime() - t1;
+            ncalchydr++;
+#endif
+
+            PS::F32 buf_ax[nvector];
+            PS::F32 buf_ay[nvector];
+            PS::F32 buf_az[nvector];
+            PS::F32 buf_eg[nvector];
+            PS::F32 buf_vs[nvector];            
+            accx_i.store(buf_ax);
+            accy_i.store(buf_ay);
+            accz_i.store(buf_az);
+            ene_i.store(buf_eg);
+            vsmx_i.store(buf_vs);
+
+            PS::S32 nii = ((nip - i) < nvector) ? (nip - i) : nvector;
+            for(PS::S32 ii = 0; ii < nvector; ii++) {
+                derivative[i+ii].acc[0] = buf_ax[ii];
+                derivative[i+ii].acc[1] = buf_ay[ii];
+                derivative[i+ii].acc[2] = buf_az[ii];
+                derivative[i+ii].udot   = buf_eg[ii];
+                derivative[i+ii].vsmx   = buf_vs[ii];
+            }
+
+        }
+
+    }
+};
+
 #ifdef ENABLE_SIMDX86
 typedef calcDerivativeX86 calcDerivative;
+#elif defined ENABLE_SIMDX86_SINGLE
+typedef calcDerivativeSingleX86 calcDerivative;
 #else
 typedef calcDerivativeBasic calcDerivative;
 #endif

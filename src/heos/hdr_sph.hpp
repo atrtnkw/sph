@@ -207,9 +207,6 @@ public:
         this->vsnd = CalcEquationOfState::getSoundVelocity(this->dens, this->uene);
         this->temp = CalcEquationOfState::getTemperature(this->dens, this->uene);
 #else
-//        this->pres = CalcEquationOfState::getPressure(this->dens, this->uene);
-//        this->vsnd = CalcEquationOfState::getSoundVelocity(this->dens, this->uene);
-//        this->temp = CalcEquationOfState::getTemperature(this->dens, this->uene);
         CalcEquationOfState::getThermodynamicQuantity(this->dens,
                                                       this->uene,
                                                       this->abar,
@@ -268,6 +265,7 @@ public:
     static inline PS::F64 calcVolumeInverse(const PS::F64 hi);
     static inline PS::F64 calcPowerOfDimInverse(PS::F64 mass,
                                                 PS::F64 dens);
+    static inline v4df calcVolumeInverse(const v4df hi);
 
     void predict(PS::F64 dt) {
         this->pos   = this->pos  +       this->vel  * dt  + 0.5 * this->acc * dt * dt;
@@ -334,6 +332,7 @@ inline PS::F64 SPH::calcPowerOfDimInverse(PS::F64 mass,
                                           PS::F64 dens) {
     return mass / dens;
 }
+inline v4df SPH::calcVolumeInverse(const v4df hi) {return hi;}
 #else
 #ifdef USE_AT2D
 inline PS::F64 SPH::calcVolumeInverse(const PS::F64 hi) {return hi * hi;}
@@ -341,12 +340,14 @@ inline PS::F64 SPH::calcPowerOfDimInverse(PS::F64 mass,
                                           PS::F64 dens) {
     return sqrt(mass / dens);
 }
+inline v4df SPH::calcVolumeInverse(const v4df hi) {return hi * hi;}
 #else
 inline PS::F64 SPH::calcVolumeInverse(const PS::F64 hi) {return hi * hi * hi;}
 inline PS::F64 SPH::calcPowerOfDimInverse(PS::F64 mass,
                                           PS::F64 dens) {
     return pow(mass / dens, 1.d / 3.d);
 }
+inline v4df SPH::calcVolumeInverse(const v4df hi) {return hi * hi * hi;}
 #endif
 #endif
 
@@ -534,7 +535,8 @@ void doThisEveryTime(PS::F64 & time,
                      PS::F64 & tout,
                      PS::F64 & dtsp,
                      Tptcl & system,
-                     FILE * fplog) {
+                     FILE * fplog,
+                     FILE * fptim) {
     reduceSeparation(time, system, fplog);
 
     calcFieldVariable(system);
@@ -545,16 +547,23 @@ void doThisEveryTime(PS::F64 & time,
         system.writeParticleAscii(filename);
         tout += dtsp;
     }
+
+    if(time == 1.0) {
+        PS::Finalize();
+        exit(0);
+    }
     
     PS::F64 etot = calcEnergy(system);
+    WT::reduceInterProcess();
     if(PS::Comm::getRank() == 0) {
         using namespace CodeUnit;
-        fprintf(fplog,  "time: %.10f %+e %+e\n", time * UnitOfTime, dtime * UnitOfTime,
-                etot * UnitOfEnergy * UnitOfMass);
+        fprintf(fplog,  "time: %.10f %+e %+e\n", time * UnitOfTime,
+                etot * UnitOfEnergy * UnitOfMass, WT::getTimeTotal());
         fflush(fplog);
-        fprintf(stderr, "time: %.10f %+e %+e\n", time * UnitOfTime, dtime * UnitOfTime,
-                etot * UnitOfEnergy * UnitOfMass);
+        WT::dump(time, fptim);
+        fflush(fptim);
     }
+    WT::clear();
 
 }
 

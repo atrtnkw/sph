@@ -531,8 +531,185 @@ struct calcDensityX86 {
 };
 #endif
 
+struct calcDensitySingleX86 {
+
+    void operator () (const DensityEPI *epi,
+                      const PS::S32 nip,
+                      const DensityEPJ *epj,
+                      const PS::S32 njp,
+                      Density *density) {
+
+#ifdef TIMETEST
+        ninteract += nip * njp;
+#endif
+
+        v8sf (*rcp)(v8sf)   = v8sf::rcp_1st;
+        v8sf (*rsqrt)(v8sf) = v8sf::rsqrt_1st;
+
+        const PS::S32 nvector = v8sf::getVectorLength();
+        
+        for(PS::S32 i = 0; i < nip; i += nvector) {
+
+            const PS::S32 nii = ((nip - i) < nvector) ? (nip - i) : nvector;
+
+            v8sf id_i(epi[i].id,     epi[i+1].id,     epi[i+2].id,     epi[i+3].id,
+                      epi[i+4].id,   epi[i+5].id,     epi[i+6].id,     epi[i+7].id);
+            v8sf px_i(epi[i].pos[0],   epi[i+1].pos[0], epi[i+2].pos[0], epi[i+3].pos[0],
+                      epi[i+4].pos[0], epi[i+5].pos[0], epi[i+6].pos[0], epi[i+7].pos[0]);
+            v8sf py_i(epi[i].pos[1],   epi[i+1].pos[1], epi[i+2].pos[1], epi[i+3].pos[1],
+                      epi[i+4].pos[1], epi[i+5].pos[1], epi[i+6].pos[1], epi[i+7].pos[1]);
+            v8sf pz_i(epi[i].pos[2],   epi[i+1].pos[2], epi[i+2].pos[2], epi[i+3].pos[2],
+                      epi[i+4].pos[2], epi[i+5].pos[2], epi[i+6].pos[2], epi[i+7].pos[2]);
+            v8sf vx_i(epi[i].vel[0],   epi[i+1].vel[0], epi[i+2].vel[0], epi[i+3].vel[0],
+                      epi[i+4].vel[0], epi[i+5].vel[0], epi[i+6].vel[0], epi[i+7].vel[0]);
+            v8sf vy_i(epi[i].vel[1],   epi[i+1].vel[1], epi[i+2].vel[1], epi[i+3].vel[1],
+                      epi[i+4].vel[1], epi[i+5].vel[1], epi[i+6].vel[1], epi[i+7].vel[1]);
+            v8sf vz_i(epi[i].vel[2],   epi[i+1].vel[2], epi[i+2].vel[2], epi[i+3].vel[2],
+                      epi[i+4].vel[2], epi[i+5].vel[2], epi[i+6].vel[2], epi[i+7].vel[2]);
+            v8sf h_i(epi[i].ksr,   epi[i+1].ksr, epi[i+2].ksr, epi[i+3].ksr,
+                     epi[i+4].ksr, epi[i+5].ksr, epi[i+6].ksr, epi[i+7].ksr);
+
+            for(PS::S32 repeat = 0; repeat < 3; repeat++) {
+                v8sf hi_i  = rcp(h_i);
+                v8sf hi3_i = SPH::calcVolumeInverse(hi_i);
+                v8sf hi4_i = hi_i * hi3_i;
+                v8sf rh_i(0.d);
+                v8sf nj_i(0.d);
+
+#ifdef TIMETEST
+                PS::F64 t1 = getWallclockTime();;
+#endif
+                for(PS::S32 j = 0; j < njp; j++) {
+                    v8sf dx_ij = px_i - v8sf(epj[j].pos[0]);
+                    v8sf dy_ij = py_i - v8sf(epj[j].pos[1]);
+                    v8sf dz_ij = pz_i - v8sf(epj[j].pos[2]);
+
+                    v8sf r2_ij = dx_ij * dx_ij + dy_ij * dy_ij + dz_ij * dz_ij;
+
+                    v8sf r1_ij = r2_ij * rsqrt(r2_ij);
+                    r1_ij = ((id_i != v8sf(epj[j].id)) & r1_ij);
+                    v8sf q_i   = r1_ij * hi_i;
+
+                    v8sf kw0 = KernelSph::kernel0th(q_i);
+                    v8sf rhj = v8sf(epj[j].mass) * hi3_i * kw0;
+
+                    rh_i += rhj;
+                    nj_i += ((q_i < 1.d) & v8sf(1.d));
+                    
+                    // vcvt       x 3
+                    // vbroadcast x 5
+                    // vmova      x 1
+                    // vcmp       x 2
+                    // vand       x 2
+                    // vmax       x 2
+                    // vrsqrt     x 1
+                    // vadd       x 6
+                    // vmul       x 11
+                    // vfmadd     x 9 
+                }
+#ifdef TIMETEST
+                tcalcdens += getWallclockTime() - t1;
+                ncalcdens++;
+#endif
+
+                PS::F32 buf0[nvector], buf1[nvector], hs[nvector];
+                rh_i.store(buf0);
+                nj_i.store(buf1);
+                for(PS::S32 ii = 0; ii < nii; ii++) {
+                    hs[ii] = KernelSph::eta * KernelSph::ksrh
+                        * SPH::calcPowerOfDimInverse(epi[i+ii].mass, buf0[ii]);
+                    density[i+ii].dens = buf0[ii];
+                    density[i+ii].np   = (PS::S32)buf1[ii];
+                    density[i+ii].ksr  = hs[ii];
+                    density[i+ii].itr  = (hs[ii] > epi[i+ii].rs) ? true : false;
+                }
+                h_i.load(hs);
+            }
+
+            h_i  = v8sf(density[i].ksr,   density[i+1].ksr, density[i+2].ksr, density[i+3].ksr,
+                        density[i+4].ksr, density[i+5].ksr, density[i+6].ksr, density[i+7].ksr);
+            v8sf hi_i  = rcp(h_i);
+            v8sf hi4_i = hi_i * SPH::calcVolumeInverse(hi_i);
+            v8sf gh_i(0.d);
+            v8sf divv_i(0.d);
+            v8sf rotx_i(0.d);
+            v8sf roty_i(0.d);
+            v8sf rotz_i(0.d);
+
+#ifdef TIMETEST
+            PS::F64 t1 = getWallclockTime();;
+#endif
+            for(PS::S32 j = 0; j < njp; j++) {
+                v8sf dpx_ij = px_i - v8sf(epj[j].pos[0]);
+                v8sf dpy_ij = py_i - v8sf(epj[j].pos[1]);
+                v8sf dpz_ij = pz_i - v8sf(epj[j].pos[2]);
+                v8sf dvx_ij = vx_i - v8sf(epj[j].vel[0]);
+                v8sf dvy_ij = vy_i - v8sf(epj[j].vel[1]);
+                v8sf dvz_ij = vz_i - v8sf(epj[j].vel[2]);
+
+                v8sf r2_ij = dpx_ij * dpx_ij + dpy_ij * dpy_ij + dpz_ij * dpz_ij;
+                v8sf ri_ij = rsqrt(r2_ij);
+                ri_ij = ((id_i != v8sf(epj[j].id)) & ri_ij);
+                v8sf r1_ij = r2_ij * ri_ij;
+                v8sf q_i = r1_ij * hi_i;
+
+                v8sf kw0 = KernelSph::kernel0th(q_i);
+                v8sf kw1 = KernelSph::kernel1st(q_i);
+
+                v8sf m_j(epj[j].mass);
+                v8sf ghj = v8sf(KernelSph::dim) * kw0;
+                ghj += q_i * kw1;
+                gh_i -= ghj * hi4_i * m_j;
+
+                v8sf dw_ij  = m_j * hi4_i * kw1 * ri_ij;
+                v8sf dwx_ij = dw_ij * dpx_ij;
+                v8sf dwy_ij = dw_ij * dpy_ij;
+                v8sf dwz_ij = dw_ij * dpz_ij;
+
+                divv_i -= dvx_ij * dwx_ij;
+                divv_i -= dvy_ij * dwy_ij;
+                divv_i -= dvz_ij * dwz_ij;
+
+                rotx_i += dvy_ij * dwz_ij;
+                roty_i += dvz_ij * dwx_ij;
+                rotz_i += dvx_ij * dwy_ij;
+                rotx_i -= dvz_ij * dwy_ij;
+                roty_i -= dvx_ij * dwz_ij;
+                rotz_i -= dvy_ij * dwx_ij;
+            }
+#ifdef TIMETEST
+            tcalcgrdh += getWallclockTime() - t1;
+            ncalcgrdh++;
+#endif
+
+            v8sf rh_i(density[i].dens,   density[i+1].dens, density[i+2].dens, density[i+3].dens,
+                      density[i+4].dens, density[i+5].dens, density[i+6].dens, density[i+7].dens);
+            v8sf rhi_i = rcp(rh_i);
+            v8sf grd_i = rcp(v8sf(1.d) + h_i * rhi_i * gh_i * rcp(KernelSph::dim));
+            v8sf rot2  = rotx_i * rotx_i + roty_i * roty_i + rotz_i * rotz_i;
+            v8sf roti  = rsqrt(rot2);
+            v8sf rot1  = rot2 * ((rot2 != 0.d) & roti);
+            v8sf rotv  = rot1 * rhi_i * grd_i;
+            v8sf divv  = divv_i * rhi_i * grd_i;
+
+            PS::F32 buf0[nvector], buf1[nvector], buf2[nvector];
+            grd_i.store(buf0);
+            rotv.store(buf1);
+            divv.store(buf2);
+            for(PS::S32 ii = 0; ii < nii; ii++) {
+                density[i+ii].grdh = buf0[ii];
+                density[i+ii].rotv = buf1[ii];
+                density[i+ii].divv = buf2[ii];
+            }
+
+        }        
+    }
+};
+
 #ifdef ENABLE_SIMDX86
 typedef calcDensityX86 calcDensity;
+#elif defined ENABLE_SIMDX86_SINGLE
+typedef calcDensitySingleX86 calcDensity;
 #else
 typedef calcDensityBasic calcDensity;
 #endif

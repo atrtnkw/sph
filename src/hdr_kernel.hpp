@@ -253,6 +253,34 @@ namespace CubicSpline {
         w0 *= v4df(ceff1);
         return w0;
     }
+
+    inline v8sf kernel0th(const v8sf r) {
+        v8sf t1 = v8sf(1.d)  - r;
+        v8sf t2 = v8sf(0.5d) - r;
+        t1 = v8sf::max(t1, 0.d);
+        t2 = v8sf::max(t2, 0.d);
+        v8sf t13 = t1 * t1 * t1;
+        v8sf t23 = t2 * t2 * t2;
+        v8sf w0  = t13 - v8sf(4.d) * t23;
+        w0 *= v8sf(ceff0x);
+        
+        return w0;
+    }
+    inline v8sf kernel1st(const v8sf r) {
+        v8sf t1 = v8sf(1.d)  - r;
+        v8sf t2 = v8sf(0.5d) - r;
+        v8sf t3 = v8sf(0.33333333333333333d) - r;
+        t1 = v8sf::max(t1, 0.d);
+        t2 = v8sf::max(t2, 0.d);
+        t3 = v8sf::max(t3, 0.d);
+        v8sf t12 = t1 * t1;
+        v8sf t22 = t2 * t2;
+        v8sf t32 = t3 * t3;
+        v8sf w0  = v8sf::nmadd(t12, v8sf(4.d), t22);
+        w0  = v8sf::madd(w0, v8sf(3.d), t32);
+        w0 *= v8sf(ceff1);
+        return w0;
+    }
     
 }
 

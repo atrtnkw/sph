@@ -167,6 +167,13 @@ struct v8sf {
         return v8sf(_mm256_fnmadd_ps(a.val, b.val, c.val));
     }
 
+    static v8sf max(const v8sf a, const v8sf b) {
+        return v8sf(_mm256_max_ps(a.val, b.val));
+    }
+    static v8sf min(const v8sf a, const v8sf b) {
+        return v8sf(_mm256_min_ps(a.val, b.val));
+    }
+
     v8sf operator += (const v8sf rhs) {
         //val = _mm256_add_ps(val, rhs.val);
         val = val + rhs.val;

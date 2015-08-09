@@ -4,6 +4,7 @@ use_mpi = yes
 use_omp = yes
 ###########################
 ###### AT_FLAGS ######
+CFLAGS += -DENABLE_SIMDX86
 #CFLAGS += -DWENDLANDC2
 #CFLAGS += -DWENDLANDC4
 CFLAGS += -DCUBICSPLINE
@@ -31,7 +32,7 @@ CCC = mpicxx
 FCC = mpif90
 endif
 
-CFLAGS += -O3 -ffast-math -funroll-loops #-Wall
+CFLAGS += -O3 -march=core-avx2 -ffast-math -funroll-loops #-Wall
 #CFLAGS += -DSANITY_CHECK_REALLOCATABLE_ARRAY
 CLIBS  += -L${PHANTOM_DIR} -lpg5
 CLIBS  += -lstdc++ -lm
