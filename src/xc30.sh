@@ -1,14 +1,14 @@
 #PBS -N test
-#PBS -l mppwidth=1
+#PBS -l mppwidth=24
 #PBS -j oe
 #PBS -q short-b
 ##PBS -q debug
 
-NPARALLEL=1
+NPARALLEL=24
 NPROCESS=$NPARALLEL
 
-odir=shock_1d
-ifile=../init.ideal/shock_1d.init
+odir=r001k
+ifile=../init.heos/r001k/b1.10-1.00.init
 #odir=pex
 #ifile=../init.ideal/glass/pex_ns064.init
 tempodir=snap

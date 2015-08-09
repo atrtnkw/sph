@@ -1,10 +1,11 @@
-
+###### AT_PLATFORM ########
+use_xc  = yes
 ###### AT_MPI_OPENMP ######
 use_mpi = yes
 use_omp = yes
 ###########################
 ###### AT_FLAGS ##############################
-CFLAGS += -DENABLE_SIMDX86
+#CFLAGS += -DENABLE_SIMDX86
 #CFLAGS += -DENABLE_SIMDX86_SINGLE
 #
 #CFLAGS += -DWENDLANDC2
@@ -21,20 +22,27 @@ CFLAGS += -DGRAVITY
 ##############################################
 ##############################################
 
+ifeq ($(use_xc), yes)
+FDPS_DIR = ../../fdps/src
+else
 FDPS_DIR = ../../../fdps-jenever0/src
-#FDPS_DIR = ../../fdps/src
+endif
 
 PHANTOM_DIR = ${FDPS_DIR}/phantom_grape_x86/G5/newton/libpg5
 
 PS_PATH  = -I${FDPS_DIR}
 PS_PATH += -I${PHANTOM_DIR}
 
+ifeq ($(use_xc), yes)
+CCC = CC
+FCC = ftn
+else
 CCC = g++
 FCC = gfortran
-#CCC = CC
 ifeq ($(use_mpi), yes)
 CCC = mpicxx
 FCC = mpif90
+endif
 endif
 
 CFLAGS += -O3 -march=core-avx2 -ffast-math -funroll-loops #-Wall
@@ -48,7 +56,11 @@ CFLAGS += -DPARTICLE_SIMULATOR_THREAD_PARALLEL -fopenmp
 endif
 ifeq ($(use_mpi), yes)
 CFLAGS += -DPARTICLE_SIMULATOR_MPI_PARALLEL
+ifeq ($(use_xc), yes)
+CLIBS  +=
+else
 CLIBS  += -lmpi_cxx
+endif
 endif
 
 OBJ = main.o heos/eos.o
@@ -57,8 +69,11 @@ HDR = hdr_sph.hpp hdr_eos.hpp hdr_kernel.hpp hdr_density.hpp hdr_hydro.hpp \
 ETC = Makefile
 
 run: $(OBJ) $(HDR) $(ETC)
-#	$(CCC) $(PS_PATH) $(CFLAGS) -o run $(OBJ) $(CLIBS)
+ifeq ($(use_xc), yes)
+	$(CCC) $(PS_PATH) $(CFLAGS) $(FFLAGS) -o run $(OBJ) $(CLIBS)
+else
 	$(FCC) $(PS_PATH) $(CFLAGS) $(FFLAGS) -o run $(OBJ) $(CLIBS)
+endif
 
 main.o: main.cpp $(HDR) $(ETC)
 	$(CCC) $(PS_PATH) $(CFLAGS) -c main.cpp
