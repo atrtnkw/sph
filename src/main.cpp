@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <cassert>
+#include <cstdio>
 
 #include "particle_simulator.hpp"
 
@@ -89,7 +90,6 @@ int main(int argc, char **argv)
     }
 
     WT::clear();
-
     WT::start();
     sph.adjustPositionIntoRootDomain(dinfo);
     WT::accumulateOthers();
@@ -112,7 +112,7 @@ int main(int argc, char **argv)
 
 #ifdef GRAVITY
     PS::TreeForForceLong<Gravity, GravityEPI, GravityEPJ>::Monopole gravity;
-    gravity.initialize(nptclmax);
+    gravity.initialize(nptclmax, 0.5);
     g5_open();
     g5_set_eps_to_all(SPH::eps);
     WT::start();
@@ -126,55 +126,16 @@ int main(int argc, char **argv)
     FILE *fplog = fopen("snap/time.log", "w");
     FILE *fptim = fopen("snap/prof.log", "w");
     PS::F64 tout = time;
-    PS::F64 dtdc = 0.25;
-    PS::S32 nstp = 0;
+    //PS::F64 dtdc = 0.25;
+    const PS::S32 nstp = 4;
+    PS::S32 istp = 0;
     while(time < tend){
+        doThisEveryTime(time, dtime, tout, dtsp, sph, fplog, fptim);
+
+        WT::start();
         dtime = calcTimeStep(sph, time, 1 / 64.);
+        WT::accumulateOthers();
 
-        if(time >= tout) {
-            char filename[64];
-            sprintf(filename, "snap/sph_t%04d.dat", nstp);
-            sph.writeParticleAscii(filename);
-            tout += dtsp;
-            nstp++;
-        }
-
-        PS::F64 etot = calcEnergy(sph);
-        WT::reduceInterProcess();
-        if(rank == 0) {
-            fprintf(fplog, "time: %.10f %+e %+e\n", time, dtime, etot);
-            fflush(fplog);
-            WT::dump(time, fptim);
-            fflush(fptim);
-        }
-        WT::clear();
-
-#if TIMETEST
-        if(time > 0.d) {
-            fprintf(stdout, "dens: %6d grdh: %6d hydr: %6d\n", ncalcdens, ncalcgrdh, ncalchydr);
-            fprintf(stdout, "dens: %+e grdh: %+e hydr: %+e\n", tcalcdens, tcalcgrdh, tcalchydr);
-            fprintf(stdout, "dens: %+e grdh: %+e hydr: %+e\n",
-                    tcalcdens/ncalcdens, tcalcgrdh/ncalcgrdh, tcalchydr/ncalchydr);
-            fprintf(stdout, "ninteract: %d %d\n", ninteract, nintrhydr);
-            fprintf(stdout, "\n");
-            PS::Finalize();
-            exit(0);
-        } else {
-            tcalcdens = 0.d;
-            tcalcgrdh = 0.d;
-            tcalchydr = 0.d;
-            ncalcdens = 0;
-            ncalcgrdh = 0;
-            ncalchydr = 0;
-            ninteract = 0;
-            nintrhydr = 0;
-            //tcalcsqrt = 0.d;
-            //tcalcothr = 0.d;
-            //ncalcsqrt = 0;
-            //ncalcothr = 0;
-        }
-#endif
-        
         WT::start();
         predict(sph, dtime);
         WT::accumulateIntegrateOrbit();
@@ -185,41 +146,33 @@ int main(int argc, char **argv)
         WT::accumulateOthers();
 
         WT::start();
-        if(time - (PS::S64)(time / dtdc) * dtdc == 0.){
+        //if(time - (PS::S64)(time / dtdc) * dtdc == 0.){
+        if(istp == nstp) {
             dinfo.decomposeDomainAll(sph);
+            istp = 0;
         }
+        istp++;
         WT::accumulateDecomposeDomain();
 
         WT::start();
         sph.exchangeParticle(dinfo);
         WT::accumulateExchangeParticle();
 
-        WT::start();
-        calcFieldVariable(sph);
-        WT::accumulateOthers();
-
         calcSPHKernel(dinfo, sph, density, derivative,
                       calcDensity(), calcDerivative());
 
-        WT::start();
 #ifdef GRAVITY
+        WT::start();
         gravity.calcForceAllAndWriteBack(calcGravity<GravityEPJ>(),
                                          calcGravity<PS::SPJMonopole>(),
                                          sph,
                                          dinfo);
-#endif
         WT::accumulateCalcGravity();
+#endif
 
         WT::start();
         correct(sph, dtime);
         WT::accumulateIntegrateOrbit();
-
-#ifdef DAMPING
-        DampVelocity::dampVelocity(sph, dtime);
-        if(DampVelocity::stopDamping(time, sph)) {
-            break;
-        }
-#endif
 
         time += dtime;
     }
@@ -227,7 +180,7 @@ int main(int argc, char **argv)
     fclose(fplog);
     fclose(fptim);
 
-    finalizeSimulation(nstp, sph);
+    finalizeSimulation(time, sph);
     
     PS::Finalize();
 
@@ -361,7 +314,6 @@ void calcSPHKernel(Tdinfo & dinfo,
         }
         repeat = PS::Comm::synchronizeConditionalBranchOR(repeat_loc);
         cnt++;
-
     }
     WT::accumulateCalcDensity();
     WT::start();

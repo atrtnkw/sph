@@ -162,7 +162,8 @@ public:
         fprintf(fp, " %+e %+e %+e", this->dens, this->vsnd, this->pres);
         fprintf(fp, " %+e %+e %+e", this->divv, this->rotv, this->bswt);
         fprintf(fp, " %+e %6d %+e", this->grdh, this->np, this->pot);
-        fprintf(fp, " %+e %+e %+e", this->accg[0], this->accg[1], this->accg[2]);
+//        fprintf(fp, " %+e %+e %+e", this->accg[0], this->accg[1], this->accg[2]);
+//        fprintf(fp, " %+e %+e", this->udot, this->vsmx);
         fprintf(fp, "\n");
     }
 
@@ -206,6 +207,7 @@ public:
     static inline PS::F64 calcVolumeInverse(const PS::F64 hi);
     static inline PS::F64 calcPowerOfDimInverse(PS::F64 mass,
                                                 PS::F64 dens);
+    static inline v4df calcVolumeInverse(const v4df hi);
 
 #ifdef DAMPING
     inline void addAdditionalForce() {
@@ -263,6 +265,7 @@ inline PS::F64 SPH::calcPowerOfDimInverse(PS::F64 mass,
                                           PS::F64 dens) {
     return mass / dens;
 }
+inline v4df SPH::calcVolumeInverse(const v4df hi) {return hi;}
 #else
 #ifdef USE_AT2D
 inline PS::F64 SPH::calcVolumeInverse(const PS::F64 hi) {return hi * hi;}
@@ -270,12 +273,14 @@ inline PS::F64 SPH::calcPowerOfDimInverse(PS::F64 mass,
                                           PS::F64 dens) {
     return sqrt(mass / dens);
 }
+inline v4df SPH::calcVolumeInverse(const v4df hi) {return hi * hi;}
 #else
 inline PS::F64 SPH::calcVolumeInverse(const PS::F64 hi) {return hi * hi * hi;}
 inline PS::F64 SPH::calcPowerOfDimInverse(PS::F64 mass,
                                           PS::F64 dens) {
     return pow(mass / dens, 1.d / 3.d);
 }
+inline v4df SPH::calcVolumeInverse(const v4df hi) {return hi * hi * hi;}
 #endif
 #endif
 
@@ -288,6 +293,11 @@ void setParameterParticle(Theader & header) {
     SPH::tceff    = header.tceff;
     SPH::eps      = header.eps;
     
+    return;
+}
+
+template <class Tptcl>
+void calcFieldVariable(Tptcl & system) {
     return;
 }
 

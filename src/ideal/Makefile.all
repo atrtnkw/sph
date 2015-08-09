@@ -12,7 +12,7 @@ CCC = mpicxx
 #CCC = mpicxx-mpich-gcc49
 #CCC = g++
 
-CFLAGS = -O3 -ffast-math -funroll-loops #-Wall
+CFLAGS = -O3 -march=core-avx2 -ffast-math -funroll-loops #-Wall
 CFLAGS += -DPARTICLE_SIMULATOR_THREAD_PARALLEL -fopenmp
 CFLAGS += -DPARTICLE_SIMULATOR_MPI_PARALLEL
 #CFLAGS += -DPARTICLE_SIMULATOR_TWO_DIMENSION
@@ -21,9 +21,12 @@ CFLAGS += -DPARTICLE_SIMULATOR_MPI_PARALLEL
 CLIBS += -L${PHANTOM_DIR} -lpg5
 
 ###### AT_FLAGS ######
+#CFLAGS += -DTIMETEST
+CFLAGS += -DENABLE_SIMDX86
 #CFLAGS += -DWENDLANDC2
+#CFLAGS += -DWENDLANDC4
 CFLAGS += -DCUBICSPLINE
-CFLAGS += -DUSE_AT1D
+#CFLAGS += -DUSE_AT1D
 #CFLAGS += -DUSE_AT2D
 #CFLAGS += -DGRAVITY
 #CFLAGS += -DDAMPING
@@ -31,7 +34,7 @@ CFLAGS += -DUSE_AT1D
 
 OBJ = main.o
 HDR = hdr_sph.hpp hdr_kernel.hpp hdr_density.hpp hdr_hydro.hpp \
-	hdr_gravity.hpp hdr_damp.hpp
+	hdr_gravity.hpp hdr_damp.hpp hdr_time.hpp vector_x86.hpp
 ETC = Makefile
 
 run: $(OBJ) $(HDR) $(ETC)
@@ -40,10 +43,14 @@ run: $(OBJ) $(HDR) $(ETC)
 main.o: main.cpp $(HDR) $(ETC)
 	$(CCC) $(PS_PATH) $(CFLAGS) -c main.cpp
 
+asm: main.cpp $(HDR) $(ETC)
+	$(CCC) $(PS_PATH) $(CFLAGS) -S main.cpp
+
 clean:
 	rm -f *~
 	rm -f test.o*
 	rm -f core
+	rm -f *.s
 distclean:
 	make clean
 	rm -f *.o

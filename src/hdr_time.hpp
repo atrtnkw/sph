@@ -32,8 +32,13 @@ class WallclockTime {
         gettimeofday(& tv, NULL);
         return ((double)(tv.tv_sec) + (double)(tv.tv_usec) * 1e-6);
     }
+
+public:
+    static void start() {
+        getInstance().tstart = getInstance().getWallclockTime();
+    }
     
-    PS::F64 getTimeTotal() {
+    static PS::F64 getTimeTotal() {
         WallclockTime & p = getInstance();
         PS::F64 ttotal;
         ttotal  = p.TimeDecomposeDomain;
@@ -45,11 +50,6 @@ class WallclockTime {
         ttotal += p.TimeIntegrateOrbit;
         ttotal += p.TimeOthers;
         return ttotal;
-    }
-
-public:
-    static void start() {
-        getInstance().tstart = getInstance().getWallclockTime();
     }
     
     static void accumulateDecomposeDomain() {
