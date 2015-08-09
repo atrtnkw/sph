@@ -20,17 +20,24 @@ CFLAGS += -DPARTICLE_SIMULATOR_MPI_PARALLEL
 
 CLIBS += -L${PHANTOM_DIR} -lpg5
 
-###### AT_FLAGS ######
+#########################################
+############# AT_FLAGS ##################
 #CFLAGS += -DTIMETEST
+#
 CFLAGS += -DENABLE_SIMDX86
+#CFLAGS += -DENABLE_SIMDX86_SINGLE
+#
 #CFLAGS += -DWENDLANDC2
 #CFLAGS += -DWENDLANDC4
 CFLAGS += -DCUBICSPLINE
+#
 #CFLAGS += -DUSE_AT1D
 #CFLAGS += -DUSE_AT2D
+#
 #CFLAGS += -DGRAVITY
 #CFLAGS += -DDAMPING
-######################
+#########################################
+#########################################
 
 OBJ = main.o
 HDR = hdr_sph.hpp hdr_kernel.hpp hdr_density.hpp hdr_hydro.hpp \

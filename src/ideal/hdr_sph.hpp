@@ -208,6 +208,7 @@ public:
     static inline PS::F64 calcPowerOfDimInverse(PS::F64 mass,
                                                 PS::F64 dens);
     static inline v4df calcVolumeInverse(const v4df hi);
+    static inline v8sf calcVolumeInverse(const v8sf hi);
 
 #ifdef DAMPING
     inline void addAdditionalForce() {
@@ -266,6 +267,7 @@ inline PS::F64 SPH::calcPowerOfDimInverse(PS::F64 mass,
     return mass / dens;
 }
 inline v4df SPH::calcVolumeInverse(const v4df hi) {return hi;}
+inline v8sf SPH::calcVolumeInverse(const v8sf hi) {return hi;}
 #else
 #ifdef USE_AT2D
 inline PS::F64 SPH::calcVolumeInverse(const PS::F64 hi) {return hi * hi;}
@@ -274,6 +276,7 @@ inline PS::F64 SPH::calcPowerOfDimInverse(PS::F64 mass,
     return sqrt(mass / dens);
 }
 inline v4df SPH::calcVolumeInverse(const v4df hi) {return hi * hi;}
+inline v8sf SPH::calcVolumeInverse(const v8sf hi) {return hi * hi;}
 #else
 inline PS::F64 SPH::calcVolumeInverse(const PS::F64 hi) {return hi * hi * hi;}
 inline PS::F64 SPH::calcPowerOfDimInverse(PS::F64 mass,
@@ -281,6 +284,7 @@ inline PS::F64 SPH::calcPowerOfDimInverse(PS::F64 mass,
     return pow(mass / dens, 1.d / 3.d);
 }
 inline v4df SPH::calcVolumeInverse(const v4df hi) {return hi * hi * hi;}
+inline v8sf SPH::calcVolumeInverse(const v8sf hi) {return hi * hi * hi;}
 #endif
 #endif
 
