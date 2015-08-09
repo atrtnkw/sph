@@ -6,7 +6,7 @@ use_omp = yes
 ###########################
 ###### AT_FLAGS ##############################
 #CFLAGS += -DENABLE_SIMDX86
-#CFLAGS += -DENABLE_SIMDX86_SINGLE
+CFLAGS += -DENABLE_SIMDX86_SINGLE
 #
 #CFLAGS += -DWENDLANDC2
 #CFLAGS += -DWENDLANDC4

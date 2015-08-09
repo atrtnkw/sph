@@ -1,10 +1,10 @@
 #PBS -N test
-#PBS -l mppwidth=24
+#PBS -l mppwidth=192
 #PBS -j oe
 #PBS -q short-b
 ##PBS -q debug
 
-NPARALLEL=24
+NPARALLEL=192
 NPROCESS=$NPARALLEL
 
 odir=r001k
