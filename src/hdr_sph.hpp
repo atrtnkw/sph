@@ -552,10 +552,10 @@ void doThisEveryTime(PS::F64 & time,
         tout += dtsp;
     }
 
-    if(time == 1.0) {
-        PS::Finalize();
-        exit(0);
-    }
+    //if(time == 1.0) {
+    //    PS::Finalize();
+    //    exit(0);
+    //}
     
     PS::F64 etot = calcEnergy(system);
     WT::reduceInterProcess();
