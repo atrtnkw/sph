@@ -65,8 +65,6 @@ struct calcDensityBasic {
                       const PS::S32 njp,
                       Density *density) {
 
-        //for(PS::S32 repeat = 0; repeat < 10; repeat++) {
-        
         for(PS::S32 i = 0; i < nip; i++) {
             PS::S32    id_i = epi[i].id;
             PS::F64vec x_i  = epi[i].pos;
@@ -160,8 +158,6 @@ struct calcDensityBasic {
             density[i].divv = divv_i * rhi_i * grd_i;
 
         }        
-        //}
-
     }
 };
 
@@ -173,8 +169,6 @@ struct calcDensityX86 {
                       const DensityEPJ *epj,
                       const PS::S32 njp,
                       Density *density) {
-
-        //for(PS::S32 repeat = 0; repeat < 10; repeat++) {
 
 #ifdef TIMETEST
         ninteract += nip * njp;
@@ -215,8 +209,13 @@ struct calcDensityX86 {
 
                     v4df r2_ij = dx_ij * dx_ij + dy_ij * dy_ij + dz_ij * dz_ij;
 
+#if 0
                     v4df r1_ij = r2_ij * rsqrt(r2_ij);
-                    r1_ij = ((id_i != v4df(epj[j].id)) & r1_ij);
+                    //r1_ij = ((id_i != v4df(epj[j].id)) & r1_ij);
+                    r1_ij = ((r2_ij != v4df(0.d)) & r1_ij);
+#else
+                    v4df r1_ij = v4df::sqrt(r2_ij);
+#endif
                     v4df q_i   = r1_ij * hi_i;
 
                     v4df kw0 = KernelSph::kernel0th(q_i);
@@ -260,14 +259,14 @@ struct calcDensityX86 {
             v4df hi4_i = hi_i * SPH::calcVolumeInverse(hi_i);
             v4df gh_i(0.d);
             v4df divv_i(0.d);
-            v4df rotx_i(0.d);
+            v4df rotx_i(0.d);            
             v4df roty_i(0.d);
             v4df rotz_i(0.d);
 
 #ifdef TIMETEST
             PS::F64 t1 = getWallclockTime();;
 #endif
-            for(PS::S32 j = 0; j < njp; j++) {
+            for(PS::S32 j = 0; j < njp; j++) {                
                 v4df dpx_ij = px_i - v4df(epj[j].pos[0]);
                 v4df dpy_ij = py_i - v4df(epj[j].pos[1]);
                 v4df dpz_ij = pz_i - v4df(epj[j].pos[2]);
@@ -330,8 +329,6 @@ struct calcDensityX86 {
             }
 
         }        
-        //}
-
     }
 };
 #else
@@ -343,8 +340,6 @@ struct calcDensityX86 {
                       const PS::S32 njp,
                       Density *density) {
 
-        //for(PS::S32 repeat = 0; repeat < 10; repeat++) {
-        
         ninteract += nip * njp;
 
         v4df (*rcp)(v4df)   = v4df::rcp_4th;
@@ -525,8 +520,6 @@ struct calcDensityX86 {
             }
 
         }        
-        //}
-
     }
 };
 #endif
