@@ -414,6 +414,8 @@ struct v4df {
     v4df(const _v4df _val) : val(_val) {}
     operator _v4df() {return val;}
 
+    //~v4df() {}
+
     v4df operator + (const v4df rhs) const {
         //return v4df(_mm256_add_pd(val, rhs.val));
         return val + rhs.val;

@@ -1,5 +1,7 @@
 #pragma once
 
+static PS::F64 global_time;
+
 class DerivativeEPI {
 public:
     PS::S32    id;
@@ -156,7 +158,7 @@ struct calcDerivativeX86 {
         v4df (*rsqrt)(v4df) = v4df::rsqrt_4th;
 
         PS::S32 nvector = v4df::getVectorLength();
-        
+
         for(PS::S32 i = 0; i < nip; i += nvector) {
             v4df id_i(epi[i].id, epi[i+1].id, epi[i+2].id, epi[i+3].id);
             v4df px_i(epi[i].pos[0], epi[i+1].pos[0], epi[i+2].pos[0], epi[i+3].pos[0]);
@@ -240,7 +242,7 @@ struct calcDerivativeX86 {
             vsmx_i.store(buf_vs);
 
             PS::S32 nii = ((nip - i) < nvector) ? (nip - i) : nvector;
-            for(PS::S32 ii = 0; ii < nvector; ii++) {
+            for(PS::S32 ii = 0; ii < nii; ii++) {
                 derivative[i+ii].acc[0] = buf_ax[ii];
                 derivative[i+ii].acc[1] = buf_ay[ii];
                 derivative[i+ii].acc[2] = buf_az[ii];
@@ -364,7 +366,8 @@ struct calcDerivativeSingleX86 {
             vsmx_i.store(buf_vs);
 
             PS::S32 nii = ((nip - i) < nvector) ? (nip - i) : nvector;
-            for(PS::S32 ii = 0; ii < nvector; ii++) {
+            //for(PS::S32 ii = 0; ii < nvector; ii++) {
+            for(PS::S32 ii = 0; ii < nii; ii++) {
                 derivative[i+ii].acc[0] = buf_ax[ii];
                 derivative[i+ii].acc[1] = buf_ay[ii];
                 derivative[i+ii].acc[2] = buf_az[ii];

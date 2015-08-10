@@ -2,6 +2,7 @@
 #include <vector>
 #include <cassert>
 #include <cstdio>
+#include <cstring>
 
 #include "particle_simulator.hpp"
 
@@ -131,6 +132,8 @@ int main(int argc, char **argv)
     PS::S32 istp = 0;
     while(time < tend){
         doThisEveryTime(time, dtime, tout, dtsp, sph, fplog, fptim);
+
+        global_time = time;
 
         WT::start();
         dtime = calcTimeStep(sph, time, 1 / 64.);

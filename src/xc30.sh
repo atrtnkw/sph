@@ -1,16 +1,17 @@
 #PBS -N test
-#PBS -l mppwidth=192
+#PBS -l mppwidth=144
 #PBS -j oe
-#PBS -q short-b
+#PBS -q bulk-b
+##PBS -q short-b
 ##PBS -q debug
 
-NPARALLEL=192
+NPARALLEL=144
 NPROCESS=$NPARALLEL
-
-odir=r001k
-ifile=../init.heos/r001k/b1.10-1.00.init
-#odir=pex
-#ifile=../init.ideal/glass/pex_ns064.init
+odir=test
+#ifile=../../init.heos/r064k/nons/s1.00_t000.init
+ifile=../init.heos/r064k/nons/s1.00_t000.init
+#ifile=../init.heos/r008k/nons/s1.10_t000.init
+#
 tempodir=snap
 fexe=run
 
