@@ -745,11 +745,6 @@ void doThisEveryTime(PS::F64 & time,
         tout += dtsp;
     }
 
-    if(time == 2.) {
-        PS::Finalize();
-        exit(0);
-    }
-
     /*
     if(time > 0.) {
         char filename[64];
@@ -764,9 +759,10 @@ void doThisEveryTime(PS::F64 & time,
     WT::reduceInterProcess();
     if(PS::Comm::getRank() == 0) {
         using namespace CodeUnit;
-        //fprintf(fplog,  "time: %.10f %+e %+e\n", time * UnitOfTime,
-        fprintf(fplog,  "time: %.10f %+.30e %llx %+e\n", time * UnitOfTime,
-                etot * UnitOfEnergy * UnitOfMass, convertF64ToU64(etot), WT::getTimeTotal());
+        fprintf(fplog,  "time: %.10f %+e %+e\n", time * UnitOfTime,
+                etot * UnitOfEnergy * UnitOfMass, WT::getTimeTotal());
+        //fprintf(fplog,  "time: %.10f %+.30e %llx %+e\n", time * UnitOfTime,
+        //        etot * UnitOfEnergy * UnitOfMass, convertF64ToU64(etot), WT::getTimeTotal());
         fflush(fplog);
         WT::dump(time, fptim);
         fflush(fptim);
