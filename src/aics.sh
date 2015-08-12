@@ -4,16 +4,23 @@ then
     exit
 fi
 
+export OMP_NUM_THREADS=1
+
 nproc=$1
 ifile=$2
 
-odir=snap
+tag=`echo $2 | awk '{print substr($0, length($0)-3, 4)}'`
+if test $tag = init
+then
+    flag=0
+else
+    flag=1
+fi
 
+odir=snap
 if ! test -e $odir
 then
     mkdir $odir
 fi
 
-export OMP_NUM_THREADS=1
-#export OMP_NUM_THREADS=8
-mpirun -np $nproc ./run $ifile
+mpirun -np $nproc ./run $flag $ifile

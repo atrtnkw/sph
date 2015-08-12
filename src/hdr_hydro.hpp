@@ -1,7 +1,5 @@
 #pragma once
 
-static PS::F64 global_time;
-
 class DerivativeEPI {
 public:
     PS::S32    id;

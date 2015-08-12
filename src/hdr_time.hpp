@@ -116,7 +116,7 @@ public:
         WallclockTime & p = getInstance();
         fprintf(fp, "\n");
         fprintf(fp, "Time: %e\n", time);
-        fprintf(fp, "TimeDecomposeDemain:          %e\n", p.TimeDecomposeDomain);
+        fprintf(fp, "TimeDecomposeDomain:          %e\n", p.TimeDecomposeDomain);
         fprintf(fp, "TimeExchangeParticle:         %e\n", p.TimeExchangeParticle);
         fprintf(fp, "TimeCalcDensity:              %e\n", p.TimeCalcDensity);
         fprintf(fp, "TimeCalcHydro:                %e\n", p.TimeCalcHydro);

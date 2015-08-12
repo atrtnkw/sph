@@ -69,71 +69,89 @@ int main(int argc, char **argv)
     PS::F64 time, dtime, tend, dtsp;
     Header header;
     PS::DomainInfo dinfo;
+    dinfo.initialize();
     PS::ParticleSystem<SPH> sph;
-    PS::TreeForForceShort<Density, DensityEPI, DensityEPJ>::Gather            density;
-    PS::TreeForForceShort<Derivative, DerivativeEPI, DerivativeEPJ>::Symmetry derivative;
-
     sph.initialize();
     sph.createParticle(nptclmax);
     sph.setNumberOfParticleLocal(0);
-
-    sph.readParticleAscii(argv[1], header);
-    PS::Comm::broadcast(&header, 1);
-    setParameterParticle(header);
-    time      = header.time;
-    tend      = header.tend;
-    dtsp      = header.dtsp;
-
-    dinfo.initialize();
-    if(SPH::cbox.low_[0] != SPH::cbox.high_[0]) {
-        dinfo.setBoundaryCondition(PS::BOUNDARY_CONDITION_PERIODIC_XYZ);
-        dinfo.setPosRootDomain(SPH::cbox.low_, SPH::cbox.high_);
-    }
-
-    WT::clear();
-    WT::start();
-    sph.adjustPositionIntoRootDomain(dinfo);
-    WT::accumulateOthers();
-    WT::start();
-    dinfo.decomposeDomainAll(sph);
-    WT::accumulateDecomposeDomain();
-
+    PS::TreeForForceShort<Density, DensityEPI, DensityEPJ>::Gather            density;
     density.initialize(nptclmax);
-    derivative.initialize(nptclmax);
-
-    WT::start();
-    calcFieldVariable(sph);
-    WT::accumulateOthers();
-
-    WT::start();
-    sph.exchangeParticle(dinfo);
-    WT::accumulateExchangeParticle();
-    calcSPHKernel(dinfo, sph, density, derivative,
-                  calcDensity(), calcDerivative());
-
+    PS::TreeForForceShort<Derivative, DerivativeEPI, DerivativeEPJ>::Symmetry derivative;
+    derivative.initialize(nptclmax);        
 #ifdef GRAVITY
     PS::TreeForForceLong<Gravity, GravityEPI, GravityEPJ>::Monopole gravity;
     gravity.initialize(nptclmax, 0.5);
     g5_open();
-    g5_set_eps_to_all(SPH::eps);
-    WT::start();
-    gravity.calcForceAllAndWriteBack(calcGravity<GravityEPJ>(),
-                                     calcGravity<PS::SPJMonopole>(),
-                                     sph,
-                                     dinfo);
-    WT::accumulateCalcGravity();
 #endif
+
+    WT::clear();
+
+    if(atoi(argv[1]) == 0) {
+        
+        sph.readParticleAscii(argv[2], header);
+        PS::Comm::broadcast(&header, 1);
+        setParameterParticle(header);
+        time = header.time;
+        tend = header.tend;
+        dtsp = header.dtsp;
+        
+        if(SPH::cbox.low_[0] != SPH::cbox.high_[0]) {
+            dinfo.setBoundaryCondition(PS::BOUNDARY_CONDITION_PERIODIC_XYZ);
+            dinfo.setPosRootDomain(SPH::cbox.low_, SPH::cbox.high_);
+        }
+        
+        WT::start();
+        sph.adjustPositionIntoRootDomain(dinfo);
+        WT::accumulateOthers();
+        WT::start();
+        PS::MT::init_genrand(0);
+        dinfo.decomposeDomainAll(sph);
+        WT::accumulateDecomposeDomain();
+        
+        WT::start();
+        calcFieldVariable(sph);
+        WT::accumulateOthers();
+        
+        WT::start();
+        sph.exchangeParticle(dinfo);
+        WT::accumulateExchangeParticle();
+        calcSPHKernel(dinfo, sph, density, derivative,
+                      calcDensity(), calcDerivative());
+        
+#ifdef GRAVITY
+        WT::start();
+        g5_set_eps_to_all(SPH::eps);
+        gravity.calcForceAllAndWriteBack(calcGravity<GravityEPJ>(),
+                                         calcGravity<PS::SPJMonopole>(),
+                                         sph,
+                                         dinfo);
+        WT::accumulateCalcGravity();
+#endif
+    } else {
+        char filename[64];
+        sprintf(filename, "%s_p%06d.hexa", argv[2], rank);
+        readRestartFile(filename, header, dinfo, sph);
+        setParameterParticle(header);
+        time = header.time;
+        tend = header.tend;
+        dtsp = header.dtsp;
+
+        if(SPH::cbox.low_[0] != SPH::cbox.high_[0]) {
+            dinfo.setBoundaryCondition(PS::BOUNDARY_CONDITION_PERIODIC_XYZ);
+            dinfo.setPosRootDomain(SPH::cbox.low_, SPH::cbox.high_);
+        }
+
+#ifdef GRAVITY
+        g5_set_eps_to_all(SPH::eps);
+#endif
+    }
 
     FILE *fplog = fopen("snap/time.log", "w");
     FILE *fptim = fopen("snap/prof.log", "w");
     PS::F64 tout = time;
-    //PS::F64 dtdc = 0.25;
     const PS::S32 nstp = 4;
-    PS::S32 istp = 0;
     while(time < tend){
-        doThisEveryTime(time, dtime, tout, dtsp, sph, fplog, fptim);
-
-        global_time = time;
+        doThisEveryTime(time, dtime, tout, dtsp, header, dinfo, sph, fplog, fptim);
 
         WT::start();
         dtime = calcTimeStep(sph, time, 1 / 64.);
@@ -149,12 +167,12 @@ int main(int argc, char **argv)
         WT::accumulateOthers();
 
         WT::start();
-        //if(time - (PS::S64)(time / dtdc) * dtdc == 0.){
-        if(istp == nstp) {
+        if(header.istp == nstp) {
+            PS::MT::init_genrand(0);
             dinfo.decomposeDomainAll(sph);
-            istp = 0;
+            header.istp = 0;
         }
-        istp++;
+        header.istp++;
         WT::accumulateDecomposeDomain();
 
         WT::start();
@@ -183,7 +201,7 @@ int main(int argc, char **argv)
     fclose(fplog);
     fclose(fptim);
 
-    finalizeSimulation(time, sph);
+    finalizeSimulation(time, header, dinfo, sph);
     
     PS::Finalize();
 
