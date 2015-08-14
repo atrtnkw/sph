@@ -63,3 +63,31 @@ void generateMassLessParticle(Tmassless & msls,
         }
     }
 }
+
+template <class Tmassless>
+PS::F64 searchLagrange1(Tmassless & msls,
+                     PS::F64 x0,
+                     PS::F64 x1) {
+    MassLess ploc;
+    PS::F64 potmaxloc = -1e60;
+    PS::S32  nmsls = msls.getNumberOfParticleLocal();
+    for(PS::S32 i = 0; i < nmsls; i++) {
+        PS::F64 xi = msls[i].pos[0];
+        if(xi < x1 || x0 < xi)
+            continue;
+        PS::F64vec tv = SPH::omg ^ msls[i].pos;
+        PS::F64 ipot = msls[i].pot - 0.5 * (tv * tv);
+        if(ipot > potmaxloc) {
+            ploc      = msls[i];
+            potmaxloc = ipot;
+        }
+    }
+    PS::S32 rloc = PS::Comm::getRank();
+    PS::F64 potmaxglb;
+    PS::S32 rglb;
+    PS::Comm::getMaxValue(potmaxloc, rloc, potmaxglb, rglb);
+    PS::F64 xlag = ploc.pos[0];
+    PS::Comm::broadcast(&xlag, 1, rglb);
+    return xlag;
+}
+

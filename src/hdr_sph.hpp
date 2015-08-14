@@ -582,9 +582,11 @@ void setParameterParticle(Theader & header) {
     return;
 }
 
-template <class Tptcl>
+template <class Tptcl,
+          class Tmsls>
 void reduceSeparation(PS::F64 time, 
                       Tptcl & system,
+                      Tmsls & msls,
                       FILE * fplog = NULL) {
 
 #ifdef WD_DAMPINGB
@@ -651,6 +653,8 @@ void reduceSeparation(PS::F64 time,
             char filename[64];
             sprintf(filename, "snap/final.dat");
             system.writeParticleAscii(filename);
+            sprintf(filename, "snap/msls_final.dat");
+            msls.writeParticleAscii(filename);
 
             PS::Finalize();
             exit(0);
@@ -683,15 +687,30 @@ void reduceSeparation(PS::F64 time,
         dx = x1 - x0;
         dr = sqrt(dx * dx);
 
+        PS::F64 xlag = searchLagrange1(msls, x0[0], x1[0]);
+
         if(PS::Comm::getRank() == 0) {
-            fprintf(stderr, "bsep: %.10f %+e\n", time, dr * CodeUnit::UnitOfLength);
             fprintf(fplog,  "bsep: %.10f %+e\n", time, dr * CodeUnit::UnitOfLength);
+            //fprintf(fplog,  "bsep: %.10f %+e %+e\n", time, dr * CodeUnit::UnitOfLength, xlag * CodeUnit::UnitOfLength);
             fflush(fplog);
         }
-
+        
+#if 1        
+        bool StopDampingBLocal = false;
+        for(PS::S32 i = 0; i < nloc; i++) {
+            if(system[i].istar == 0)
+                continue;
+            if(system[i].pos[0] > xlag) {
+                StopDampingBLocal = true;
+                break;
+            }
+        }
+        StopDampingB = PS::Comm::synchronizeConditionalBranchOR(StopDampingBLocal);
+#else
         if(dr < CriticalRadius) {
             StopDampingB = true;
         }
+#endif
    }
 #endif    
     
@@ -724,47 +743,43 @@ template <class Theader,
           class Tdinfo,
           class Tptcl,
           class Tmassless>
-void doThisEveryTime(PS::F64 & time,
-                     PS::F64 & dtime,
+void doThisEveryTime(PS::F64 & dtime,
                      PS::F64 & tout,
-                     PS::F64 & dtsp,
                      Theader & header,
                      Tdinfo & dinfo,
                      Tptcl & system,
                      Tmassless & msls,
                      FILE * fplog,
                      FILE * fptim) {
-    reduceSeparation(time, system, fplog);
+    reduceSeparation(header.time, system, msls, fplog);
 
     calcFieldVariable(system);
 
-    if(time >= tout) {
+    if(header.time >= tout) {
         char filename[64];
-        sprintf(filename, "snap/t%04d_p%06d.hexa", (PS::S32)time, PS::Comm::getRank());
-        writeRestartFile(filename, time, header, dinfo, system);
+        sprintf(filename, "snap/t%04d_p%06d.hexa", (PS::S32)header.time, PS::Comm::getRank());
+        writeRestartFile(filename, header.time, header, dinfo, system);
     }
 
-    if(time >= tout) {
+    if(header.time >= tout) {
         char filename[64];
-        sprintf(filename, "snap/sph_t%04d.dat", (PS::S32)time);
+        sprintf(filename, "snap/sph_t%04d.dat", (PS::S32)header.time);
         system.writeParticleAscii(filename);
 #ifdef WD_DAMPINGB
-        sprintf(filename, "snap/msls_t%04d.dat", (PS::S32)time);
+        sprintf(filename, "snap/msls_t%04d.dat", (PS::S32)header.time);
         msls.writeParticleAscii(filename);
 #endif
-        tout += dtsp;
+        tout += header.dtsp;
     }
 
     PS::F64 etot = calcEnergy(system);
     WT::reduceInterProcess();
     if(PS::Comm::getRank() == 0) {
         using namespace CodeUnit;
-        fprintf(fplog,  "time: %.10f %+e %+e\n", time * UnitOfTime,
+        fprintf(fplog,  "time: %.10f %+e %+e\n", header.time * UnitOfTime,
                 etot * UnitOfEnergy * UnitOfMass, WT::getTimeTotal());
-        //fprintf(fplog,  "time: %.10f %+.30e %llx %+e\n", time * UnitOfTime,
-        //        etot * UnitOfEnergy * UnitOfMass, convertF64ToU64(etot), WT::getTimeTotal());
         fflush(fplog);
-        WT::dump(time, fptim);
+        WT::dump(header.time, fptim);
         fflush(fptim);
     }
     WT::clear();
@@ -773,11 +788,13 @@ void doThisEveryTime(PS::F64 & time,
 
 template <class Theader,
           class Tdinfo,
-          class Tptcl>
+          class Tptcl,
+          class Tmsls>
 void finalizeSimulation(PS::S32 time,
                         Theader & header,
                         Tdinfo & dinfo,
-                        Tptcl & system) {
+                        Tptcl & system,
+                        Tmsls & msls) {
 
     {
         char filename[64];
@@ -800,7 +817,6 @@ void finalizeSimulation(PS::S32 time,
         system[i].pos -= xc;
         system[i].vel -= vc;
     }
-
     {
         char filename[64];
         sprintf(filename, "snap/final.dat");

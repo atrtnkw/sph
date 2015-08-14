@@ -76,7 +76,7 @@ int main(int argc, char **argv)
 
     PS::S32 rank = PS::Comm::getRank();
     PS::S32 size = PS::Comm::getNumberOfProc();
-    PS::F64 time, dtime, tend, dtsp;
+    PS::F64 dtime;
     Header header;
     PS::DomainInfo dinfo;
     dinfo.initialize();
@@ -107,9 +107,6 @@ int main(int argc, char **argv)
 #endif
         PS::Comm::broadcast(&header, 1);
         setParameterParticle(header);
-        time = header.time;
-        tend = header.tend;
-        dtsp = header.dtsp;
         
         if(SPH::cbox.low_[0] != SPH::cbox.high_[0]) {
             dinfo.setBoundaryCondition(PS::BOUNDARY_CONDITION_PERIODIC_XYZ);
@@ -149,9 +146,6 @@ int main(int argc, char **argv)
         sprintf(filename, "%s_p%06d.hexa", argv[2], rank);
         readRestartFile(filename, header, dinfo, sph);
         setParameterParticle(header);
-        time = header.time;
-        tend = header.tend;
-        dtsp = header.dtsp;
 
         if(SPH::cbox.low_[0] != SPH::cbox.high_[0]) {
             dinfo.setBoundaryCondition(PS::BOUNDARY_CONDITION_PERIODIC_XYZ);
@@ -165,13 +159,13 @@ int main(int argc, char **argv)
 
     FILE *fplog = fopen("snap/time.log", "w");
     FILE *fptim = fopen("snap/prof.log", "w");
-    PS::F64 tout = time;
+    PS::F64 tout = header.time;
     const PS::S32 nstp = 4;
-    while(time < tend){
-        doThisEveryTime(time, dtime, tout, dtsp, header, dinfo, sph, msls, fplog, fptim);
+    while(header.time < header.tend){
+        doThisEveryTime(dtime, tout, header, dinfo, sph, msls, fplog, fptim);
 
         WT::start();
-        dtime = calcTimeStep(sph, time, 1 / 64.);
+        dtime = calcTimeStep(sph, header.time, 1 / 64.);
         WT::accumulateOthers();
 
         WT::start();
@@ -209,13 +203,13 @@ int main(int argc, char **argv)
         correct(sph, dtime);
         WT::accumulateIntegrateOrbit();
 
-        time += dtime;
+        header.time += dtime;
     }
 
     fclose(fplog);
     fclose(fptim);
 
-    finalizeSimulation(time, header, dinfo, sph);
+    finalizeSimulation(header.time, header, dinfo, sph, msls);
     
     PS::Finalize();
 
