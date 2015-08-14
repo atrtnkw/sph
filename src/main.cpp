@@ -11,6 +11,7 @@
 #include "vector_x86.hpp"
 #include "hdr_kernel.hpp"
 #include "hdr_sph.hpp"
+#include "hdr_massless.hpp"
 #include "hdr_density.hpp"
 #include "hdr_hydro.hpp"
 
@@ -60,6 +61,15 @@ void calcSPHKernel(Tdinfo & dinfo,
                    Tfunc1 calcDensity,
                    Tfunc2 calcDerivative);
 
+template <class Tdinfo,
+          class Tpsys1,
+          class Tpsys2,
+          class Ttree>
+void calcGravityKernel(Tdinfo & dinfo,
+                       Tpsys1 & sph,
+                       Tpsys2 & msls,
+                       Ttree & gravity);
+
 int main(int argc, char **argv)
 {
     PS::Initialize(argc, argv);
@@ -74,6 +84,9 @@ int main(int argc, char **argv)
     sph.initialize();
     sph.createParticle(nptclmax);
     sph.setNumberOfParticleLocal(0);
+    PS::ParticleSystem<MassLess> msls;
+    msls.initialize();
+    msls.createParticle(nptclmax);
     PS::TreeForForceShort<Density, DensityEPI, DensityEPJ>::Gather            density;
     density.initialize(nptclmax);
     PS::TreeForForceShort<Derivative, DerivativeEPI, DerivativeEPJ>::Symmetry derivative;
@@ -89,6 +102,9 @@ int main(int argc, char **argv)
     if(atoi(argv[1]) == 0) {
         
         sph.readParticleAscii(argv[2], header);
+#ifdef WD_DAMPINGB
+        generateMassLessParticle(msls, sph);
+#endif
         PS::Comm::broadcast(&header, 1);
         setParameterParticle(header);
         time = header.time;
@@ -102,6 +118,7 @@ int main(int argc, char **argv)
         
         WT::start();
         sph.adjustPositionIntoRootDomain(dinfo);
+        msls.adjustPositionIntoRootDomain(dinfo);
         WT::accumulateOthers();
         WT::start();
         PS::MT::init_genrand(0);
@@ -114,17 +131,17 @@ int main(int argc, char **argv)
         
         WT::start();
         sph.exchangeParticle(dinfo);
+#ifdef WD_DAMPINGB
+        msls.exchangeParticle(dinfo);
+#endif
         WT::accumulateExchangeParticle();
         calcSPHKernel(dinfo, sph, density, derivative,
                       calcDensity(), calcDerivative());
-        
+
 #ifdef GRAVITY
         WT::start();
         g5_set_eps_to_all(SPH::eps);
-        gravity.calcForceAllAndWriteBack(calcGravity<GravityEPJ>(),
-                                         calcGravity<PS::SPJMonopole>(),
-                                         sph,
-                                         dinfo);
+        calcGravityKernel(dinfo, sph, msls, gravity);
         WT::accumulateCalcGravity();
 #endif
     } else {
@@ -151,7 +168,7 @@ int main(int argc, char **argv)
     PS::F64 tout = time;
     const PS::S32 nstp = 4;
     while(time < tend){
-        doThisEveryTime(time, dtime, tout, dtsp, header, dinfo, sph, fplog, fptim);
+        doThisEveryTime(time, dtime, tout, dtsp, header, dinfo, sph, msls, fplog, fptim);
 
         WT::start();
         dtime = calcTimeStep(sph, time, 1 / 64.);
@@ -184,10 +201,7 @@ int main(int argc, char **argv)
 
 #ifdef GRAVITY
         WT::start();
-        gravity.calcForceAllAndWriteBack(calcGravity<GravityEPJ>(),
-                                         calcGravity<PS::SPJMonopole>(),
-                                         sph,
-                                         dinfo);
+        calcGravityKernel(dinfo, sph, msls, gravity);
         WT::accumulateCalcGravity();
 #endif
 
@@ -356,3 +370,33 @@ void calcSPHKernel(Tdinfo & dinfo,
     return;
 }
 
+template <class Tdinfo,
+          class Tpsys1,
+          class Tpsys2,
+          class Ttree>
+void calcGravityKernel(Tdinfo & dinfo,
+                       Tpsys1 & sph,
+                       Tpsys2 & msls,
+                       Ttree & gravity)
+{
+#ifdef WD_DAMPINGB
+    gravity.setParticleLocalTree(sph);
+    gravity.setParticleLocalTree(msls, false);
+    gravity.calcForceMakingTree(calcGravity<GravityEPJ>(),
+                                calcGravity<PS::SPJMonopole>(),
+                                dinfo);
+    PS::S32 nsph  = sph.getNumberOfParticleLocal();
+    for(PS::S32 i = 0; i < nsph; i++) {
+        sph[i].copyFromForce(gravity.getForce(i));
+    }
+    PS::S32 nmsls = msls.getNumberOfParticleLocal();
+    for(PS::S32 i = 0; i < nmsls; i++) {
+        msls[i].copyFromForce(gravity.getForce(i+nsph));
+    }
+#else
+    gravity.calcForceAllAndWriteBack(calcGravity<GravityEPJ>(),
+                                     calcGravity<PS::SPJMonopole>(),
+                                     sph,
+                                     dinfo);
+#endif
+}

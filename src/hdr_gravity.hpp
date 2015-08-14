@@ -4,6 +4,9 @@ public:
     void copyFromFP(const SPH & sph){ 
         pos  = sph.pos;
     }
+    void copyFromFP(const MassLess & msls){         
+        pos  = msls.pos;
+    }
     PS::F64vec getPos() const {
         return this->pos;
     }
@@ -19,6 +22,10 @@ public:
     void copyFromFP(const SPH & sph){ 
         mass = sph.mass;
         pos  = sph.pos;
+    }
+    void copyFromFP(const MassLess & msls){ 
+        mass = msls.mass;
+        pos  = msls.pos;
     }
     PS::F64vec getPos() const {
         return this->pos;

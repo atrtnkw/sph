@@ -1,5 +1,5 @@
 ###### AT_PLATFORM ########
-use_xc  = yes
+use_xc  = no
 ###### AT_MPI_OPENMP ######
 use_mpi = yes
 use_omp = yes
@@ -18,7 +18,7 @@ CFLAGS += -DCUBICSPLINE
 CFLAGS += -DGRAVITY
 #CFLAGS += -DWD_DAMPING1
 #CFLAGS += -DWD_DAMPING2
-#CFLAGS += -DWD_DAMPINGB
+CFLAGS += -DWD_DAMPINGB
 ##############################################
 ##############################################
 
@@ -65,7 +65,7 @@ endif
 
 OBJ = main.o heos/eos.o
 HDR = hdr_sph.hpp hdr_eos.hpp hdr_kernel.hpp hdr_density.hpp hdr_hydro.hpp \
-	hdr_gravity.hpp hdr_damp.hpp
+	hdr_gravity.hpp hdr_damp.hpp hdr_massless.hpp
 ETC = Makefile
 
 run: $(OBJ) $(HDR) $(ETC)

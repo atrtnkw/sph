@@ -269,6 +269,9 @@ public:
         fprintf(fp, " %+.16e %+.16e %+.16e", tdivv, trotv, this->bswt);
         fprintf(fp, " %+.16e %6d %+.16e", this->grdh, this->np, tpot);        
         fprintf(fp, " %3d", this->cnteos);
+#ifdef WD_DAMPINGB
+        fprintf(fp, " %+.16e", SPH::omg[2]);
+#endif
         fprintf(fp, "\n");
 
     }
@@ -287,6 +290,7 @@ public:
                                                       this->vsnd,
                                                       this->temp,
                                                       this->cnteos);
+
 #endif
     }
 
@@ -718,7 +722,8 @@ void calcFieldVariable(Tptcl & system) {
 
 template <class Theader,
           class Tdinfo,
-          class Tptcl>
+          class Tptcl,
+          class Tmassless>
 void doThisEveryTime(PS::F64 & time,
                      PS::F64 & dtime,
                      PS::F64 & tout,
@@ -726,6 +731,7 @@ void doThisEveryTime(PS::F64 & time,
                      Theader & header,
                      Tdinfo & dinfo,
                      Tptcl & system,
+                     Tmassless & msls,
                      FILE * fplog,
                      FILE * fptim) {
     reduceSeparation(time, system, fplog);
@@ -742,19 +748,13 @@ void doThisEveryTime(PS::F64 & time,
         char filename[64];
         sprintf(filename, "snap/sph_t%04d.dat", (PS::S32)time);
         system.writeParticleAscii(filename);
+#ifdef WD_DAMPINGB
+        sprintf(filename, "snap/msls_t%04d.dat", (PS::S32)time);
+        msls.writeParticleAscii(filename);
+#endif
         tout += dtsp;
     }
 
-    /*
-    if(time > 0.) {
-        char filename[64];
-        sprintf(filename, "snap/next_step_p%04d.hexa", PS::Comm::getRank());
-        writeRestartFile(filename, time, header, dinfo, system);
-        PS::Finalize();
-        exit(0);
-    }
-    */
-    
     PS::F64 etot = calcEnergy(system);
     WT::reduceInterProcess();
     if(PS::Comm::getRank() == 0) {
