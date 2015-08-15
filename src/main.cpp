@@ -6,8 +6,10 @@
 
 #include "particle_simulator.hpp"
 
-#include "hdr_time.hpp"
+static PS::F64 MinimumTimeStep    = 1. / 64.;
+static PS::F64 MinimumTimeStepInv = 1. / MinimumTimeStep;
 
+#include "hdr_time.hpp"
 #include "vector_x86.hpp"
 #include "hdr_kernel.hpp"
 #include "hdr_sph.hpp"
@@ -165,7 +167,7 @@ int main(int argc, char **argv)
         doThisEveryTime(dtime, tout, header, dinfo, sph, msls, fplog, fptim);
 
         WT::start();
-        dtime = calcTimeStep(sph, header.time, 1 / 64.);
+        dtime = calcTimeStep(sph, header.time, MinimumTimeStep);
         WT::accumulateOthers();
 
         WT::start();

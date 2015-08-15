@@ -1,19 +1,25 @@
 #PBS -N test
-#PBS -l mppwidth=144
+#PBS -l mppwidth=24
 #PBS -j oe
-#PBS -q bulk-b
-##PBS -q short-b
+##PBS -q bulk-b
+#PBS -q short-b
 ##PBS -q debug
 
-NPARALLEL=144
+NPARALLEL=24
 NPROCESS=$NPARALLEL
-odir=test
-#ifile=../../init.heos/r064k/nons/s1.00_t000.init
-ifile=../init.heos/r064k/nons/s1.00_t000.init
-#ifile=../init.heos/r008k/nons/s1.10_t000.init
+odir=b1.10-1.00
+ifile=rlxb_b1.10-1.00/b1.10-1.00.init
 #
 tempodir=snap
 fexe=run
+
+tag=`echo $ifile | awk '{print substr($0, length($0)-3, 4)}'`
+if test $tag = init
+then
+    flag=0
+else
+    flag=1
+fi
 
 cd $PBS_O_WORKDIR
 
@@ -22,7 +28,6 @@ export OMP_NUM_THREADS=`echo "$NPARALLEL / $NPROCESS" | bc`
 mkdir $tempodir
 cp $0 $tempodir
 
-nptcl=`echo "$npernode / 24 * $NPROCESS * $OMP_NUM_THREADS" | bc`
-aprun -n $NPROCESS -d $OMP_NUM_THREADS ./"$fexe" $ifile
+aprun -n $NPROCESS -d $OMP_NUM_THREADS ./"$fexe" $flag $ifile
 
 mv $tempodir $odir

@@ -198,6 +198,7 @@ public:
     static PS::F64    tceff;
     static PS::F64    eps;
     static PS::F64vec omg;
+    static PS::F64    ReductionTimeInv;
 
     PS::F64vec getPos() const {
         return this->pos;
@@ -375,7 +376,8 @@ public:
     }
 #elif defined WD_DAMPINGB
     void correct(PS::F64 dt) {
-        this->acc  -= this->vel / (128.d * dt);
+        //this->acc  -= this->vel / (128.d * dt);
+        this->acc  -= this->vel * SPH::ReductionTimeInv;
         this->vel   = this->vel2  + 0.5 * this->acc  * dt;
         this->uene  = this->uene2 + 0.5 * this->udot * dt;
         this->alph  = this->alph2 + 0.5 * this->adot * dt;
@@ -468,6 +470,7 @@ PS::F64    SPH::tceff;
 PS::F64    SPH::alphamax, SPH::alphamin;
 PS::F64    SPH::eps;
 PS::F64vec SPH::omg;
+PS::F64    SPH::ReductionTimeInv;
 
 #ifdef USE_AT1D
 inline PS::F64 SPH::calcVolumeInverse(const PS::F64 hi) {return hi;}
@@ -592,8 +595,7 @@ void reduceSeparation(PS::F64 time,
 #ifdef WD_DAMPINGB
     static bool    firststep = true;
     static PS::F64 ReductionTime;
-    static PS::F64 DeltaSystemTime = 1.d / 64.d;
-//    static PS::F64 CriticalRadius  = 1.5e9 * CodeUnit::UnitOfLengthInv;
+    static PS::F64 DeltaSystemTime = MinimumTimeStep;
     static PS::F64 CriticalRadius  = 1.8e9 * CodeUnit::UnitOfLengthInv;
     static bool StopDampingB = false;
 
@@ -620,6 +622,7 @@ void reduceSeparation(PS::F64 time,
         PS::F64 rho2  = m1 / ((4.d * M_PI / 3.d * rmax * rmax * rmax));
 
         ReductionTime = 1.d / (0.05 * sqrt(CodeUnit::grav * rho2));;
+        SPH::ReductionTimeInv = 1. / ReductionTime;
 
         firststep = false;
     }
@@ -755,7 +758,8 @@ void doThisEveryTime(PS::F64 & dtime,
 
     calcFieldVariable(system);
 
-    if(header.time >= tout) {
+    //if(header.time >= tout) {
+    if(header.time - (PS::S64)(header.time / 10.) == 0.) {
         char filename[64];
         sprintf(filename, "snap/t%04d_p%06d.hexa", (PS::S32)header.time, PS::Comm::getRank());
         writeRestartFile(filename, header.time, header, dinfo, system);

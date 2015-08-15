@@ -1,5 +1,5 @@
 ###### AT_PLATFORM ########
-use_xc  = no
+use_xc  = yes
 ###### AT_MPI_OPENMP ######
 use_mpi = yes
 use_omp = yes
@@ -18,7 +18,7 @@ CFLAGS += -DCUBICSPLINE
 CFLAGS += -DGRAVITY
 #CFLAGS += -DWD_DAMPING1
 #CFLAGS += -DWD_DAMPING2
-CFLAGS += -DWD_DAMPINGB
+#CFLAGS += -DWD_DAMPINGB
 ##############################################
 ##############################################
 
