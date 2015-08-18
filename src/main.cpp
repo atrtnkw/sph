@@ -50,13 +50,15 @@ template <class Tptcl>
 void addAdditionalForce(Tptcl & system,
                         PS::F64 dt);
 
-template <class Tdinfo,
+template <class Thdr,
+          class Tdinfo,
           class Tpsys,
           class Ttree1,
           class Ttree2,
           class Tfunc1,
           class Tfunc2>
-void calcSPHKernel(Tdinfo & dinfo,
+void calcSPHKernel(Thdr & header,
+                   Tdinfo & dinfo,
                    Tpsys & sph,
                    Ttree1 & density,
                    Ttree2 & derivative,
@@ -134,7 +136,7 @@ int main(int argc, char **argv)
         msls.exchangeParticle(dinfo);
 #endif
         WT::accumulateExchangeParticle();
-        calcSPHKernel(dinfo, sph, density, derivative,
+        calcSPHKernel(header, dinfo, sph, density, derivative,
                       calcDensity(), calcDerivative());
 
 #ifdef GRAVITY
@@ -192,7 +194,7 @@ int main(int argc, char **argv)
         sph.exchangeParticle(dinfo);
         WT::accumulateExchangeParticle();
 
-        calcSPHKernel(dinfo, sph, density, derivative,
+        calcSPHKernel(header, dinfo, sph, density, derivative,
                       calcDensity(), calcDerivative());
 
 #ifdef GRAVITY
@@ -308,22 +310,26 @@ void addAdditionalForce(Tptcl & system) {
     return;
 }
 
-template <class Tdinfo,
+template <class Thdr,
+          class Tdinfo,
           class Tpsys,
           class Ttree1,
           class Ttree2,
           class Tfunc1,
           class Tfunc2>
-void calcSPHKernel(Tdinfo & dinfo,
+void calcSPHKernel(Thdr & header,
+                   Tdinfo & dinfo,
                    Tpsys & sph,
                    Ttree1 & density,
                    Ttree2 & derivative,
                    Tfunc1 calcDensity,
                    Tfunc2 calcDerivative)
 {
-    const PS::F64 expand = 1.1;
+    const PS::F64 expand  = 1.1;
+    const PS::F64 expand2 = 1.5;
     for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
         sph[i].rs = expand * sph[i].ksr;
+        sph[i].nitr = 1;
     }
 
     WT::start();
@@ -336,7 +342,14 @@ void calcSPHKernel(Tdinfo & dinfo,
             if(sph[i].rs != 0.0) {
                 if(density.getForce(i).itr == true) {
                     repeat_loc = true;
+#if 0
                     sph[i].rs *= expand;
+#else
+                    //sph[i].rs *= expand;
+                    //sph[i].rs *= ((sph[i].nitr < 5) ? expand : expand2);
+                    sph[i].rs *= ((sph[i].nitr < 2) ? expand : expand2);
+#endif
+                    sph[i].nitr++;
                 } else {
                     sph[i].rs = 0.0;
                     sph[i].copyFromForce(density.getForce(i));

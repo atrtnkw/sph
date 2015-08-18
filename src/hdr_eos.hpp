@@ -120,6 +120,12 @@ public:
 
         helmeos2_(&ttmax, &dd, &abar, &zbar, &pp, &umax, &du, &cs, &eosfail);
         helmeos2_(&ttmin, &dd, &abar, &zbar, &pp, &umin, &du, &cs, &eosfail);
+
+        if(eg > umax) {
+            ttmax = MaximumOfTemperature;
+            helmeos2_(&ttmax, &dd, &abar, &zbar, &pp, &umax, &du, &cs, &eosfail);
+        }
+
         if(eg > umax) {
             fprintf(stderr, "Too large energy!\n");
             PS::Abort();

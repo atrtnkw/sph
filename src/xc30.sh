@@ -1,14 +1,15 @@
 #PBS -N test
-#PBS -l mppwidth=24
+#PBS -l mppwidth=144
 #PBS -j oe
-##PBS -q bulk-b
-#PBS -q short-b
+#PBS -q bulk-b
+##PBS -q short-b
 ##PBS -q debug
 
-NPARALLEL=24
+NPARALLEL=144
 NPROCESS=$NPARALLEL
-odir=b1.10-1.00
-ifile=rlxb_b1.10-1.00/b1.10-1.00.init
+odir=b1.10-1.00.2
+ifile=../init.heos/r008k/rlxb_b1.10-1.00/b1.10-1.00.init
+#ifile=b1.10-1.00/s01/t0100
 #
 tempodir=snap
 fexe=run

@@ -113,7 +113,32 @@ public:
     }
 
     static void dump(PS::F64 time, FILE * fp) {
+        static bool first = true;
         WallclockTime & p = getInstance();
+        if(first) {
+            fprintf(fp, "# Time,");
+            fprintf(fp, " TimeDecomposeDomain,");
+            fprintf(fp, " TimeExchangeParticle,");
+            fprintf(fp, " TimeCalcDensity,");
+            fprintf(fp, " TimeCalcHydro,");
+            fprintf(fp, " TimeCalcGravity,");
+            fprintf(fp, " TimeCalcReferEquationOfState,");
+            fprintf(fp, " TimeIntegrationOrbit,");
+            fprintf(fp, " TimeOthers,");
+            fprintf(fp, " TimeTotal\n");
+            first = false;
+        }
+        fprintf(fp, " %e", time);
+        fprintf(fp, " %e", p.TimeDecomposeDomain);
+        fprintf(fp, " %e", p.TimeExchangeParticle);
+        fprintf(fp, " %e", p.TimeCalcDensity);
+        fprintf(fp, " %e", p.TimeCalcHydro);
+        fprintf(fp, " %e", p.TimeCalcGravity);
+        fprintf(fp, " %e", p.TimeReferEquationOfState);
+        fprintf(fp, " %e", p.TimeIntegrateOrbit);
+        fprintf(fp, " %e", p.TimeOthers);
+        fprintf(fp, " %e\n", p.getTimeTotal());
+        /*
         fprintf(fp, "\n");
         fprintf(fp, "Time: %e\n", time);
         fprintf(fp, "TimeDecomposeDomain:          %e\n", p.TimeDecomposeDomain);
@@ -125,6 +150,7 @@ public:
         fprintf(fp, "TimeIntegrationOrbit:         %e\n", p.TimeIntegrateOrbit);
         fprintf(fp, "TimeOthers:                   %e\n", p.TimeOthers);
         fprintf(fp, "TimeTotal:                    %e\n", p.getTimeTotal());
+        */
     }
 
     static void clear() {

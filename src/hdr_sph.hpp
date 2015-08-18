@@ -190,6 +190,9 @@ public:
     PS::F64vec accg;
     PS::F64    temp;
     PS::S32    cnteos;
+    /////
+    PS::S32    nitr;
+    /////
     static PS::F64    abar;
     static PS::F64    zbar;
     static PS::F64ort cbox;
@@ -273,6 +276,7 @@ public:
 #ifdef WD_DAMPINGB
         fprintf(fp, " %+.16e", SPH::omg[2]);
 #endif
+        fprintf(fp, " %4d", this->nitr);
         fprintf(fp, "\n");
 
     }
@@ -758,8 +762,12 @@ void doThisEveryTime(PS::F64 & dtime,
 
     calcFieldVariable(system);
 
-    //if(header.time >= tout) {
-    PS::F64 trst = 100.;
+#ifdef WD_DAMPINGB
+    PS::F64 trst = 10.;
+#else
+    PS::F64 trst = 10.;
+    //PS::F64 trst = 1.;
+#endif
     if(header.time - (PS::S64)(header.time / trst) * trst == 0.) {
         char filename[64];
         sprintf(filename, "snap/t%04d_p%06d.hexa", (PS::S32)header.time, PS::Comm::getRank());
@@ -777,12 +785,28 @@ void doThisEveryTime(PS::F64 & dtime,
         tout += header.dtsp;
     }
 
+    PS::F32 nitrloc = 0., nitrglb;
+    PS::S32 idloc, idglb;
+    for(PS::S32 i = 0; i < system.getNumberOfParticleLocal(); i++) {
+        if(system[i].nitr > nitrloc){
+            nitrloc = system[i].nitr;
+            idloc   = system[i].id;
+        }
+    }
+    PS::Comm::getMaxValue(nitrloc, idloc, nitrglb, idglb);
+
     PS::F64 etot = calcEnergy(system);
     WT::reduceInterProcess();
-    if(PS::Comm::getRank() == 0) {
+    if(PS::Comm::getRank() == 0)     {
         using namespace CodeUnit;
+#if 0
         fprintf(fplog,  "time: %.10f %+e %+e\n", header.time * UnitOfTime,
                 etot * UnitOfEnergy * UnitOfMass, WT::getTimeTotal());
+#else
+        fprintf(fplog,  "time: %.10f %+e %+e %8d %3d\n", header.time * UnitOfTime,
+                etot * UnitOfEnergy * UnitOfMass, WT::getTimeTotal(),
+                idglb, (PS::S32)nitrglb);
+#endif
         fflush(fplog);
         WT::dump(header.time, fptim);
         fflush(fptim);
