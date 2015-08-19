@@ -75,6 +75,7 @@ public:
     PS::F64    tceff;
     PS::F64    eps;
     PS::S64    nptcl;
+    PS::F64    ksrmax;
 
     Header() {
         time       = 0.0;
@@ -88,6 +89,7 @@ public:
         tceff      = 0.0;
         eps        = 0.0;
         nptcl      = 0;
+        ksrmax     = 0.0;
     }
 
     PS::S32 readAscii(FILE *fp) {
@@ -190,9 +192,6 @@ public:
     PS::F64vec accg;
     PS::F64    temp;
     PS::S32    cnteos;
-    /////
-    PS::S32    nitr;
-    /////
     static PS::F64    abar;
     static PS::F64    zbar;
     static PS::F64ort cbox;
@@ -202,6 +201,7 @@ public:
     static PS::F64    eps;
     static PS::F64vec omg;
     static PS::F64    ReductionTimeInv;
+    static PS::F64    ksrmax;
 
     PS::F64vec getPos() const {
         return this->pos;
@@ -212,12 +212,12 @@ public:
     }
 
     void copyFromForce(const Density & density){
-        this->dens = density.dens;
-        this->grdh = density.grdh;
-        this->np   = density.np;
-        this->ksr  = density.ksr;
-        this->rotv = density.rotv;
-        this->divv = density.divv;
+        this->dens  = density.dens;
+        this->grdh  = density.grdh;
+        this->np    = density.np;
+        this->ksr   = density.ksr;
+        this->rotv  = density.rotv;
+        this->divv  = density.divv;
     }
 
     void copyFromForce(const Derivative & derivative){
@@ -276,7 +276,6 @@ public:
 #ifdef WD_DAMPINGB
         fprintf(fp, " %+.16e", SPH::omg[2]);
 #endif
-        fprintf(fp, " %4d", this->nitr);
         fprintf(fp, "\n");
 
     }
@@ -445,7 +444,7 @@ public:
         this->ksr  = cvt(uksr);
         this->grdh = cvt(ugrdh);
         this->vsmx = cvt(uvsmx);
-        this->pot  = cvt(upot);
+        this->pot  = cvt(upot);        
     }
 
     void writeRestartFile(FILE *fp) const {
@@ -475,6 +474,7 @@ PS::F64    SPH::alphamax, SPH::alphamin;
 PS::F64    SPH::eps;
 PS::F64vec SPH::omg;
 PS::F64    SPH::ReductionTimeInv;
+PS::F64    SPH::ksrmax;
 
 #ifdef USE_AT1D
 inline PS::F64 SPH::calcVolumeInverse(const PS::F64 hi) {return hi;}
@@ -589,6 +589,18 @@ void setParameterParticle(Theader & header) {
     return;
 }
 
+template <class Tpsys>
+PS::F64 calcSystemSize(Tpsys & system) {
+    PS::F64    m0, m1;
+    PS::F64vec x0, x1, v0, v1;
+    calcCenterOfMass(system, m0, x0, v0, 0);
+    calcCenterOfMass(system, m1, x1, v1, 1);
+    PS::F64vec dx = x0 - x1;
+    PS::F64    dr = (m0 != 0. && m1 != 0.) ? sqrt(dx * dx)
+        : std::numeric_limits<double>::max();
+    return dr;
+}
+
 template <class Tptcl,
           class Tmsls>
 void reduceSeparation(PS::F64 time, 
@@ -698,7 +710,6 @@ void reduceSeparation(PS::F64 time,
 
         if(PS::Comm::getRank() == 0) {
             fprintf(fplog,  "bsep: %.10f %+e\n", time, dr * CodeUnit::UnitOfLength);
-            //fprintf(fplog,  "bsep: %.10f %+e %+e\n", time, dr * CodeUnit::UnitOfLength, xlag * CodeUnit::UnitOfLength);
             fflush(fplog);
         }
         
@@ -762,12 +773,12 @@ void doThisEveryTime(PS::F64 & dtime,
 
     calcFieldVariable(system);
 
-#ifdef WD_DAMPINGB
+    if(PS::Comm::getRank() == 0 && header.time == 0.) {
+        fprintf(fplog, "# Maximum kernel length: %e\n", header.ksrmax);
+        fprintf(fplog, "# Unit of length:        %e\n", CodeUnit::UnitOfLength);
+    }
+
     PS::F64 trst = 10.;
-#else
-    PS::F64 trst = 10.;
-    //PS::F64 trst = 1.;
-#endif
     if(header.time - (PS::S64)(header.time / trst) * trst == 0.) {
         char filename[64];
         sprintf(filename, "snap/t%04d_p%06d.hexa", (PS::S32)header.time, PS::Comm::getRank());
@@ -785,28 +796,12 @@ void doThisEveryTime(PS::F64 & dtime,
         tout += header.dtsp;
     }
 
-    PS::F32 nitrloc = 0., nitrglb;
-    PS::S32 idloc, idglb;
-    for(PS::S32 i = 0; i < system.getNumberOfParticleLocal(); i++) {
-        if(system[i].nitr > nitrloc){
-            nitrloc = system[i].nitr;
-            idloc   = system[i].id;
-        }
-    }
-    PS::Comm::getMaxValue(nitrloc, idloc, nitrglb, idglb);
-
     PS::F64 etot = calcEnergy(system);
     WT::reduceInterProcess();
     if(PS::Comm::getRank() == 0)     {
         using namespace CodeUnit;
-#if 0
         fprintf(fplog,  "time: %.10f %+e %+e\n", header.time * UnitOfTime,
                 etot * UnitOfEnergy * UnitOfMass, WT::getTimeTotal());
-#else
-        fprintf(fplog,  "time: %.10f %+e %+e %8d %3d\n", header.time * UnitOfTime,
-                etot * UnitOfEnergy * UnitOfMass, WT::getTimeTotal(),
-                idglb, (PS::S32)nitrglb);
-#endif
         fflush(fplog);
         WT::dump(header.time, fptim);
         fflush(fptim);

@@ -222,18 +222,7 @@ struct calcDensityX86 {
                     v4df rhj = v4df(epj[j].mass) * hi3_i * kw0;
 
                     rh_i += rhj;
-                    nj_i += ((q_i < 1.d) & v4df(1.d));
-                    
-                    // vcvt       x 3
-                    // vbroadcast x 5
-                    // vmova      x 1
-                    // vcmp       x 2
-                    // vand       x 2
-                    // vmax       x 2
-                    // vrsqrt     x 1
-                    // vadd       x 6
-                    // vmul       x 11
-                    // vfmadd     x 9 
+                    nj_i += ((q_i < 1.d) & v4df(1.d));                    
                 }
 #ifdef TIMETEST
                 tcalcdens += getWallclockTime() - t1;
@@ -246,6 +235,7 @@ struct calcDensityX86 {
                 for(PS::S32 ii = 0; ii < nii; ii++) {
                     hs[ii] = KernelSph::eta * KernelSph::ksrh
                         * SPH::calcPowerOfDimInverse(epi[i+ii].mass, buf0[ii]);
+                    hs[ii] = std::min(hs[ii], SPH::ksrmax);
                     density[i+ii].dens = buf0[ii];
                     density[i+ii].np   = (PS::S32)buf1[ii];
                     density[i+ii].ksr  = hs[ii];

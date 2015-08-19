@@ -18,6 +18,24 @@ class WallclockTime {
     PS::F64 TimeOthers;
     PS::F64 tstart;
 
+    PS::F64 TimeDecomposeDomainAverage;
+    PS::F64 TimeExchangeParticleAverage;
+    PS::F64 TimeCalcDensityAverage;
+    PS::F64 TimeCalcHydroAverage;
+    PS::F64 TimeCalcGravityAverage;
+    PS::F64 TimeReferEquationOfStateAverage;
+    PS::F64 TimeIntegrateOrbitAverage;
+    PS::F64 TimeOthersAverage;
+
+    PS::F64 TimeDecomposeDomainMax;
+    PS::F64 TimeExchangeParticleMax;
+    PS::F64 TimeCalcDensityMax;
+    PS::F64 TimeCalcHydroMax;
+    PS::F64 TimeCalcGravityMax;
+    PS::F64 TimeReferEquationOfStateMax;
+    PS::F64 TimeIntegrateOrbitMax;
+    PS::F64 TimeOthersMax;
+
     WallclockTime() {}
     ~WallclockTime() {}
     WallclockTime(const WallclockTime & c);
@@ -94,22 +112,24 @@ public:
 
     static void reduceInterProcess() {
         WallclockTime & p = getInstance();
-        PS::F64 MaxTimeDecomposeDomain       = PS::Comm::getMaxValue(p.TimeDecomposeDomain);
-        PS::F64 MaxTimeExchangeParticle      = PS::Comm::getMaxValue(p.TimeExchangeParticle);
-        PS::F64 MaxTimeCalcDensity           = PS::Comm::getMaxValue(p.TimeCalcDensity);
-        PS::F64 MaxTimeCalcHydro             = PS::Comm::getMaxValue(p.TimeCalcHydro);
-        PS::F64 MaxTimeCalcGravity           = PS::Comm::getMaxValue(p.TimeCalcGravity);
-        PS::F64 MaxTimeReferEquationOfState  = PS::Comm::getMaxValue(p.TimeReferEquationOfState);
-        PS::F64 MaxTimeIntegrateOrbit        = PS::Comm::getMaxValue(p.TimeIntegrateOrbit);
-        PS::F64 MaxTimeOthers                = PS::Comm::getMaxValue(p.TimeOthers);
-        p.TimeDecomposeDomain      = MaxTimeDecomposeDomain;
-        p.TimeExchangeParticle     = MaxTimeExchangeParticle;
-        p.TimeCalcDensity          = MaxTimeCalcDensity;
-        p.TimeCalcHydro            = MaxTimeCalcHydro;
-        p.TimeCalcGravity          = MaxTimeCalcGravity;
-        p.TimeReferEquationOfState = MaxTimeReferEquationOfState;
-        p.TimeIntegrateOrbit       = MaxTimeIntegrateOrbit;
-        p.TimeOthers               = MaxTimeOthers;
+        p.TimeDecomposeDomainMax       = PS::Comm::getMaxValue(p.TimeDecomposeDomain);
+        p.TimeExchangeParticleMax      = PS::Comm::getMaxValue(p.TimeExchangeParticle);
+        p.TimeCalcDensityMax           = PS::Comm::getMaxValue(p.TimeCalcDensity);
+        p.TimeCalcHydroMax             = PS::Comm::getMaxValue(p.TimeCalcHydro);
+        p.TimeCalcGravityMax           = PS::Comm::getMaxValue(p.TimeCalcGravity);
+        p.TimeReferEquationOfStateMax  = PS::Comm::getMaxValue(p.TimeReferEquationOfState);
+        p.TimeIntegrateOrbitMax        = PS::Comm::getMaxValue(p.TimeIntegrateOrbit);
+        p.TimeOthersMax                = PS::Comm::getMaxValue(p.TimeOthers);
+
+        PS::F64 rankinv = 1.0 / (PS::F64)(PS::Comm::getNumberOfProc());
+        p.TimeDecomposeDomainAverage      = PS::Comm::getSum(p.TimeDecomposeDomain) * rankinv;
+        p.TimeExchangeParticleAverage     = PS::Comm::getSum(p.TimeExchangeParticle) * rankinv;
+        p.TimeCalcDensityAverage          = PS::Comm::getSum(p.TimeCalcDensity) * rankinv;
+        p.TimeCalcHydroAverage            = PS::Comm::getSum(p.TimeCalcHydro) * rankinv;
+        p.TimeCalcGravityAverage          = PS::Comm::getSum(p.TimeCalcGravity) * rankinv;
+        p.TimeReferEquationOfStateAverage = PS::Comm::getSum(p.TimeReferEquationOfState) * rankinv;
+        p.TimeIntegrateOrbitAverage       = PS::Comm::getSum(p.TimeIntegrateOrbit) * rankinv;
+        p.TimeOthersAverage               = PS::Comm::getSum(p.TimeOthers) * rankinv;        
     }
 
     static void dump(PS::F64 time, FILE * fp) {
@@ -117,40 +137,42 @@ public:
         WallclockTime & p = getInstance();
         if(first) {
             fprintf(fp, "# Time,");
-            fprintf(fp, " TimeDecomposeDomain,");
-            fprintf(fp, " TimeExchangeParticle,");
-            fprintf(fp, " TimeCalcDensity,");
-            fprintf(fp, " TimeCalcHydro,");
-            fprintf(fp, " TimeCalcGravity,");
-            fprintf(fp, " TimeCalcReferEquationOfState,");
-            fprintf(fp, " TimeIntegrationOrbit,");
-            fprintf(fp, " TimeOthers,");
-            fprintf(fp, " TimeTotal\n");
+            fprintf(fp, " TimeTotal");
+            fprintf(fp, " TimeDecomposeDomain");
+            fprintf(fp, " TimeExchangeParticle");
+            fprintf(fp, " TimeCalcDensity");
+            fprintf(fp, " TimeCalcHydro");
+            fprintf(fp, " TimeCalcGravity");
+            fprintf(fp, " TimeCalcReferEquationOfState");
+            fprintf(fp, " TimeIntegrationOrbit");
+            fprintf(fp, " TimeOthers");
+            fprintf(fp, "\n");
             first = false;
         }
         fprintf(fp, " %e", time);
-        fprintf(fp, " %e", p.TimeDecomposeDomain);
-        fprintf(fp, " %e", p.TimeExchangeParticle);
-        fprintf(fp, " %e", p.TimeCalcDensity);
-        fprintf(fp, " %e", p.TimeCalcHydro);
-        fprintf(fp, " %e", p.TimeCalcGravity);
-        fprintf(fp, " %e", p.TimeReferEquationOfState);
-        fprintf(fp, " %e", p.TimeIntegrateOrbit);
-        fprintf(fp, " %e", p.TimeOthers);
-        fprintf(fp, " %e\n", p.getTimeTotal());
-        /*
+        fprintf(fp, " %e", p.getTimeTotal());
+        fprintf(fp, " %e", p.TimeDecomposeDomainMax);
+        fprintf(fp, " %e", p.TimeExchangeParticleMax);
+        fprintf(fp, " %e", p.TimeCalcDensityMax);
+        fprintf(fp, " %e", p.TimeCalcHydroMax);
+        fprintf(fp, " %e", p.TimeCalcGravityMax);
+        fprintf(fp, " %e", p.TimeReferEquationOfStateMax);
+        fprintf(fp, " %e", p.TimeIntegrateOrbitMax);
+        fprintf(fp, " %e", p.TimeOthersMax);
+        fprintf(fp, " %e", p.TimeDecomposeDomainAverage);
+        fprintf(fp, " %e", p.TimeExchangeParticleAverage);
+        fprintf(fp, " %e", p.TimeCalcDensityAverage);
+        fprintf(fp, " %e", p.TimeCalcHydroAverage);
+        fprintf(fp, " %e", p.TimeCalcGravityAverage);
+        fprintf(fp, " %e", p.TimeReferEquationOfStateAverage);
+        fprintf(fp, " %e", p.TimeIntegrateOrbitAverage);
+        fprintf(fp, " %e", p.TimeOthersAverage);
         fprintf(fp, "\n");
-        fprintf(fp, "Time: %e\n", time);
-        fprintf(fp, "TimeDecomposeDomain:          %e\n", p.TimeDecomposeDomain);
-        fprintf(fp, "TimeExchangeParticle:         %e\n", p.TimeExchangeParticle);
-        fprintf(fp, "TimeCalcDensity:              %e\n", p.TimeCalcDensity);
-        fprintf(fp, "TimeCalcHydro:                %e\n", p.TimeCalcHydro);
-        fprintf(fp, "TimeCalcGravity:              %e\n", p.TimeCalcGravity);
-        fprintf(fp, "TimeCalcReferEquationOfState: %e\n", p.TimeReferEquationOfState);
-        fprintf(fp, "TimeIntegrationOrbit:         %e\n", p.TimeIntegrateOrbit);
-        fprintf(fp, "TimeOthers:                   %e\n", p.TimeOthers);
-        fprintf(fp, "TimeTotal:                    %e\n", p.getTimeTotal());
-        */
+    }
+
+    static void dumpEachProcess(FILE *fp) {
+        WallclockTime & p = getInstance();
+        fprintf(fp, "%4d %e\n", PS::Comm::getRank(), p.TimeCalcDensity);
     }
 
     static void clear() {

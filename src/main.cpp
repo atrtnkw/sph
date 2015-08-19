@@ -136,6 +136,10 @@ int main(int argc, char **argv)
         msls.exchangeParticle(dinfo);
 #endif
         WT::accumulateExchangeParticle();
+        WT::start();
+        SPH::ksrmax   = calcSystemSize(sph);
+        header.ksrmax = SPH::ksrmax;
+        WT::accumulateOthers();
         calcSPHKernel(header, dinfo, sph, density, derivative,
                       calcDensity(), calcDerivative());
 
@@ -166,6 +170,29 @@ int main(int argc, char **argv)
     PS::F64 tout = header.time;
     const PS::S32 nstp = 4;
     while(header.time < header.tend){
+
+        /*
+        if(header.time > 90.0341) {
+            PS::TimeProfile wt_dens = density.getTimeProfile();
+            char filename[64];
+            sprintf(filename, "snap/wt_%04d.dat", rank);
+            FILE *fp = fopen(filename, "w");
+            fprintf(fp, "%4d", rank);
+            fprintf(fp, " %+e", wt_dens.make_local_tree);
+            fprintf(fp, " %+e", wt_dens.make_global_tree);
+            fprintf(fp, " %+e", wt_dens.calc_force);
+            fprintf(fp, " %+e", wt_dens.calc_moment_local_tree);
+            fprintf(fp, " %+e", wt_dens.calc_moment_global_tree);
+            fprintf(fp, " %+e", wt_dens.make_LET_1st);
+            fprintf(fp, " %+e", wt_dens.make_LET_2nd);
+            fprintf(fp, " %+e", wt_dens.exchange_LET_1st);
+            fprintf(fp, " %+e", wt_dens.exchange_LET_2nd);
+            fprintf(fp, "\n");
+            fclose(fp);
+        }
+        density.clearTimeProfile();
+        */
+
         doThisEveryTime(dtime, tout, header, dinfo, sph, msls, fplog, fptim);
 
         WT::start();
@@ -326,15 +353,14 @@ void calcSPHKernel(Thdr & header,
                    Tfunc2 calcDerivative)
 {
     const PS::F64 expand  = 1.1;
-    const PS::F64 expand2 = 1.5;
     for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
         sph[i].rs = expand * sph[i].ksr;
-        sph[i].nitr = 1;
     }
 
-    WT::start();
+    //WT::start();
     PS::S32 cnt = 0;
     for(bool repeat = true; repeat == true;) {
+        WT::start();
         bool repeat_loc = false;
         repeat = false;
         density.calcForceAll(calcDensity, sph, dinfo);    
@@ -342,24 +368,18 @@ void calcSPHKernel(Thdr & header,
             if(sph[i].rs != 0.0) {
                 if(density.getForce(i).itr == true) {
                     repeat_loc = true;
-#if 0
                     sph[i].rs *= expand;
-#else
-                    //sph[i].rs *= expand;
-                    //sph[i].rs *= ((sph[i].nitr < 5) ? expand : expand2);
-                    sph[i].rs *= ((sph[i].nitr < 2) ? expand : expand2);
-#endif
-                    sph[i].nitr++;
                 } else {
                     sph[i].rs = 0.0;
                     sph[i].copyFromForce(density.getForce(i));
                 }
             }
         }
+        WT::accumulateCalcDensity();
         repeat = PS::Comm::synchronizeConditionalBranchOR(repeat_loc);
         cnt++;
     }
-    WT::accumulateCalcDensity();
+    //WT::accumulateCalcDensity();
     WT::start();
     referEquationOfState(sph);
     WT::accumulateReferEquationOfState();

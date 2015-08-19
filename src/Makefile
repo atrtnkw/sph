@@ -5,6 +5,7 @@ use_mpi = yes
 use_omp = yes
 ###########################
 ###### AT_FLAGS ##############################
+#CFLAGS += -DTEMPORARY
 CFLAGS += -DENABLE_SIMDX86
 #CFLAGS += -DENABLE_SIMDX86_SINGLE
 #
@@ -65,7 +66,7 @@ endif
 
 OBJ = main.o heos/eos.o
 HDR = hdr_sph.hpp hdr_eos.hpp hdr_kernel.hpp hdr_density.hpp hdr_hydro.hpp \
-	hdr_gravity.hpp hdr_damp.hpp hdr_massless.hpp
+	hdr_gravity.hpp hdr_damp.hpp hdr_time.hpp hdr_massless.hpp
 ETC = Makefile
 
 run: $(OBJ) $(HDR) $(ETC)
@@ -88,6 +89,7 @@ clean:
 	rm -f *~
 	rm -f test.o*
 	rm -f core
+	rm -f *.s
 	make -C heos -f Makefile.heos clean
 distclean:
 	make clean
