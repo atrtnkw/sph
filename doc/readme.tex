@@ -95,9 +95,12 @@ each particle as follows:
     Appendix~\ref{sec:kernels}.
   \item calculate the kernel length as follow:
     \begin{align}
-      H_i = (H/h) \times \eta \left( \frac{m_i}{\rho_i} \right)^{1/D},
+      H_i = \max \left[ (H/h) \times \eta \left( \frac{m_i}{\rho_i}
+        \right)^{1/D}, H_{\max} \right],
     \end{align}
-    where $h$ is the kernel length. The values of $\eta$ and $H/h$ are
+    where $h$ is the kernel length. Here, $H_{\max}$ is the initial
+    distance of the binary separation, or the maximum \texttt{double}
+    in the case of the single WD. The values of $\eta$ and $H/h$ are
     described in Appendix~\ref{sec:kernels}.
   \item Return to step~(\ref{item:estimatedensity}) unless this is the
     3rd time.
