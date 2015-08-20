@@ -7,9 +7,9 @@
 
 NPARALLEL=144
 NPROCESS=$NPARALLEL
-odir=test
-ifile=../init.heos/r008k/rlxb_b1.10-1.00/b1.10-1.00.init
-#ifile=b1.10-1.00/test.a/t0090
+odir=s03.bsep.2
+#ifile=../init.heos/r008k/rlxb_b1.10-1.00/b1.10-1.00.init
+ifile=b1.10-1.00/s03.bsep/new_t0290
 #
 tempodir=snap
 fexe=run

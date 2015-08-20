@@ -115,9 +115,11 @@ public:
         PS::U64 utime, utend, udtsp;
         PS::U64 ualphamax, ualphamin, utceff;
         PS::U64 ueps;
+        PS::U64 uksrmax;
         fscanf(fp, "%llx %llx %llx %d", &utime, &utend, &udtsp, &this->istp);
         fscanf(fp, "%llx %llx %llx", &ualphamax, &ualphamin, &utceff);
         fscanf(fp, "%llx", &ueps);
+        fscanf(fp, "%llx", &uksrmax);
         fscanf(fp, "%d", &this->nptcl);
         time = cvt(utime);
         tend = cvt(utend);
@@ -126,6 +128,7 @@ public:
         alphamin = cvt(ualphamin);
         tceff    = cvt(utceff);
         eps = cvt(ueps);
+        ksrmax = cvt(uksrmax);
 
         PS::S32 nproc = PS::Comm::getNumberOfProc();
         for(PS::S32 i = 0; i < nproc; i++) {
@@ -149,6 +152,7 @@ public:
         fprintf(fp, "%llx %llx %llx %d\n", cvt(time), cvt(tend), cvt(dtsp), istp);
         fprintf(fp, "%llx %llx %llx\n", cvt(alphamax), cvt(alphamin), cvt(tceff));
         fprintf(fp, "%llx\n", cvt(eps));
+        fprintf(fp, "%llx\n", cvt(ksrmax));
         fprintf(fp, "%d\n", nptcl);
 
         PS::S32 nproc = PS::Comm::getNumberOfProc();
@@ -585,6 +589,7 @@ void setParameterParticle(Theader & header) {
     SPH::alphamin = header.alphamin;
     SPH::tceff    = header.tceff;
     SPH::eps      = header.eps;
+    SPH::ksrmax   = header.ksrmax;
     
     return;
 }
