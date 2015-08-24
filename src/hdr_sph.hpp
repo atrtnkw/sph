@@ -307,6 +307,7 @@ public:
             / (fabs(this->grdh * this->divv) + fabs(this->grdh * this->rotv)
                + 1e-4 * this->vsnd * KernelSph::ksrh / this->ksr);
     }
+    // Should "this->grdh * this->divv" be "this->divv" ?
 
     void calcAlphaDot() {
         PS::F64 src;
@@ -601,8 +602,12 @@ PS::F64 calcSystemSize(Tpsys & system) {
     calcCenterOfMass(system, m0, x0, v0, 0);
     calcCenterOfMass(system, m1, x1, v1, 1);
     PS::F64vec dx = x0 - x1;
+#ifdef TEMPORARY
+    PS::F64    dr = std::numeric_limits<double>::max();
+#else
     PS::F64    dr = (m0 != 0. && m1 != 0.) ? sqrt(dx * dx)
         : std::numeric_limits<double>::max();
+#endif
     return dr;
 }
 

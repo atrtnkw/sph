@@ -5,7 +5,7 @@ use_mpi = yes
 use_omp = yes
 ###########################
 ###### AT_FLAGS ##############################
-#CFLAGS += -DTEMPORARY
+CFLAGS += -DTEMPORARY
 CFLAGS += -DENABLE_SIMDX86
 #CFLAGS += -DENABLE_SIMDX86_SINGLE
 #
@@ -87,7 +87,7 @@ asm: main.cpp $(HDR) $(ETC)
 
 clean:
 	rm -f *~
-	rm -f test.o*
+	rm -f *.o[0-9]*
 	rm -f core
 	rm -f *.s
 	make -C heos -f Makefile.heos clean

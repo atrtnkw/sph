@@ -170,7 +170,6 @@ int main(int argc, char **argv)
     PS::F64 tout = header.time;
     const PS::S32 nstp = 4;
     while(header.time < header.tend){
-
         /*
         if(header.time > 90.0341) {
             PS::TimeProfile wt_dens = density.getTimeProfile();
@@ -357,7 +356,6 @@ void calcSPHKernel(Thdr & header,
         sph[i].rs = expand * sph[i].ksr;
     }
 
-    //WT::start();
     PS::S32 cnt = 0;
     for(bool repeat = true; repeat == true;) {
         WT::start();
@@ -379,7 +377,6 @@ void calcSPHKernel(Thdr & header,
         repeat = PS::Comm::synchronizeConditionalBranchOR(repeat_loc);
         cnt++;
     }
-    //WT::accumulateCalcDensity();
     WT::start();
     referEquationOfState(sph);
     WT::accumulateReferEquationOfState();
