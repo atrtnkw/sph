@@ -156,4 +156,29 @@ public:
         temperature   = ttmin;
         counteos      = cnt;
     }
+
+#if 0
+    static void getAzbar(PS::F64 & xmass,
+                         PS::F64 & abar,
+                         PS::F64 & zbar) {
+        static PS::F64 aion[13] = { 4., 12., 16., 20., 24., 28., 32.,
+                                   36., 40., 44., 48., 52., 56.};
+        static PS::F64 ainv[13] = {1. / aion[0], 1. / aion[1], 1. / aion[2], 1. / aion[3],
+                                   1. / aion[4], 1. / aion[5], 1. / aion[6], 1. / aion[7],
+                                   1. / aion[8], 1. / aion[9], 1. / aion[10], 1. / aion[11],
+                                   1. / aion[12]};
+        static PS::F64 zion[13] = { 2.,  6.,  8., 10., 12., 14., 16.,
+                                   18., 20., 22., 24., 26., 28.};
+
+        PS::F64 atot = 0.0;
+        PS::F64 ztot = 0.0;
+        for(PS::S32 i = 0; i < NumberOfIon; i++) {
+            PS::F64 ymass = xmass[i] / aion[i];
+            atot += ymass;
+            ztot += zion[i] * ymass;
+        }
+        abar = 1. / atot;
+        zbar = ztot * abar;
+    }
+#endif
 };

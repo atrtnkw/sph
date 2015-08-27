@@ -165,6 +165,10 @@ int main(int argc, char **argv)
 #endif
     }
 
+#ifdef TEMPORARY
+    header.tend = 1000.0;
+#endif
+
     FILE *fplog = fopen("snap/time.log", "w");
     FILE *fptim = fopen("snap/prof.log", "w");
     PS::F64 tout = header.time;
