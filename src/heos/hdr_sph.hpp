@@ -2,6 +2,25 @@
 
 #include "hdr_eos.hpp"
 
+static PS::U64 convertF64ToU64(PS::F64 val) {
+    union converter {
+        PS::F64 f;
+        PS::U64 u;
+    };
+    union converter var;
+        var.f = val;
+        return var.u;
+}
+static PS::F64 convertU64ToF64(PS::U64 val) {
+    union converter {
+        PS::F64 f;
+        PS::U64 u;
+    };
+    union converter var;
+    var.u = val;
+    return var.f;
+}
+
 class Density{
 public:
     PS::F64 dens;
@@ -49,17 +68,20 @@ public:
     PS::F64    time;
     PS::F64    tend;
     PS::F64    dtsp;
+    PS::S32    istp;
     PS::F64ort cbox;
     PS::F64    alphamax;
     PS::F64    alphamin;
     PS::F64    tceff;
     PS::F64    eps;
     PS::S64    nptcl;
+    PS::F64    ksrmax;
 
     Header() {
         time       = 0.0;
         tend       = 0.0;
         dtsp       = 0.0;
+        istp       = 0;
         cbox.low_  = 0.0;
         cbox.high_ = 0.0;
         alphamax   = 0.0;
@@ -67,6 +89,7 @@ public:
         tceff      = 0.0;
         eps        = 0.0;
         nptcl      = 0;
+        ksrmax     = 0.0;
     }
 
     PS::S32 readAscii(FILE *fp) {
@@ -84,6 +107,63 @@ public:
 
         return nptcl;
     }
+
+    template <class Tdinfo>
+    void readRestartFile(FILE *fp,
+                         Tdinfo & dinfo) {
+        PS::F64 (*cvt)(PS::U64) = convertU64ToF64;        
+        PS::U64 utime, utend, udtsp;
+        PS::U64 ualphamax, ualphamin, utceff;
+        PS::U64 ueps;
+        PS::U64 uksrmax;
+        fscanf(fp, "%llx %llx %llx %d", &utime, &utend, &udtsp, &this->istp);
+        fscanf(fp, "%llx %llx %llx", &ualphamax, &ualphamin, &utceff);
+        fscanf(fp, "%llx", &ueps);
+        fscanf(fp, "%llx", &uksrmax);
+        fscanf(fp, "%d", &this->nptcl);
+        time = cvt(utime);
+        tend = cvt(utend);
+        dtsp = cvt(udtsp);
+        alphamax = cvt(ualphamax);
+        alphamin = cvt(ualphamin);
+        tceff    = cvt(utceff);
+        eps = cvt(ueps);
+        ksrmax = cvt(uksrmax);
+
+        PS::S32 nproc = PS::Comm::getNumberOfProc();
+        for(PS::S32 i = 0; i < nproc; i++) {
+            PS::F64ort domain;
+            PS::U64    u0, u1, u2, u3, u4, u5;
+            fscanf(fp, "%llx %llx %llx %llx %llx %llx\n", &u0, &u1, &u2, &u3, &u4, &u5);
+            domain.low_[0]  = cvt(u0);
+            domain.low_[1]  = cvt(u1);
+            domain.low_[2]  = cvt(u2);
+            domain.high_[0] = cvt(u3);
+            domain.high_[1] = cvt(u4);
+            domain.high_[2] = cvt(u5);
+            dinfo.setPosDomain(i, domain);
+        }
+    }
+
+    template <class Tdinfo>
+    void writeRestartFile(FILE *fp,
+                          Tdinfo & dinfo) {
+        PS::U64 (*cvt)(PS::F64) = convertF64ToU64;
+        fprintf(fp, "%llx %llx %llx %d\n", cvt(time), cvt(tend), cvt(dtsp), istp);
+        fprintf(fp, "%llx %llx %llx\n", cvt(alphamax), cvt(alphamin), cvt(tceff));
+        fprintf(fp, "%llx\n", cvt(eps));
+        fprintf(fp, "%llx\n", cvt(ksrmax));
+        fprintf(fp, "%d\n", nptcl);
+
+        PS::S32 nproc = PS::Comm::getNumberOfProc();
+        for(PS::S32 i = 0; i < nproc; i++) {
+            PS::F64ort domain = dinfo.getPosDomain(i);
+            fprintf(fp, "%llx %llx %llx %llx %llx %llx\n",
+                    cvt(domain.low_[0]),  cvt(domain.low_[1]),  cvt(domain.low_[2]),
+                    cvt(domain.high_[0]), cvt(domain.high_[1]), cvt(domain.high_[2]));
+        }
+    }
+
 };
 
 class SPH{
@@ -124,6 +204,8 @@ public:
     static PS::F64    tceff;
     static PS::F64    eps;
     static PS::F64vec omg;
+    static PS::F64    ReductionTimeInv;
+    static PS::F64    ksrmax;
 
     PS::F64vec getPos() const {
         return this->pos;
@@ -134,12 +216,12 @@ public:
     }
 
     void copyFromForce(const Density & density){
-        this->dens = density.dens;
-        this->grdh = density.grdh;
-        this->np   = density.np;
-        this->ksr  = density.ksr;
-        this->rotv = density.rotv;
-        this->divv = density.divv;
+        this->dens  = density.dens;
+        this->grdh  = density.grdh;
+        this->np    = density.np;
+        this->ksr   = density.ksr;
+        this->rotv  = density.rotv;
+        this->divv  = density.divv;
     }
 
     void copyFromForce(const Derivative & derivative){
@@ -194,9 +276,10 @@ public:
         fprintf(fp, " %+.16e %+.16e %+.16e %+.16e", tdens, tvsnd, tpres, this->temp);
         fprintf(fp, " %+.16e %+.16e %+.16e", tdivv, trotv, this->bswt);
         fprintf(fp, " %+.16e %6d %+.16e", this->grdh, this->np, tpot);        
-//        PS::F64vec taccg = this->accg * UnitOfAcceleration;
-//        fprintf(fp, " %+.16e %+.16e %+.16e", taccg[0], taccg[1], taccg[2]);
         fprintf(fp, " %3d", this->cnteos);
+#ifdef WD_DAMPINGB
+        fprintf(fp, " %+.16e", SPH::omg[2]);
+#endif
         fprintf(fp, "\n");
 
     }
@@ -215,6 +298,7 @@ public:
                                                       this->vsnd,
                                                       this->temp,
                                                       this->cnteos);
+
 #endif
     }
 
@@ -223,6 +307,7 @@ public:
             / (fabs(this->grdh * this->divv) + fabs(this->grdh * this->rotv)
                + 1e-4 * this->vsnd * KernelSph::ksrh / this->ksr);
     }
+    // Should "this->grdh * this->divv" be "this->divv" ?
 
     void calcAlphaDot() {
         PS::F64 src;
@@ -299,7 +384,8 @@ public:
     }
 #elif defined WD_DAMPINGB
     void correct(PS::F64 dt) {
-        this->acc  -= this->vel / (128.d * dt);
+        //this->acc  -= this->vel / (128.d * dt);
+        this->acc  -= this->vel * SPH::ReductionTimeInv;
         this->vel   = this->vel2  + 0.5 * this->acc  * dt;
         this->uene  = this->uene2 + 0.5 * this->udot * dt;
         this->alph  = this->alph2 + 0.5 * this->adot * dt;
@@ -316,6 +402,72 @@ public:
         this->vel *= exp(- 0.1 * this->vsnd * KernelSph::ksrh / this->ksr * dt);
     }
 
+    void readRestartFile(FILE *fp) {
+        PS::F64 (*cvt)(PS::U64) = convertU64ToF64;
+        PS::S32 s0, s1;
+        PS::U64 umass;
+        PS::U64 upos[3], uvel[3], uacc[3];
+        PS::U64 uuene, uudot;
+        PS::U64 ualph, uadot;
+        PS::U64 udens, upres, uvsnd, utemp;
+        PS::U64 udivv, urotv, ubswt;
+        PS::U64 uksr, ugrdh, uvsmx;
+        PS::U64 upot;
+
+        fscanf(fp, "%d %d %llx", &this->id, &this->istar, &umass);
+        fscanf(fp, "%llx %llx %llx", &upos[0], &upos[1], &upos[2]);
+        fscanf(fp, "%llx %llx %llx", &uvel[0], &uvel[1], &uvel[2]);
+        fscanf(fp, "%llx %llx %llx", &uacc[0], &uacc[1], &uacc[2]);
+        fscanf(fp, "%llx %llx", &uuene, &uudot);
+        fscanf(fp, "%llx %llx", &ualph, &uadot);
+        fscanf(fp, "%llx %llx %llx %llx", &udens, &upres, &uvsnd, &utemp);
+        fscanf(fp, "%llx %llx %llx", &udivv, &urotv, &ubswt);
+        fscanf(fp, "%llx %llx %llx", &uksr,  &ugrdh, &uvsmx);
+        fscanf(fp, "%llx", &upot);
+
+        this->mass = cvt(umass);
+        this->pos[0] = cvt(upos[0]);
+        this->pos[1] = cvt(upos[1]);
+        this->pos[2] = cvt(upos[2]);
+        this->vel[0] = cvt(uvel[0]);
+        this->vel[1] = cvt(uvel[1]);
+        this->vel[2] = cvt(uvel[2]);
+        this->acc[0] = cvt(uacc[0]);
+        this->acc[1] = cvt(uacc[1]);
+        this->acc[2] = cvt(uacc[2]);
+        this->uene = cvt(uuene);
+        this->udot = cvt(uudot);
+        this->alph = cvt(ualph);
+        this->adot = cvt(uadot);
+        this->dens = cvt(udens);
+        this->pres = cvt(upres);
+        this->vsnd = cvt(uvsnd);
+        this->temp = cvt(utemp);
+        this->divv = cvt(udivv);
+        this->rotv = cvt(urotv);
+        this->bswt = cvt(ubswt);
+        this->ksr  = cvt(uksr);
+        this->grdh = cvt(ugrdh);
+        this->vsmx = cvt(uvsmx);
+        this->pot  = cvt(upot);        
+    }
+
+    void writeRestartFile(FILE *fp) const {
+        PS::U64 (*cvt)(PS::F64) = convertF64ToU64;
+        fprintf(fp, "%6d %2d %llx", this->id, this->istar, cvt(this->mass));
+        fprintf(fp, " %llx %llx %llx", cvt(this->pos[0]), cvt(this->pos[1]), cvt(this->pos[2]));
+        fprintf(fp, " %llx %llx %llx", cvt(this->vel[0]), cvt(this->vel[1]), cvt(this->vel[2]));
+        fprintf(fp, " %llx %llx %llx", cvt(this->acc[0]), cvt(this->acc[1]), cvt(this->acc[2]));
+        fprintf(fp, " %llx %llx", cvt(this->uene), cvt(this->udot));
+        fprintf(fp, " %llx %llx", cvt(this->alph), cvt(this->adot));
+        fprintf(fp, " %llx %llx", cvt(this->dens), cvt(this->pres));
+        fprintf(fp, " %llx %llx", cvt(this->vsnd), cvt(this->temp));
+        fprintf(fp, " %llx %llx %llx", cvt(this->divv), cvt(this->rotv), cvt(this->bswt));
+        fprintf(fp, " %llx %llx %llx", cvt(this->ksr), cvt(this->grdh), cvt(this->vsmx));
+        fprintf(fp, " %llx", cvt(this->pot));
+        fprintf(fp, "\n");
+    }
+    
 };
 
 PS::F64    SPH::abar = 13.7142857143d;
@@ -326,6 +478,8 @@ PS::F64    SPH::tceff;
 PS::F64    SPH::alphamax, SPH::alphamin;
 PS::F64    SPH::eps;
 PS::F64vec SPH::omg;
+PS::F64    SPH::ReductionTimeInv;
+PS::F64    SPH::ksrmax;
 
 #ifdef USE_AT1D
 inline PS::F64 SPH::calcVolumeInverse(const PS::F64 hi) {return hi;}
@@ -354,6 +508,51 @@ inline v4df SPH::calcVolumeInverse(const v4df hi) {return hi * hi * hi;}
 inline v8sf SPH::calcVolumeInverse(const v8sf hi) {return hi * hi * hi;}
 #endif
 #endif
+
+template <class Theader,
+          class Tdinfo,
+          class Tpsys>
+void readRestartFile(char * const filename,
+                     Theader & header,
+                     Tdinfo & dinfo,
+                     Tpsys & system) {
+
+    FILE *fp = fopen(filename, "r");
+
+    header.readRestartFile(fp, dinfo);
+    PS::S32 nloc = header.nptcl;
+    system.setNumberOfParticleLocal(nloc);
+    for(PS::S32 i = 0; i < nloc; i++) {
+        system[i].readRestartFile(fp);
+    }
+
+    fclose(fp);
+}
+
+template <class Theader,
+          class Tdinfo,
+          class Tpsys>
+void writeRestartFile(char * const filename,
+                      const PS::F64 time,
+                      Theader & header,
+                      Tdinfo & dinfo,
+                      Tpsys & system) {
+
+    FILE *fp = fopen(filename, "w");
+
+    PS::S32 nloc = system.getNumberOfParticleLocal();
+
+    header.time  = time;
+    header.nptcl = nloc;
+
+    header.writeRestartFile(fp, dinfo);
+
+    for(PS::S32 i = 0; i < nloc; i++) {
+        system[i].writeRestartFile(fp);
+    }
+
+    fclose(fp);
+}
 
 template <class Tptcl>
 void calcCenterOfMass(Tptcl & system,
@@ -391,20 +590,34 @@ void setParameterParticle(Theader & header) {
     SPH::alphamin = header.alphamin;
     SPH::tceff    = header.tceff;
     SPH::eps      = header.eps;
+    SPH::ksrmax   = header.ksrmax;
     
     return;
 }
 
-template <class Tptcl>
+template <class Tpsys>
+PS::F64 calcSystemSize(Tpsys & system) {
+    PS::F64    m0, m1;
+    PS::F64vec x0, x1, v0, v1;
+    calcCenterOfMass(system, m0, x0, v0, 0);
+    calcCenterOfMass(system, m1, x1, v1, 1);
+    PS::F64vec dx = x0 - x1;
+    PS::F64    dr = (m0 != 0. && m1 != 0.) ? sqrt(dx * dx)
+        : std::numeric_limits<double>::max();
+    return dr;
+}
+
+template <class Tptcl,
+          class Tmsls>
 void reduceSeparation(PS::F64 time, 
                       Tptcl & system,
+                      Tmsls & msls,
                       FILE * fplog = NULL) {
 
 #ifdef WD_DAMPINGB
     static bool    firststep = true;
     static PS::F64 ReductionTime;
-    static PS::F64 DeltaSystemTime = 1.d / 64.d;
-//    static PS::F64 CriticalRadius  = 1.5e9 * CodeUnit::UnitOfLengthInv;
+    static PS::F64 DeltaSystemTime = MinimumTimeStep;
     static PS::F64 CriticalRadius  = 1.8e9 * CodeUnit::UnitOfLengthInv;
     static bool StopDampingB = false;
 
@@ -431,6 +644,7 @@ void reduceSeparation(PS::F64 time,
         PS::F64 rho2  = m1 / ((4.d * M_PI / 3.d * rmax * rmax * rmax));
 
         ReductionTime = 1.d / (0.05 * sqrt(CodeUnit::grav * rho2));;
+        SPH::ReductionTimeInv = 1. / ReductionTime;
 
         firststep = false;
     }
@@ -464,6 +678,8 @@ void reduceSeparation(PS::F64 time,
             char filename[64];
             sprintf(filename, "snap/final.dat");
             system.writeParticleAscii(filename);
+            sprintf(filename, "snap/msls_final.dat");
+            msls.writeParticleAscii(filename);
 
             PS::Finalize();
             exit(0);
@@ -496,15 +712,29 @@ void reduceSeparation(PS::F64 time,
         dx = x1 - x0;
         dr = sqrt(dx * dx);
 
+        PS::F64 xlag = searchLagrange1(msls, x0[0], x1[0]);
+
         if(PS::Comm::getRank() == 0) {
-            fprintf(stderr, "bsep: %.10f %+e\n", time, dr * CodeUnit::UnitOfLength);
             fprintf(fplog,  "bsep: %.10f %+e\n", time, dr * CodeUnit::UnitOfLength);
             fflush(fplog);
         }
-
+        
+#if 1        
+        bool StopDampingBLocal = false;
+        for(PS::S32 i = 0; i < nloc; i++) {
+            if(system[i].istar == 0)
+                continue;
+            if(system[i].pos[0] > xlag) {
+                StopDampingBLocal = true;
+                break;
+            }
+        }
+        StopDampingB = PS::Comm::synchronizeConditionalBranchOR(StopDampingBLocal);
+#else
         if(dr < CriticalRadius) {
             StopDampingB = true;
         }
+#endif
    }
 #endif    
     
@@ -533,51 +763,81 @@ void calcFieldVariable(Tptcl & system) {
     return;
 }
 
-template <class Tptcl>
-void doThisEveryTime(PS::F64 & time,
-                     PS::F64 & dtime,
+template <class Theader,
+          class Tdinfo,
+          class Tptcl,
+          class Tmassless>
+void doThisEveryTime(PS::F64 & dtime,
                      PS::F64 & tout,
-                     PS::F64 & dtsp,
+                     Theader & header,
+                     Tdinfo & dinfo,
                      Tptcl & system,
+                     Tmassless & msls,
                      FILE * fplog,
                      FILE * fptim) {
-    reduceSeparation(time, system, fplog);
+    reduceSeparation(header.time, system, msls, fplog);
 
     calcFieldVariable(system);
 
-    if(time >= tout) {
-        char filename[64];
-        sprintf(filename, "snap/sph_t%04d.dat", (PS::S32)time);
-        system.writeParticleAscii(filename);
-        tout += dtsp;
+    if(PS::Comm::getRank() == 0 && header.time == 0.) {
+        fprintf(fplog, "# Maximum kernel length: %e\n", header.ksrmax);
+        fprintf(fplog, "# Unit of length:        %e\n", CodeUnit::UnitOfLength);
     }
 
-    //if(time == 1.0) {
-    //    PS::Finalize();
-    //    exit(0);
-    //}
-    
+    //PS::F64 trst = 10.;
+    PS::F64 trst = 1.;
+    if(header.time - (PS::S64)(header.time / trst) * trst == 0.) {
+        char filename[64];
+        sprintf(filename, "snap/t%04d_p%06d.hexa", (PS::S32)header.time, PS::Comm::getRank());
+        writeRestartFile(filename, header.time, header, dinfo, system);
+    }
+
+    if(header.time >= tout) {
+        char filename[64];
+        sprintf(filename, "snap/sph_t%04d.dat", (PS::S32)header.time);
+        system.writeParticleAscii(filename);
+#ifdef WD_DAMPINGB
+        sprintf(filename, "snap/msls_t%04d.dat", (PS::S32)header.time);
+        msls.writeParticleAscii(filename);
+#endif
+        tout += header.dtsp;
+    }
+
     PS::F64 etot = calcEnergy(system);
     WT::reduceInterProcess();
-    if(PS::Comm::getRank() == 0) {
+    if(PS::Comm::getRank() == 0)     {
         using namespace CodeUnit;
-        fprintf(fplog,  "time: %.10f %+e %+e\n", time * UnitOfTime,
+        fprintf(fplog,  "time: %.10f %+e %+e\n", header.time * UnitOfTime,
                 etot * UnitOfEnergy * UnitOfMass, WT::getTimeTotal());
         fflush(fplog);
-        WT::dump(time, fptim);
+        WT::dump(header.time, fptim);
         fflush(fptim);
     }
     WT::clear();
 
 }
 
-template <class Tptcl>
+template <class Theader,
+          class Tdinfo,
+          class Tptcl,
+          class Tmsls>
 void finalizeSimulation(PS::S32 time,
-                        Tptcl & system) {
-    char filename[64];
+                        Theader & header,
+                        Tdinfo & dinfo,
+                        Tptcl & system,
+                        Tmsls & msls) {
 
-    sprintf(filename, "snap/sph_t%04d.dat", (PS::S32)time);
-    system.writeParticleAscii(filename);
+    {
+        char filename[64];
+        sprintf(filename, "snap/t%04d_p%06d.hexa", (PS::S32)time, PS::Comm::getRank());
+        writeRestartFile(filename, time, header, dinfo, system);
+    }
+
+    {
+        char filename[64];
+        sprintf(filename, "snap/sph_t%04d.dat", (PS::S32)time);
+        system.writeParticleAscii(filename);
+    }
 
     PS::F64    mc;
     PS::F64vec xc;
@@ -588,8 +848,9 @@ void finalizeSimulation(PS::S32 time,
         system[i].pos -= xc;
         system[i].vel -= vc;
     }
-
-    sprintf(filename, "snap/final.dat");
-    system.writeParticleAscii(filename);
+    {
+        char filename[64];
+        sprintf(filename, "snap/final.dat");
+        system.writeParticleAscii(filename);
+    }
 }
-
