@@ -7,7 +7,7 @@
 
 NPARALLEL=24
 NPROCESS=$NPARALLEL
-odir=try02
+odir=try03
 #ifile=../result.heos/r001k/b1.10-1.00/s01.bsep/t01/t0400
 ifile=../init.heos/r001k/rlxb_b1.10-1.00/b1.10-1.00.init
 #

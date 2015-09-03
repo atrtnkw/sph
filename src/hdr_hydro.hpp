@@ -20,7 +20,7 @@ public:
         hinv = 1.d / sph.ksr;
         pres = sph.pres / (sph.dens * sph.dens) * sph.grdh;
         rho  = sph.dens;
-        bswt = sph.bswt;
+        bswt = 0.5 * sph.bswt;
         vsnd = sph.vsnd;
         alph = sph.alph;
     }
@@ -57,7 +57,7 @@ public:
         hinv = 1.d / sph.ksr;
         pres = sph.pres / (sph.dens * sph.dens) * sph.grdh;
         rho  = sph.dens;
-        bswt = sph.bswt;
+        bswt = 0.5 * sph.bswt;
         vsnd = sph.vsnd;
         alph = sph.alph;
     }
@@ -209,7 +209,7 @@ struct calcDerivativeX86 {
                 mu_ij = ((xv_ij < v4df(0.d)) & mu_ij);
                 v4df pi_ij  = v4df(-0.5d) * vs_ij * mu_ij * (alph_i + v4df(epj[j].alph))
                     * rcp(rh_i + v4df(epj[j].rho));
-                v4df f_ij   = v4df(0.5d) * (bswt_i + v4df(epj[j].bswt));
+                v4df f_ij   = bswt_i + v4df(epj[j].bswt);
                 v4df vis_ij = f_ij * pi_ij;
 
                 v4df da_ij = dw_ij * (prhi2_i + v4df(epj[j].pres) + vis_ij);
