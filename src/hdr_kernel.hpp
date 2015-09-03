@@ -8,6 +8,7 @@ namespace WendlandC2 {
 
     const  PS::F64 dim   = +1.0d;
     const  PS::F64 ksrh  = 1.620185d;
+    const  PS::F64 ksrhinv = 1. / ksrh;
     const  PS::F64 ceff0 = +1.25d;
     const  PS::F64 ceff1 = +3.75d;
     inline PS::F64 kernel0th(const PS::F64 r) {
@@ -36,11 +37,13 @@ namespace WendlandC2 {
 #ifdef USE_AT2D
     const  PS::F64 dim  = +2.0;
     const  PS::F64 ksrh = 1.897367d;
+    const  PS::F64 ksrhinv = 1. / ksrh;
     const  PS::F64 ceff0 = +2.228169203286535005e+00d;
     const  PS::F64 ceff1 = +8.912676813146140020e+00d;
 #else
     const  PS::F64 dim  = +3.0;
     const  PS::F64 ksrh = 1.936492d;
+    const  PS::F64 ksrhinv = 1. / ksrh;
     const  PS::F64 ceff0 = +3.342253804929802286e+00d;
     const  PS::F64 ceff1 = +1.336901521971920914e+01d;
 #endif
@@ -82,6 +85,7 @@ namespace WendlandC4 {
 
     const  PS::F64 dim   = +1.0d;
     const  PS::F64 ksrh  = +1.936492d;
+    const  PS::F64 ksrhinv = 1. / ksrh;
     const  PS::F64 ceff0 = +1.5d;
     inline PS::F64 kernel0th(const PS::F64 r) {
         PS::F64 rmin  = (r < 1.d) ? (1.d - r) : 0.d;
@@ -114,10 +118,12 @@ namespace WendlandC4 {
 #ifdef USE_AT2D
     const  PS::F64 dim  = +2.0;
     const  PS::F64 ksrh = 2.171239d;
+    const  PS::F64 ksrhinv = 1. / ksrh;
     const  PS::F64 ceff0 = +2.8647889756541162e+00d;
 #else
     const  PS::F64 dim  = +3.0;
     const  PS::F64 ksrh = 2.207940d;
+    const  PS::F64 ksrhinv = 1. / ksrh;
     const  PS::F64 ceff0 = +4.9238560519055123e+00d;
 #endif
     const  PS::F64 ceff1 = +1.1666666666666667e+01d;
@@ -174,6 +180,7 @@ namespace CubicSpline {
     const PS::F64 ceff0x = ceff0 * 2.d;
 
     const  PS::F64 ksrh = 2.0d;
+    const  PS::F64 ksrhinv = 1. / ksrh;
     
     inline PS::F64 kernel0th(const PS::F64 r) {
 #if 1

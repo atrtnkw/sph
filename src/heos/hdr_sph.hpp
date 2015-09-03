@@ -280,6 +280,7 @@ public:
 #ifdef WD_DAMPINGB
         fprintf(fp, " %+.16e", SPH::omg[2]);
 #endif
+        //fprintf(fp, " %+.16e", this->udot * UnitOfEnergy * UnitOfTimeInv);
         fprintf(fp, "\n");
 
     }
@@ -303,9 +304,13 @@ public:
     }
 
     void calcBalsaraSwitch() {
+        /*
         this->bswt = fabs(this->grdh * this->divv)
             / (fabs(this->grdh * this->divv) + fabs(this->grdh * this->rotv)
                + 1e-4 * this->vsnd * KernelSph::ksrh / this->ksr);
+        */
+        this->bswt = fabs(this->divv) / (fabs(this->divv) + fabs(this->rotv)
+                                         + 1e-4 * this->vsnd * KernelSph::ksrh / this->ksr);
     }
     // Should "this->grdh * this->divv" be "this->divv" ?
 
@@ -318,14 +323,17 @@ public:
     }
 
     PS::F64 calcTimeStep() {
-        return tceff * 2. * this->ksr / (this->vsmx * KernelSph::ksrh);
+        return tceff * 2. * this->ksr / (this->vsmx * KernelSph::ksrh);        
     }
 
-//    PS::F64 calcTimeStep() {
-//        PS::F64 dthydro  = tceff * 2. * this->ksr / this->vsmx;
-//        PS::F64 dtenergy = tceff * this->uene / fabs(this->udot);
-//        return ((dthydro < dtenergy) ? dthydro : dtenergy);
-//    }
+    /*
+    PS::F64 calcTimeStep() {
+        PS::F64 dthydro  = tceff * 2. * this->ksr / (this->vsmx * KernelSph::ksrh);
+        PS::F64 dtenergy = (this->uene > 0.0 && this->udot != 0.0) ?
+            tceff * fabs(this->uene / this->udot) : MaximumTimeStep;
+        return ((dthydro < dtenergy) ? dthydro : dtenergy);
+    }
+    */
 
 #ifdef WD_DAMPINGB
     inline void addAdditionalForce() {
@@ -617,7 +625,7 @@ void reduceSeparation(PS::F64 time,
 #ifdef WD_DAMPINGB
     static bool    firststep = true;
     static PS::F64 ReductionTime;
-    static PS::F64 DeltaSystemTime = MinimumTimeStep;
+    static PS::F64 DeltaSystemTime = MaximumTimeStep;
     static PS::F64 CriticalRadius  = 1.8e9 * CodeUnit::UnitOfLengthInv;
     static bool StopDampingB = false;
 
