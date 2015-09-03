@@ -194,6 +194,11 @@ int main(int argc, char **argv)
 
         doThisEveryTime(dtime, tout, header, dinfo, sph, msls, fplog, fptim);
 
+        if(header.time == 1.0) {
+            PS::Finalize();
+            exit(0);
+        }
+
         WT::start();
         dtime = calcTimeStep(sph, header.time, MaximumTimeStep);
         WT::accumulateOthers();
