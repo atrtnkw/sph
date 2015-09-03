@@ -7,9 +7,9 @@
 
 NPARALLEL=48
 NPROCESS=$NPARALLEL
-odir=s02.infty
+odir=confirm
+#ifile=../result.heos/r001k/b1.10-1.00/s01.bsep/t01/t0400
 ifile=../init.heos/r001k/rlxb_b1.10-1.00/b1.10-1.00.init
-#ifile=b1.10-1.00_r001k/s02.infty/t01/t0380
 #
 tempodir=snap
 fexe=run

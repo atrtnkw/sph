@@ -205,12 +205,23 @@ struct calcDerivativeX86 {
                     * (hi4_i * KernelSph::kernel1st(q_i) + hi4_j * KernelSph::kernel1st(q_j));
 
                 v4df mu_ij = xv_ij * ri_ij;
+#if 1
+                v4df vs_ij  = cs_i + v4df(epj[j].vsnd) - v4df(3.d) * mu_ij;
+                mu_ij = ((xv_ij < v4df(0.d)) & mu_ij);
+#else
                 mu_ij = ((xv_ij < v4df(0.d)) & mu_ij);
                 v4df vs_ij  = cs_i + v4df(epj[j].vsnd) - v4df(3.d) * mu_ij;
+#endif                
                 v4df pi_ij  = v4df(-0.5d) * vs_ij * mu_ij * (alph_i + v4df(epj[j].alph))
                     * rcp(rh_i + v4df(epj[j].rho));
                 v4df f_ij   = v4df(0.5d) * (bswt_i + v4df(epj[j].bswt));
                 v4df vis_ij = f_ij * pi_ij;
+
+                /////////////////////////
+                //vis_ij = 0.0;
+                //vis_ij *= 0.1;
+                //vis_ij *= 0.01;
+                /////////////////////////
 
                 v4df da_ij = dw_ij * (prhi2_i + v4df(epj[j].pres) + vis_ij);
                 accx_i -= da_ij * dpx_ij;
@@ -253,6 +264,7 @@ struct calcDerivativeX86 {
     }
 };
 
+#if 0
 struct calcDerivativeSingleX86 {
 
     void operator () (const DerivativeEPI *epi,
@@ -377,6 +389,7 @@ struct calcDerivativeSingleX86 {
 
     }
 };
+#endif
 
 #ifdef ENABLE_SIMDX86
 typedef calcDerivativeX86 calcDerivative;

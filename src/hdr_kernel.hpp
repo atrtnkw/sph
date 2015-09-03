@@ -156,8 +156,7 @@ namespace WendlandC4 {
 namespace CubicSpline {
     
     const PS::F64 eta   = 1.2d;
-    //const PS::F64 eta   = 2.0d;
-    //const PS::F64 eta   = 4.8d;
+    //const PS::F64 eta   = 1.73d;
 
 #ifdef USE_AT1D
     const PS::F64 dim   = +1.0;

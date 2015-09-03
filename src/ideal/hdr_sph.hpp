@@ -1,5 +1,11 @@
 #pragma once
 
+namespace CodeUnit {
+    PS::F64 grav         = 1.;
+    PS::F64 UnitOfLength = 1.;
+    PS::F64 UnitOfEnergy = 1.;
+}
+
 class Density{
 public:
     PS::F64 dens;
@@ -115,6 +121,8 @@ public:
     static PS::F64    alphamax, alphamin;
     static PS::F64    tceff;
     static PS::F64    eps;
+    static PS::F64    ksrmax;
+    static PS::F64vec omg;
 
     PS::F64vec getPos() const {
         return this->pos;
@@ -173,8 +181,13 @@ public:
     }
 
     void calcBalsaraSwitch() {
+        /*
         this->bswt = fabs(this->grdh * this->divv)
             / (fabs(this->grdh * this->divv) + fabs(this->grdh * this->rotv)
+               + 1e-4 * this->vsnd * KernelSph::ksrh / this->ksr);
+        */
+        this->bswt = fabs(this->divv)
+            / (fabs(this->divv) + fabs(this->rotv)
                + 1e-4 * this->vsnd * KernelSph::ksrh / this->ksr);
     }
 
@@ -259,6 +272,8 @@ PS::F64    SPH::tceff;
 PS::F64    SPH::alphamax, SPH::alphamin;
 //PS::F64    SPH::eps = 1e-3;
 PS::F64    SPH::eps;
+PS::F64    SPH::ksrmax = std::numeric_limits<double>::max();
+PS::F64vec SPH::omg;
 
 #ifdef USE_AT1D
 inline PS::F64 SPH::calcVolumeInverse(const PS::F64 hi) {return hi;}

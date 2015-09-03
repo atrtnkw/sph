@@ -784,8 +784,8 @@ void doThisEveryTime(PS::F64 & dtime,
         fprintf(fplog, "# Unit of length:        %e\n", CodeUnit::UnitOfLength);
     }
 
-    //PS::F64 trst = 10.;
-    PS::F64 trst = 1.;
+    PS::F64 trst = 10.;
+    //PS::F64 trst = 1.;
     if(header.time - (PS::S64)(header.time / trst) * trst == 0.) {
         char filename[64];
         sprintf(filename, "snap/t%04d_p%06d.hexa", (PS::S32)header.time, PS::Comm::getRank());
