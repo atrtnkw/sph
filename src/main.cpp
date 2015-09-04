@@ -113,7 +113,25 @@ int main(int argc, char **argv)
     calcSPHKernel(dinfo, sph, density, derivative,
                   calcDensity(), calcDerivative());
 
+    {
+        char filename[64];
+        sprintf(filename, "hoge.dat");
+        sph.writeParticleAscii(filename);
+    }
+    
 #ifdef GRAVITY
+#ifdef SYMMETRIZED_GRAVITY
+    PS::TreeForForce<PS::SEARCH_MODE_LONG, Gravity,
+        SymmetrizedGravityEPI, SymmetrizedGravityEPJ, PS::MomentMonopoleSymmetrized,
+        PS::MomentMonopoleSymmetrized, PS::SPJMonopoleSymmetrized> gravity;
+    gravity.initialize(nptclmax);
+    WT::start();
+    gravity.calcForceAllAndWriteBack(calcSymmetrizedGravity<SymmetrizedGravityEPJ>(),
+                                     calcSymmetrizedGravity<PS::SPJMonopoleSymmetrized>(),
+                                     sph,
+                                     dinfo);
+    WT::accumulateCalcGravity();
+#else
     PS::TreeForForceLong<Gravity, GravityEPI, GravityEPJ>::Monopole gravity;
     gravity.initialize(nptclmax);
     g5_open();
@@ -124,6 +142,7 @@ int main(int argc, char **argv)
                                      sph,
                                      dinfo);
     WT::accumulateCalcGravity();
+#endif
 #endif
 
     FILE *fplog = fopen("snap/time.log", "w");
@@ -141,7 +160,7 @@ int main(int argc, char **argv)
             tout += dtsp;
             nstp++;
         }
-
+        
         PS::F64 etot = calcEnergy(sph);
         WT::reduceInterProcess();
         if(rank == 0) {
@@ -152,10 +171,6 @@ int main(int argc, char **argv)
         }
         WT::clear();
 
-        //if(time > 0.d) {
-        //PS::Finalize();
-        //    exit(0);
-        //}
 #if TIMETEST
         if(time > 0.d) {
             fprintf(stdout, "dens: %6d grdh: %6d hydr: %6d\n", ncalcdens, ncalcgrdh, ncalchydr);
@@ -210,10 +225,17 @@ int main(int argc, char **argv)
 
         WT::start();
 #ifdef GRAVITY
+#ifdef SYMMETRIZED_GRAVITY
+        gravity.calcForceAllAndWriteBack(calcSymmetrizedGravity<SymmetrizedGravityEPJ>(),
+                                         calcSymmetrizedGravity<PS::SPJMonopoleSymmetrized>(),
+                                         sph,
+                                         dinfo);
+#else
         gravity.calcForceAllAndWriteBack(calcGravity<GravityEPJ>(),
                                          calcGravity<PS::SPJMonopole>(),
                                          sph,
                                          dinfo);
+#endif
 #endif
         WT::accumulateCalcGravity();
 

@@ -35,6 +35,7 @@ CFLAGS += -DCUBICSPLINE
 #CFLAGS += -DUSE_AT2D
 #
 CFLAGS += -DGRAVITY
+CFLAGS += -DSYMMETRIZED_GRAVITY
 #CFLAGS += -DDAMPING
 #########################################
 #########################################

@@ -34,8 +34,8 @@ namespace ParticleSimulator {
         template<class Tepj>
         void accumulateAtLeaf(const Tepj & epj){
             mass += epj.getCharge();
-            eps2 += epj.getCharge() * epj.getSofteningSquare();
             pos  += epj.getCharge() * epj.getPos();
+            eps2 += epj.getCharge() * epj.getSofteningSquare();
         }
         template<class Tepj>
         void accumulateAtLeaf2(const Tepj & epj){}
@@ -95,11 +95,11 @@ public:
     PS::F64    eps2;
     void copyFromFP(const SPH & sph){ 
         pos  = sph.pos;
-        eps2 = 0.25 * SPH::eps * SPH::eps;
+        eps2 = 0.5 * SPH::eps * SPH::eps;
     }
     void copyFromFP(const MassLess & msls){         
         pos  = msls.pos;
-        eps2 = 0.25 * SPH::eps * SPH::eps;
+        eps2 = 0.5 * SPH::eps * SPH::eps;
     }
     PS::F64vec getPos() const {
         return this->pos;
@@ -117,12 +117,12 @@ public:
     void copyFromFP(const SPH & sph){ 
         mass = sph.mass;
         pos  = sph.pos;
-        eps2 = 0.25 * SPH::eps * SPH::eps;
+        eps2 = 0.5 * SPH::eps * SPH::eps;
     }
     void copyFromFP(const MassLess & msls){ 
         mass = msls.mass;
         pos  = msls.pos;
-        eps2 = 0.25 * SPH::eps * SPH::eps;
+        eps2 = 0.5 * SPH::eps * SPH::eps;
     }
     PS::F64vec getPos() const {
         return this->pos;
@@ -138,31 +138,32 @@ public:
     }
 };
 
-template <class TSymmetrizedGravityJ>
+template <class TGravityJ>
 struct calcSymmetrizedGravity {    
 
     void operator () (const SymmetrizedGravityEPI *epi,
                       const PS::S32 nip,
-                      const TSymmetrizedGravityJ *epj,
+                      const TGravityJ *epj,
                       const PS::S32 njp,
                       Gravity *gravity) {
 
         for(PS::S32 i = 0; i < nip; i++) {
             PS::F64vec xi  = epi[i].pos;
-            PS::F64    e2i = epi[i].eps2;
+            PS::F64    ei2 = epi[i].eps2;
             PS::F64vec ai  = 0.0;
             PS::F64    pi  = 0.0;
             for(PS::S32 j = 0; j < njp; j++) {
                 PS::F64vec dx   = epj[j].pos - xi;
-                PS::F64    r2   = (dx * dx) + e2i + epj[i].eps2;
+                PS::F64    r2   = (dx * dx) + ei2 + epj[j].eps2;
                 PS::F64    r1i  = 1.0 / sqrt(r2);
-                PS::F64    mr1i = epj[i].mass * r1i;
+                PS::F64    mr1i = epj[j].mass * r1i;
                 PS::F64    mr3i = mr1i * r1i * r1i;
                 ai += mr3i * dx;
                 pi -= mr1i;
             }
-            gravity[i].acc = ai;
-            gravity[i].pot = pi;
+            gravity[i].acc += ai;
+            gravity[i].pot += pi;
         }
+
     }
 };
