@@ -41,7 +41,8 @@ CFLAGS += -DGRAVITY
 
 OBJ = main.o
 HDR = hdr_sph.hpp hdr_kernel.hpp hdr_density.hpp hdr_hydro.hpp \
-	hdr_gravity.hpp hdr_damp.hpp hdr_time.hpp vector_x86.hpp
+	hdr_gravity.hpp hdr_damp.hpp hdr_time.hpp vector_x86.hpp \
+	hdr_vgravity.hpp
 ETC = Makefile
 
 run: $(OBJ) $(HDR) $(ETC)

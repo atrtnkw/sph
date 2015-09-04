@@ -16,6 +16,7 @@
 
 #include "gp5util.h"
 #include "hdr_gravity.hpp"
+#include "hdr_vgravity.hpp"
 
 #include "hdr_damp.hpp"
 
