@@ -15,6 +15,7 @@ public:
     PS::F64 divv;
     PS::S32 np;
     bool    itr;
+    PS::F64 eta;
     void clear(){
         dens = 0.0;
         grdh = 0.0;
@@ -23,6 +24,7 @@ public:
         divv = 0.0;
         np   = 0;
         itr  = false;
+        eta  = 0.0;
     }
 };
 
@@ -116,6 +118,7 @@ public:
     PS::F64    vsmx;
     PS::F64    pot;
     PS::F64vec accg;
+    PS::F64    eta;
     static PS::F64ort cbox;
     static PS::F64    cinv;
     static PS::F64    alphamax, alphamin;
@@ -139,6 +142,7 @@ public:
         this->ksr  = density.ksr;
         this->rotv = density.rotv;
         this->divv = density.divv;
+        this->eta  = density.eta;
     }
 
     void copyFromForce(const Derivative & derivative){
@@ -149,7 +153,11 @@ public:
 
     void copyFromForce(const Gravity & gravity) {
         this->acc  += gravity.acc;
+#ifdef SYMMETRIZED_GRAVITY
+        this->pot   = gravity.pot;
+#else
         this->pot   = gravity.pot + this->mass / this->eps;
+#endif
         this->accg  = gravity.acc;
     }
 
@@ -199,9 +207,17 @@ public:
             * (0.25 * this->vsnd * KernelSph::ksrh) / this->ksr + src;
     }
 
+#if 1
     PS::F64 calcTimeStep() {
         return tceff * 2. * this->ksr / (this->vsmx * KernelSph::ksrh);
     }
+#else
+    PS::F64 calcTimeStep() {
+        PS::F64 dthydro = tceff * 2. * this->ksr / (this->vsmx * KernelSph::ksrh);
+        PS::F64 dtgrav  = tceff * sqrt(this->ksr * this->ksr / (this->acc * this->acc));
+        return ((dthydro < dtgrav) ? dthydro : dtgrav);
+    }
+#endif
 
 //    PS::F64 calcTimeStep() {
 //        PS::F64 dthydro  = tceff * 2. * this->ksr / this->vsmx;

@@ -12,6 +12,7 @@ public:
     PS::F64    bswt;
     PS::F64    vsnd;
     PS::F64    alph;
+    PS::F64    eta;
     void copyFromFP(const SPH & sph){ 
         id   = sph.id;
         pos  = sph.pos;
@@ -23,6 +24,7 @@ public:
         bswt = 0.5 * sph.bswt;
         vsnd = sph.vsnd;
         alph = sph.alph;
+        eta  = sph.eta;
     }
     PS::F64vec getPos() const {
         return this->pos;
@@ -48,6 +50,7 @@ public:
     PS::F64    bswt;
     PS::F64    vsnd;
     PS::F64    alph;
+    PS::F64    eta;
     void copyFromFP(const SPH & sph){ 
         id   = sph.id;
         mass = sph.mass;
@@ -60,6 +63,7 @@ public:
         bswt = 0.5 * sph.bswt;
         vsnd = sph.vsnd;
         alph = sph.alph;
+        eta  = sph.eta;
     }
     PS::F64vec getPos() const {
         return this->pos;
@@ -96,9 +100,11 @@ struct calcDerivativeBasic {
             PS::F64    bswt_i  = epi[i].bswt;
             PS::F64    cs_i    = epi[i].vsnd;
             PS::F64    alph_i  = epi[i].alph;
+            PS::F64    eta_i   = epi[i].eta;
             PS::F64vec acc_i   = 0.d;
             PS::F64    ene_i   = 0.d;            
             PS::F64    vsmx_i  = 0.d;
+            PS::F64vec g1_i    = 0.;
             for(PS::S32 j = 0; j < njp; j++) {
                 PS::S32    id_j    = epj[j].id;
                 PS::F64    m_j     = epj[j].mass;
@@ -111,6 +117,7 @@ struct calcDerivativeBasic {
                 PS::F64    bswt_j  = epj[j].bswt;
                 PS::F64    cs_j    = epj[j].vsnd;
                 PS::F64    alph_j  = epj[j].alph;
+                PS::F64    eta_j   = epj[j].eta;
 
                 PS::F64vec dx_ij = x_i - x_j;
                 PS::F64vec dv_ij = v_i - v_j;
@@ -121,8 +128,9 @@ struct calcDerivativeBasic {
                 PS::F64    q_i   = r1_ij * hi_i;
                 PS::F64    q_j   = r1_ij * hi_j;
 
-                PS::F64vec dw_ij  = m_j * dx_ij * ri_ij * 0.5d
-                    * (hi4_i * KernelSph::kernel1st(q_i) + hi4_j * KernelSph::kernel1st(q_j));
+                PS::F64 dw_i = hi4_i * KernelSph::kernel1st(q_i);
+                PS::F64 dw_j = hi4_j * KernelSph::kernel1st(q_j);
+                PS::F64vec dw_ij  = m_j * dx_ij * ri_ij * 0.5d * (dw_i + dw_j);
 
                 PS::F64    mu_ij  = (xv_ij < 0.d) ? (xv_ij * ri_ij) : 0.d;
                 PS::F64    vs_ij  = cs_i + cs_j - 3.d * mu_ij;
@@ -132,9 +140,14 @@ struct calcDerivativeBasic {
 
                 acc_i -=         dw_ij * (prhi2_i + prhi2_j + vis_ij);
                 ene_i += dv_ij * dw_ij * (prhi2_i + 0.5d * vis_ij);
-                vsmx_i = (vs_ij > vsmx_i) ? vs_ij : vsmx_i;
+                vsmx_i = (vs_ij > vsmx_i) ? vs_ij : vsmx_i;                
+
+#ifdef SYMMETRIZED_GRAVITY
+                PS::F64vec dg_ij = m_j * dx_ij * ri_ij * 0.5d * (eta_i * dw_i + eta_j * dw_j);
+                g1_i += dg_ij;
+#endif
             }
-            derivative[i].acc  = acc_i;
+            derivative[i].acc  = acc_i + g1_i;
             derivative[i].udot = ene_i;
             derivative[i].vsmx = vsmx_i;
         }
@@ -260,6 +273,10 @@ struct calcDerivativeX86 {
 
 #if 0
 struct calcDerivativeSingleX86 {
+
+#ifdef SYMMETRIZED_GRAVITY
+#error SYMMETRIZED_GRAVITY has been not yet implemented in float precision!
+#endif
 
     void operator () (const DerivativeEPI *epi,
                       const PS::S32 nip,

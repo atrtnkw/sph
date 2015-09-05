@@ -49,14 +49,6 @@ public:
     }
 };
 
-#ifdef TIMETEST
-static PS::F64 tcalcdens = 0.d;
-static PS::F64 tcalcgrdh = 0.d;
-static PS::S32 ncalcdens = 0;
-static PS::S32 ncalcgrdh = 0;
-static PS::S64 ninteract = 0;
-#endif
-
 struct calcDensityBasic {
 
     void operator () (const DensityEPI *epi,
@@ -78,10 +70,6 @@ struct calcDensityBasic {
                 PS::F64 rh_i  = 0.;
                 PS::S32 nj_i  = 0;
 
-#ifdef TIMETEST
-                PS::F64 t1 = getWallclockTime();;
-#endif
-
                 for(PS::S32 j = 0; j < njp; j++) {
                     PS::F64    m_j = epj[j].mass;
                     PS::F64vec x_j = epj[j].pos;
@@ -100,11 +88,6 @@ struct calcDensityBasic {
                     nj_i   += (q_i < 1.d) ? 1 : 0;
 
                 }
-#ifdef TIMETEST
-                tcalcdens += getWallclockTime() - t1;
-                ncalcdens++;
-#endif
-
                 density[i].dens = rh_i;
                 density[i].np   = nj_i;
 
@@ -119,10 +102,11 @@ struct calcDensityBasic {
             PS::F64    gh_i  = 0.;
             PS::F64    divv_i = 0.;
             PS::F64vec rotv_i = 0.;            
+            PS::F64    eta_i  = 0.;
 
-#ifdef TIMETEST
-            PS::F64 t1 = getWallclockTime();;
-#endif
+            PS::F64    h1c2_i = h_i * KernelSph::ksrhinv * KernelSph::ksrhinv;
+            PS::F64    h2c2_i = h_i * h1c2_i;
+
             for(PS::S32 j = 0; j < njp; j++) {
                 PS::S32    id_j = epj[j].id;
                 PS::F64    m_j  = epj[j].mass;
@@ -145,17 +129,23 @@ struct calcDensityBasic {
                 gh_i   += ghj;
                 divv_i -= dv_ij * dw_ij;
                 rotv_i += dv_ij ^ dw_ij;
-            }
-#ifdef TIMETEST
-            tcalcgrdh += getWallclockTime() - t1;
-            ncalcgrdh++;
+
+#ifdef SYMMETRIZED_GRAVITY
+                PS::F64 re2_ij = r2_ij + h2c2_i;
+                PS::F64 rei_ij = 1. / sqrt(re2_ij);
+                rei_ij = (id_i != id_j) ? rei_ij : 0.;
+                PS::F64 rei2_ij = rei_ij * rei_ij;
+                eta_i -= m_j * h1c2_i * rei2_ij * rei_ij;
 #endif
+                
+            }
 
             PS::F64 rhi_i = 1. / density[i].dens;
             density[i].grdh = 1.d / (1.d + h_i * rhi_i * gh_i / KernelSph::dim);
             PS::F64 grd_i = density[i].grdh;
             density[i].rotv = sqrt(rotv_i * rotv_i) * rhi_i * grd_i;
             density[i].divv = divv_i * rhi_i * grd_i;
+            density[i].eta  = h_i * rhi_i * grd_i  / KernelSph::dim * eta_i;
 
         }        
     }
@@ -323,6 +313,10 @@ struct calcDensityX86 {
 
 #if 0
 struct calcDensitySingleX86 {
+
+#ifdef SYMMETRIZED_GRAVITY
+#error SYMMETRIZED_GRAVITY has been not yet implemented in float precision!
+#endif
 
     void operator () (const DensityEPI *epi,
                       const PS::S32 nip,

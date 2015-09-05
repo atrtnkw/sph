@@ -113,12 +113,6 @@ int main(int argc, char **argv)
     calcSPHKernel(dinfo, sph, density, derivative,
                   calcDensity(), calcDerivative());
 
-    {
-        char filename[64];
-        sprintf(filename, "hoge.dat");
-        sph.writeParticleAscii(filename);
-    }
-    
 #ifdef GRAVITY
 #ifdef SYMMETRIZED_GRAVITY
     PS::TreeForForce<PS::SEARCH_MODE_LONG, Gravity,
@@ -160,7 +154,7 @@ int main(int argc, char **argv)
             tout += dtsp;
             nstp++;
         }
-        
+
         PS::F64 etot = calcEnergy(sph);
         WT::reduceInterProcess();
         if(rank == 0) {
