@@ -214,7 +214,6 @@ public:
 #if 1
     PS::F64 calcTimeStep() {
         return tceff * 2. * this->ksr / (this->vsmx * KernelSph::ksrh);
-        //return 0.5 * tceff * 2. * this->ksr / (this->vsmx * KernelSph::ksrh);
     }
 #else
     PS::F64 calcTimeStep() {
