@@ -31,10 +31,12 @@ public:
 class Derivative{
 public:
     PS::F64vec acc;
+    PS::F64vec accg;
     PS::F64    udot;
     PS::F64    vsmx;
     void clear(){
         acc  = 0.0;
+        accg = 0.0;
         udot = 0.0;
         vsmx = 0.0;
     }
@@ -146,7 +148,8 @@ public:
     }
 
     void copyFromForce(const Derivative & derivative){
-        this->acc  = derivative.acc;
+        this->acc  = derivative.acc + derivative.accg;
+        this->accg = derivative.accg;
         this->udot = derivative.udot;
         this->vsmx = derivative.vsmx;
     }
@@ -155,10 +158,11 @@ public:
         this->acc  += gravity.acc;
 #ifdef SYMMETRIZED_GRAVITY
         this->pot   = gravity.pot;
+        this->accg += gravity.acc;
 #else
         this->pot   = gravity.pot + this->mass / this->eps;
-#endif
         this->accg  = gravity.acc;
+#endif
     }
 
     void readAscii(FILE *fp) {
@@ -210,6 +214,7 @@ public:
 #if 1
     PS::F64 calcTimeStep() {
         return tceff * 2. * this->ksr / (this->vsmx * KernelSph::ksrh);
+        //return 0.5 * tceff * 2. * this->ksr / (this->vsmx * KernelSph::ksrh);
     }
 #else
     PS::F64 calcTimeStep() {

@@ -147,7 +147,8 @@ struct calcDerivativeBasic {
                 g1_i += dg_ij;
 #endif
             }
-            derivative[i].acc  = acc_i + g1_i;
+            derivative[i].acc  = acc_i;
+            derivative[i].accg = g1_i;
             derivative[i].udot = ene_i;
             derivative[i].vsmx = vsmx_i;
         }

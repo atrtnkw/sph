@@ -174,9 +174,9 @@ struct calcSymmetrizedGravity {
                 PS::F64    rej_inv = 1. / sqrt(rej2);
                 PS::F64    rei_inv3 = rei_inv * rei_inv * rei_inv;
                 PS::F64    rej_inv3 = rej_inv * rej_inv * rej_inv;
-                PS::F64vec dg2_i    = - 0.5 * mj * dx * (rej_inv3 + rej_inv3);
-                //PS::F64    dpi      = (idi != idj) ? (mj * rej_inv) : 0.;
-                PS::F64    dpi      = (idi != idj) ? (0.5 * mj * (rei_inv + rej_inv)) : 0.;
+                //PS::F64vec dg2_i    = - 0.5 * mj * dx * (rej_inv3 + rej_inv3);
+                PS::F64vec dg2_i    = - 0.5 * mj * dx * (rei_inv3 + rej_inv3);
+                PS::F64    dpi      = 0.5 * mj * (rei_inv + rej_inv);
 
                 ai += dg2_i;
                 pi -= dpi;
@@ -184,6 +184,5 @@ struct calcSymmetrizedGravity {
             gravity[i].acc += ai;
             gravity[i].pot += pi;
         }
-
     }
 };

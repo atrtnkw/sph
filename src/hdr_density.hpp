@@ -104,8 +104,7 @@ struct calcDensityBasic {
             PS::F64vec rotv_i = 0.;            
             PS::F64    eta_i  = 0.;
 
-            PS::F64    h1c2_i = h_i * KernelSph::ksrhinv * KernelSph::ksrhinv;
-            PS::F64    h2c2_i = h_i * h1c2_i;
+            PS::F64    h2c2_i = h_i * h_i * KernelSph::ksrhinv * KernelSph::ksrhinv;
 
             for(PS::S32 j = 0; j < njp; j++) {
                 PS::S32    id_j = epj[j].id;
@@ -133,9 +132,8 @@ struct calcDensityBasic {
 #ifdef SYMMETRIZED_GRAVITY
                 PS::F64 re2_ij = r2_ij + h2c2_i;
                 PS::F64 rei_ij = 1. / sqrt(re2_ij);
-                rei_ij = (id_i != id_j) ? rei_ij : 0.;
-                PS::F64 rei2_ij = rei_ij * rei_ij;
-                eta_i -= m_j * h1c2_i * rei2_ij * rei_ij;
+                //rei_ij = (id_i != id_j) ? rei_ij : 0.;
+                eta_i += m_j * rei_ij * rei_ij * rei_ij;
 #endif
                 
             }
@@ -145,7 +143,7 @@ struct calcDensityBasic {
             PS::F64 grd_i = density[i].grdh;
             density[i].rotv = sqrt(rotv_i * rotv_i) * rhi_i * grd_i;
             density[i].divv = divv_i * rhi_i * grd_i;
-            density[i].eta  = h_i * rhi_i * grd_i  / KernelSph::dim * eta_i;
+            density[i].eta  = h2c2_i * rhi_i * grd_i  / KernelSph::dim * eta_i;
 
         }        
     }
