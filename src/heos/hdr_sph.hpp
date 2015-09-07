@@ -44,10 +44,12 @@ public:
 class Derivative{
 public:
     PS::F64vec acc;
+    PS::F64vec accg;
     PS::F64    udot;
     PS::F64    vsmx;
     void clear(){
         acc  = 0.0;
+        accg = 0.0;
         udot = 0.0;
         vsmx = 0.0;
     }
@@ -57,9 +59,11 @@ class Gravity{
 public:
     PS::F64vec acc;
     PS::F64    pot;
+    PS::F64    eta;
     void clear(){
         acc = 0.0;
         pot = 0.0;
+        eta = 0.0;
     }
 };
 
@@ -193,7 +197,10 @@ public:
     PS::F64    grdh;
     PS::F64    vsmx;
     PS::F64    pot;
-    PS::F64vec accg;
+    PS::F64vec acch;
+    PS::F64vec accg1;
+    PS::F64vec accg2;
+    PS::F64    eta;
     PS::F64    temp;
     PS::S32    cnteos;
     static PS::F64    abar;
@@ -224,16 +231,29 @@ public:
         this->divv  = density.divv;
     }
 
-    void copyFromForce(const Derivative & derivative){
-        this->acc  = derivative.acc;
-        this->udot = derivative.udot;
-        this->vsmx = derivative.vsmx;
-    }
-
     void copyFromForce(const Gravity & gravity) {
+        /*
         this->acc  += CodeUnit::grav * gravity.acc;
         this->pot   = CodeUnit::grav * (gravity.pot + this->mass / this->eps);
         this->accg  = CodeUnit::grav * gravity.acc;
+        */
+        this->acc2 = CodeUnit::grav * gravity.acc;
+        this->pot   = gravity.pot;
+        this->eta  = this->ksr * this->ksr * KernelSph::ksrhinv * KernelSph::ksrhinv
+            * this->grdh / (KernelSph::dim * this->dens) * gravity.eta;
+    }
+
+    void copyFromForce(const Derivative & derivative){
+/*
+        this->acc  = derivative.acc;
+        this->udot = derivative.udot;
+        this->vsmx = derivative.vsmx;
+*/
+        this->acch  = derivative.acc;
+        this->accg1 = derivative.accg;
+        this->udot  = derivative.udot;
+        this->vsmx  = derivative.vsmx;
+        this->acc   = this->acch + this->accg1 + this->accg2;        
     }
 
     void readAscii(FILE *fp) {        

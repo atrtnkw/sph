@@ -1,7 +1,6 @@
 #include <iostream>
 #include <vector>
 #include <cassert>
-#include <cstdio>
 #include <cstring>
 
 #include "particle_simulator.hpp"
@@ -17,6 +16,7 @@
 
 #include "gp5util.h"
 #include "hdr_gravity.hpp"
+#include "hdr_vgravity.hpp"
 
 #include "hdr_damp.hpp"
 
@@ -54,14 +54,18 @@ template <class Tdinfo,
           class Ttree2,
           class Ttree3,
           class Tfunc1,
-          class Tfunc2>
+          class Tfunc2,
+          class Tfunc3,
+          class Tfunc4>
 void calcSPHKernel(Tdinfo & dinfo,
                    Tpsys & sph,
                    Ttree1 & density,
                    Ttree2 & derivative,
                    Ttree3 & gravity,
                    Tfunc1 calcDensity,
-                   Tfunc2 calcDerivative);
+                   Tfunc2 calcDerivative,
+                   Tfunc3 calcGravityEPJ,
+                   Tfunc4 calcGravitySPJ);
 
 int main(int argc, char **argv)
 {
@@ -94,6 +98,7 @@ int main(int argc, char **argv)
     }
 
     WT::clear();
+
     WT::start();
     sph.adjustPositionIntoRootDomain(dinfo);
     WT::accumulateOthers();
@@ -108,11 +113,14 @@ int main(int argc, char **argv)
     calcFieldVariable(sph);
     WT::accumulateOthers();
 
-#ifdef GRAVITY
+#ifdef SYMMETRIZED_GRAVITY
+    PS::TreeForForce<PS::SEARCH_MODE_LONG, Gravity,
+        SymmetrizedGravityEPI, SymmetrizedGravityEPJ, PS::MomentMonopoleSymmetrized,
+        PS::MomentMonopoleSymmetrized, PS::SPJMonopoleSymmetrized> gravity;
+    gravity.initialize(nptclmax);
+#else
     PS::TreeForForceLong<Gravity, GravityEPI, GravityEPJ>::Monopole gravity;
-    gravity.initialize(nptclmax, 0.5);
-    PS::TreeForForceLong<Gravity, GravityEPI, GravityEPJ>::Monopole msls;
-    msls.initialize(nptclmax, 0.5);
+    gravity.initialize(nptclmax);
     g5_open();
     g5_set_eps_to_all(SPH::eps);
 #endif
@@ -120,25 +128,61 @@ int main(int argc, char **argv)
     WT::start();
     sph.exchangeParticle(dinfo);
     WT::accumulateExchangeParticle();
-
-    SPH::ksrmax = 1e30;
-
     calcSPHKernel(dinfo, sph, density, derivative, gravity,
-                  calcDensity(), calcDerivative());
+                  calcDensity(), calcDerivative(), calcGravityEPJ(), calcGravitySPJ());
 
     FILE *fplog = fopen("snap/time.log", "w");
     FILE *fptim = fopen("snap/prof.log", "w");
     PS::F64 tout = time;
-    //PS::F64 dtdc = 0.25;
-    const PS::S32 nstp = 4;
-    PS::S32 istp = 0;
-    while(header.time < tend){
-        doThisEveryTime(dtime, tout, header, dinfo, sph, msls, fplog, fptim);
-        
-        WT::start();
-        dtime = calcTimeStep(sph, header.time, 1 / 64.);
-        WT::accumulateOthers();
+    PS::F64 dtdc = 0.25;
+    PS::S32 nstp = 0;
+    while(time < tend){
+        dtime = calcTimeStep(sph, time, 1 / 64.);
 
+        if(time >= tout) {
+            char filename[64];
+            sprintf(filename, "snap/sph_t%04d.dat", nstp);
+            sph.writeParticleAscii(filename);
+            tout += dtsp;
+            nstp++;
+        }
+
+        PS::F64 etot = calcEnergy(sph);
+        WT::reduceInterProcess();
+        if(rank == 0) {
+            fprintf(fplog, "time: %.10f %+e %+e\n", time, dtime, etot);
+            fflush(fplog);
+            WT::dump(time, fptim);
+            fflush(fptim);
+        }
+        WT::clear();
+
+#if TIMETEST
+        if(time > 0.d) {
+            fprintf(stdout, "dens: %6d grdh: %6d hydr: %6d\n", ncalcdens, ncalcgrdh, ncalchydr);
+            fprintf(stdout, "dens: %+e grdh: %+e hydr: %+e\n", tcalcdens, tcalcgrdh, tcalchydr);
+            fprintf(stdout, "dens: %+e grdh: %+e hydr: %+e\n",
+                    tcalcdens/ncalcdens, tcalcgrdh/ncalcgrdh, tcalchydr/ncalchydr);
+            fprintf(stdout, "ninteract: %d %d\n", ninteract, nintrhydr);
+            fprintf(stdout, "\n");
+            PS::Finalize();
+            exit(0);
+        } else {
+            tcalcdens = 0.d;
+            tcalcgrdh = 0.d;
+            tcalchydr = 0.d;
+            ncalcdens = 0;
+            ncalcgrdh = 0;
+            ncalchydr = 0;
+            ninteract = 0;
+            nintrhydr = 0;
+            //tcalcsqrt = 0.d;
+            //tcalcothr = 0.d;
+            //ncalcsqrt = 0;
+            //ncalcothr = 0;
+        }
+#endif
+        
         WT::start();
         predict(sph, dtime);
         WT::accumulateIntegrateOrbit();
@@ -149,32 +193,40 @@ int main(int argc, char **argv)
         WT::accumulateOthers();
 
         WT::start();
-        //if(time - (PS::S64)(time / dtdc) * dtdc == 0.){
-        if(istp == nstp) {
+        if(time - (PS::S64)(time / dtdc) * dtdc == 0.){
             dinfo.decomposeDomainAll(sph);
-            istp = 0;
         }
-        istp++;
         WT::accumulateDecomposeDomain();
 
         WT::start();
         sph.exchangeParticle(dinfo);
         WT::accumulateExchangeParticle();
 
+        WT::start();
+        calcFieldVariable(sph);
+        WT::accumulateOthers();
+
         calcSPHKernel(dinfo, sph, density, derivative, gravity,
-                      calcDensity(), calcDerivative());
+                      calcDensity(), calcDerivative(), calcGravityEPJ(), calcGravitySPJ());
 
         WT::start();
         correct(sph, dtime);
         WT::accumulateIntegrateOrbit();
 
-        header.time += dtime;
+#ifdef DAMPING
+        DampVelocity::dampVelocity(sph, dtime);
+        if(DampVelocity::stopDamping(time, sph)) {
+            break;
+        }
+#endif
+
+        time += dtime;
     }
 
     fclose(fplog);
     fclose(fptim);
 
-    finalizeSimulation(time, header, dinfo, sph, msls);
+    finalizeSimulation(nstp, sph);
     
     PS::Finalize();
 
@@ -277,14 +329,18 @@ template <class Tdinfo,
           class Ttree2,
           class Ttree3,
           class Tfunc1,
-          class Tfunc2>
+          class Tfunc2,
+          class Tfunc3,
+          class Tfunc4>
 void calcSPHKernel(Tdinfo & dinfo,
                    Tpsys & sph,
                    Ttree1 & density,
                    Ttree2 & derivative,
                    Ttree3 & gravity,
                    Tfunc1 calcDensity,
-                   Tfunc2 calcDerivative)
+                   Tfunc2 calcDerivative,
+                   Tfunc3 calcGravityEPJ,
+                   Tfunc4 calcGravitySPJ)
 {
     const PS::F64 expand = 1.1;
     for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
@@ -310,6 +366,7 @@ void calcSPHKernel(Tdinfo & dinfo,
         }
         repeat = PS::Comm::synchronizeConditionalBranchOR(repeat_loc);
         cnt++;
+
     }
     WT::accumulateCalcDensity();
     WT::start();
@@ -318,12 +375,14 @@ void calcSPHKernel(Tdinfo & dinfo,
     WT::start();
     calcBalsaraSwitch(sph);
     WT::accumulateOthers();
+#ifdef GRAVITY
     WT::start();
-    gravity.calcForceAllAndWriteBack(calcGravityEPJ(),
-                                     calcGravitySPJ(),
+    gravity.calcForceAllAndWriteBack(calcGravityEPJ,
+                                     calcGravitySPJ,
                                      sph,
                                      dinfo);
-    WT::accumulateCalcGravity();
+    WT::accumulateCalcGravity();    
+#endif
     WT::start();
     derivative.calcForceAllAndWriteBack(calcDerivative, sph, dinfo);
     WT::accumulateCalcHydro();

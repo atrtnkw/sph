@@ -29,10 +29,12 @@ public:
 class Derivative{
 public:
     PS::F64vec acc;
+    PS::F64vec accg;
     PS::F64    udot;
     PS::F64    vsmx;
     void clear(){
         acc  = 0.0;
+        accg = 0.0;
         udot = 0.0;
         vsmx = 0.0;
     }
@@ -42,9 +44,11 @@ class Gravity{
 public:
     PS::F64vec acc;
     PS::F64    pot;
+    PS::F64    eta;
     void clear(){
         acc = 0.0;
         pot = 0.0;
+        eta = 0.0;
     }
 };
 
@@ -115,7 +119,10 @@ public:
     PS::F64    grdh;
     PS::F64    vsmx;
     PS::F64    pot;
-    PS::F64vec accg;
+    PS::F64vec acch;
+    PS::F64vec accg1;
+    PS::F64vec accg2;
+    PS::F64    eta;
     static PS::F64ort cbox;
     static PS::F64    cinv;
     static PS::F64    alphamax, alphamin;
@@ -141,16 +148,19 @@ public:
         this->divv = density.divv;
     }
 
-    void copyFromForce(const Derivative & derivative){
-        this->acc  = derivative.acc;
-        this->udot = derivative.udot;
-        this->vsmx = derivative.vsmx;
+    void copyFromForce(const Gravity & gravity) {
+        this->accg2 = gravity.acc;
+        this->eta   = this->ksr * this->ksr * KernelSph::ksrhinv * KernelSph::ksrhinv
+            * this->grdh / (KernelSph::dim * this->dens) * gravity.eta;
+        this->pot   = gravity.pot;
     }
 
-    void copyFromForce(const Gravity & gravity) {
-        this->acc  += gravity.acc;
-        this->pot   = gravity.pot + this->mass / this->eps;
-        this->accg  = gravity.acc;
+    void copyFromForce(const Derivative & derivative){
+        this->acch  = derivative.acc;
+        this->accg1 = derivative.accg;
+        this->udot  = derivative.udot;
+        this->vsmx  = derivative.vsmx;
+        this->acc   = this->acch + this->accg1 + this->accg2;
     }
 
     void readAscii(FILE *fp) {
@@ -170,8 +180,7 @@ public:
         fprintf(fp, " %+e %+e %+e", this->dens, this->vsnd, this->pres);
         fprintf(fp, " %+e %+e %+e", this->divv, this->rotv, this->bswt);
         fprintf(fp, " %+e %6d %+e", this->grdh, this->np, this->pot);
-//        fprintf(fp, " %+e %+e %+e", this->accg[0], this->accg[1], this->accg[2]);
-//        fprintf(fp, " %+e %+e", this->udot, this->vsmx);
+        fprintf(fp, " %+e", this->eta);
         fprintf(fp, "\n");
     }
 
@@ -181,11 +190,6 @@ public:
     }
 
     void calcBalsaraSwitch() {
-        /*
-        this->bswt = fabs(this->grdh * this->divv)
-            / (fabs(this->grdh * this->divv) + fabs(this->grdh * this->rotv)
-               + 1e-4 * this->vsnd * KernelSph::ksrh / this->ksr);
-        */
         this->bswt = fabs(this->divv)
             / (fabs(this->divv) + fabs(this->rotv)
                + 1e-4 * this->vsnd * KernelSph::ksrh / this->ksr);
@@ -210,11 +214,7 @@ public:
 //    }
 
     PS::F64 calcEnergy() {
-#ifdef GRAVITY
         return this->mass * (0.5 * this->vel * this->vel + this->uene + 0.5 * this->pot);
-#else
-        return this->mass * (0.5 * this->vel * this->vel + this->uene);
-#endif
     }
 
     static inline PS::F64 calcVolumeInverse(const PS::F64 hi);
@@ -260,7 +260,6 @@ public:
 #endif
 
     void dampVelocity(PS::F64 dt) {
-//        this->vel *= exp(- 0.1 * this->vsnd / this->ksr * dt);
         this->vel *= exp(- 0.1 * this->vsnd * KernelSph::ksrh / this->ksr * dt);
     }
 
@@ -270,7 +269,6 @@ PS::F64ort SPH::cbox;
 PS::F64    SPH::cinv;
 PS::F64    SPH::tceff;
 PS::F64    SPH::alphamax, SPH::alphamin;
-//PS::F64    SPH::eps = 1e-3;
 PS::F64    SPH::eps;
 PS::F64    SPH::ksrmax = std::numeric_limits<double>::max();
 PS::F64vec SPH::omg;

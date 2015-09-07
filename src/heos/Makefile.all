@@ -1,5 +1,5 @@
 ###### AT_PLATFORM ########
-use_xc  = yes
+use_xc  = no
 ###### AT_MPI_OPENMP ######
 use_mpi = yes
 use_omp = yes
