@@ -52,14 +52,20 @@ template <class Tdinfo,
           class Tpsys,
           class Ttree1,
           class Ttree2,
+          class Ttree3,
           class Tfunc1,
-          class Tfunc2>
+          class Tfunc2,
+          class Tfunc3,
+          class Tfunc4>
 void calcSPHKernel(Tdinfo & dinfo,
                    Tpsys & sph,
                    Ttree1 & density,
                    Ttree2 & derivative,
+                   Ttree3 & gravity,
                    Tfunc1 calcDensity,
-                   Tfunc2 calcDerivative);
+                   Tfunc2 calcDerivative,
+                   Tfunc3 calcGravityEPJ,
+                   Tfunc4 calcGravitySPJ);
 
 int main(int argc, char **argv)
 {
@@ -107,37 +113,23 @@ int main(int argc, char **argv)
     calcFieldVariable(sph);
     WT::accumulateOthers();
 
-    WT::start();
-    sph.exchangeParticle(dinfo);
-    WT::accumulateExchangeParticle();
-    calcSPHKernel(dinfo, sph, density, derivative,
-                  calcDensity(), calcDerivative());
-
-#ifdef GRAVITY
 #ifdef SYMMETRIZED_GRAVITY
     PS::TreeForForce<PS::SEARCH_MODE_LONG, Gravity,
         SymmetrizedGravityEPI, SymmetrizedGravityEPJ, PS::MomentMonopoleSymmetrized,
         PS::MomentMonopoleSymmetrized, PS::SPJMonopoleSymmetrized> gravity;
     gravity.initialize(nptclmax);
-    WT::start();
-    gravity.calcForceAllAndWriteBack(calcSymmetrizedGravity<SymmetrizedGravityEPJ>(),
-                                     calcSymmetrizedGravity<PS::SPJMonopoleSymmetrized>(),
-                                     sph,
-                                     dinfo);
-    WT::accumulateCalcGravity();
 #else
     PS::TreeForForceLong<Gravity, GravityEPI, GravityEPJ>::Monopole gravity;
     gravity.initialize(nptclmax);
     g5_open();
     g5_set_eps_to_all(SPH::eps);
+#endif
+
     WT::start();
-    gravity.calcForceAllAndWriteBack(calcGravity<GravityEPJ>(),
-                                     calcGravity<PS::SPJMonopole>(),
-                                     sph,
-                                     dinfo);
-    WT::accumulateCalcGravity();
-#endif
-#endif
+    sph.exchangeParticle(dinfo);
+    WT::accumulateExchangeParticle();
+    calcSPHKernel(dinfo, sph, density, derivative, gravity,
+                  calcDensity(), calcDerivative(), calcGravityEPJ(), calcGravitySPJ());
 
     FILE *fplog = fopen("snap/time.log", "w");
     FILE *fptim = fopen("snap/prof.log", "w");
@@ -214,24 +206,8 @@ int main(int argc, char **argv)
         calcFieldVariable(sph);
         WT::accumulateOthers();
 
-        calcSPHKernel(dinfo, sph, density, derivative,
-                      calcDensity(), calcDerivative());
-
-        WT::start();
-#ifdef GRAVITY
-#ifdef SYMMETRIZED_GRAVITY
-        gravity.calcForceAllAndWriteBack(calcSymmetrizedGravity<SymmetrizedGravityEPJ>(),
-                                         calcSymmetrizedGravity<PS::SPJMonopoleSymmetrized>(),
-                                         sph,
-                                         dinfo);
-#else
-        gravity.calcForceAllAndWriteBack(calcGravity<GravityEPJ>(),
-                                         calcGravity<PS::SPJMonopole>(),
-                                         sph,
-                                         dinfo);
-#endif
-#endif
-        WT::accumulateCalcGravity();
+        calcSPHKernel(dinfo, sph, density, derivative, gravity,
+                      calcDensity(), calcDerivative(), calcGravityEPJ(), calcGravitySPJ());
 
         WT::start();
         correct(sph, dtime);
@@ -351,14 +327,20 @@ template <class Tdinfo,
           class Tpsys,
           class Ttree1,
           class Ttree2,
+          class Ttree3,
           class Tfunc1,
-          class Tfunc2>
+          class Tfunc2,
+          class Tfunc3,
+          class Tfunc4>
 void calcSPHKernel(Tdinfo & dinfo,
                    Tpsys & sph,
                    Ttree1 & density,
                    Ttree2 & derivative,
+                   Ttree3 & gravity,
                    Tfunc1 calcDensity,
-                   Tfunc2 calcDerivative)
+                   Tfunc2 calcDerivative,
+                   Tfunc3 calcGravityEPJ,
+                   Tfunc4 calcGravitySPJ)
 {
     const PS::F64 expand = 1.1;
     for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
@@ -393,6 +375,14 @@ void calcSPHKernel(Tdinfo & dinfo,
     WT::start();
     calcBalsaraSwitch(sph);
     WT::accumulateOthers();
+#ifdef GRAVITY
+    WT::start();
+    gravity.calcForceAllAndWriteBack(calcGravityEPJ,
+                                     calcGravitySPJ,
+                                     sph,
+                                     dinfo);
+    WT::accumulateCalcGravity();    
+#endif
     WT::start();
     derivative.calcForceAllAndWriteBack(calcDerivative, sph, dinfo);
     WT::accumulateCalcHydro();

@@ -93,3 +93,8 @@ struct calcGravity {
         }        
     }
 };
+
+#if not defined SYMMETRIZED_GRAVITY
+typedef calcGravity<GravityEPJ>      calcGravityEPJ;
+typedef calcGravity<PS::SPJMonopole> calcGravitySPJ;
+#endif

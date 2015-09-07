@@ -102,7 +102,6 @@ struct calcDensityBasic {
             PS::F64    gh_i  = 0.;
             PS::F64    divv_i = 0.;
             PS::F64vec rotv_i = 0.;            
-            PS::F64    eta_i  = 0.;
 
             PS::F64    h2c2_i = h_i * h_i * KernelSph::ksrhinv * KernelSph::ksrhinv;
 
@@ -129,13 +128,6 @@ struct calcDensityBasic {
                 divv_i -= dv_ij * dw_ij;
                 rotv_i += dv_ij ^ dw_ij;
 
-#ifdef SYMMETRIZED_GRAVITY
-                PS::F64 re2_ij = r2_ij + h2c2_i;
-                PS::F64 rei_ij = 1. / sqrt(re2_ij);
-                //rei_ij = (id_i != id_j) ? rei_ij : 0.;
-                eta_i += m_j * rei_ij * rei_ij * rei_ij;
-#endif
-                
             }
 
             PS::F64 rhi_i = 1. / density[i].dens;
@@ -143,8 +135,6 @@ struct calcDensityBasic {
             PS::F64 grd_i = density[i].grdh;
             density[i].rotv = sqrt(rotv_i * rotv_i) * rhi_i * grd_i;
             density[i].divv = divv_i * rhi_i * grd_i;
-            density[i].eta  = h2c2_i * rhi_i * grd_i  / KernelSph::dim * eta_i;
-
         }        
     }
 };
@@ -311,10 +301,6 @@ struct calcDensityX86 {
 
 #if 0
 struct calcDensitySingleX86 {
-
-#ifdef SYMMETRIZED_GRAVITY
-#error SYMMETRIZED_GRAVITY has been not yet implemented in float precision!
-#endif
 
     void operator () (const DensityEPI *epi,
                       const PS::S32 nip,

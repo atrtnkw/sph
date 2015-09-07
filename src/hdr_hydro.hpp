@@ -163,9 +163,6 @@ struct calcDerivativeX86 {
                       const DerivativeEPJ *epj,
                       const PS::S32 njp,
                       Derivative *derivative) {
-#ifdef TIMETEST
-        nintrhydr += nip * njp;
-#endif
         v4df (*rcp)(v4df)   = v4df::rcp_4th;
         v4df (*rsqrt)(v4df) = v4df::rsqrt_4th;
 
@@ -186,15 +183,15 @@ struct calcDerivativeX86 {
             v4df cs_i(epi[i].vsnd, epi[i+1].vsnd, epi[i+2].vsnd, epi[i+3].vsnd);
             v4df alph_i(epi[i].alph, epi[i+1].alph, epi[i+2].alph, epi[i+3].alph);
             v4df hi4_i = hi_i * SPH::calcVolumeInverse(hi_i);
+            v4df eta_i(epi[i].eta, epi[i+1].eta, epi[i+2].eta, epi[i+3].eta);
             v4df accx_i(0.d);
             v4df accy_i(0.d);
             v4df accz_i(0.d);
             v4df ene_i(0.d);
             v4df vsmx_i(0.d);
-
-#ifdef TIMETEST
-            PS::F64 t1 = getWallclockTime();
-#endif
+            v4df g1x_i(0.d);
+            v4df g1y_i(0.d);
+            v4df g1z_i(0.d);
 
             for(PS::S32 j = 0; j < njp; j++) {
                 v4df dpx_ij = px_i - v4df(epj[j].pos[0]);
@@ -215,8 +212,10 @@ struct calcDerivativeX86 {
                 v4df q_i = r1_ij * hi_i;
                 v4df q_j = r1_ij * hi_j;
 
-                v4df dw_ij = v4df(epj[j].mass) * ri_ij
-                    * (hi4_i * KernelSph::kernel1st(q_i) + hi4_j * KernelSph::kernel1st(q_j));
+                v4df m_j   = v4df(epj[j].mass);
+                v4df dw_i  = hi4_i * KernelSph::kernel1st(q_i);
+                v4df dw_j  = hi4_j * KernelSph::kernel1st(q_j);
+                v4df dw_ij = m_j * ri_ij * (dw_i + dw_j);
 
                 v4df mu_ij = xv_ij * ri_ij;
                 v4df vs_ij  = cs_i + v4df(epj[j].vsnd) - v4df(3.d) * mu_ij;
@@ -236,35 +235,50 @@ struct calcDerivativeX86 {
                 ene_i += xv_ij * de_ij;
 
                 vsmx_i = v4df::max(vsmx_i, vs_ij);
-            }
-#ifdef TIMETEST
-            tcalchydr += getWallclockTime() - t1;
-            ncalchydr++;
+
+#ifdef SYMMETRIZED_GRAVITY
+                v4df dg_ij  = m_j * ri_ij * (eta_i * dw_i + v4df(epj[j].eta) * dw_j);
+                g1x_i += dg_ij * dpx_ij;
+                g1y_i += dg_ij * dpy_ij;
+                g1z_i += dg_ij * dpz_ij;
 #endif
+            }
 
             accx_i *= v4df(0.5);
             accy_i *= v4df(0.5);
             accz_i *= v4df(0.5);
             ene_i  *= v4df(0.5);
+            g1x_i   *= v4df(0.5);
+            g1y_i   *= v4df(0.5);
+            g1z_i   *= v4df(0.5);
 
             PS::F64 buf_ax[nvector];
             PS::F64 buf_ay[nvector];
             PS::F64 buf_az[nvector];
             PS::F64 buf_eg[nvector];
             PS::F64 buf_vs[nvector];            
+            PS::F64 buf_g1x[nvector];            
+            PS::F64 buf_g1y[nvector];            
+            PS::F64 buf_g1z[nvector];            
             accx_i.store(buf_ax);
             accy_i.store(buf_ay);
             accz_i.store(buf_az);
             ene_i.store(buf_eg);
             vsmx_i.store(buf_vs);
+            g1x_i.store(buf_g1x);
+            g1y_i.store(buf_g1y);
+            g1z_i.store(buf_g1z);
 
             PS::S32 nii = ((nip - i) < nvector) ? (nip - i) : nvector;
             for(PS::S32 ii = 0; ii < nii; ii++) {
-                derivative[i+ii].acc[0] = buf_ax[ii];
-                derivative[i+ii].acc[1] = buf_ay[ii];
-                derivative[i+ii].acc[2] = buf_az[ii];
-                derivative[i+ii].udot   = buf_eg[ii];
-                derivative[i+ii].vsmx   = buf_vs[ii];
+                derivative[i+ii].acc[0]  = buf_ax[ii];
+                derivative[i+ii].acc[1]  = buf_ay[ii];
+                derivative[i+ii].acc[2]  = buf_az[ii];
+                derivative[i+ii].udot    = buf_eg[ii];
+                derivative[i+ii].vsmx    = buf_vs[ii];
+                derivative[i+ii].accg[0] = buf_g1x[ii];
+                derivative[i+ii].accg[1] = buf_g1y[ii];
+                derivative[i+ii].accg[2] = buf_g1z[ii];
             }
 
         }
