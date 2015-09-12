@@ -237,10 +237,10 @@ public:
         this->pot   = CodeUnit::grav * (gravity.pot + this->mass / this->eps);
         this->accg  = CodeUnit::grav * gravity.acc;
         */
-        this->acc2 = CodeUnit::grav * gravity.acc;
-        this->pot   = gravity.pot;
-        this->eta  = this->ksr * this->ksr * KernelSph::ksrhinv * KernelSph::ksrhinv
+        this->accg2 = CodeUnit::grav * gravity.acc;
+        this->eta   = this->ksr * this->ksr * KernelSph::ksrhinv * KernelSph::ksrhinv
             * this->grdh / (KernelSph::dim * this->dens) * gravity.eta;
+        this->pot   = CodeUnit::grav * gravity.pot;
     }
 
     void copyFromForce(const Derivative & derivative){
@@ -250,7 +250,7 @@ public:
         this->vsmx = derivative.vsmx;
 */
         this->acch  = derivative.acc;
-        this->accg1 = derivative.accg;
+        this->accg1 = CodeUnit::grav * derivative.accg;
         this->udot  = derivative.udot;
         this->vsmx  = derivative.vsmx;
         this->acc   = this->acch + this->accg1 + this->accg2;        
@@ -300,7 +300,6 @@ public:
 #ifdef WD_DAMPINGB
         fprintf(fp, " %+.16e", SPH::omg[2]);
 #endif
-        //fprintf(fp, " %+.16e", this->udot * UnitOfEnergy * UnitOfTimeInv);
         fprintf(fp, "\n");
 
     }
