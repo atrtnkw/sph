@@ -438,11 +438,6 @@ void calcGravityKernel(Tdinfo & dinfo,
     gravity.calcForceMakingTree(calcGravityEPJ(),
                                 calcGravitySPJ(),
                                 dinfo);
-    /*
-    gravity.calcForceMakingTree(calcGravity<GravityEPJ>(),
-                                calcGravity<PS::SPJMonopole>(),
-                                dinfo);
-    */
     PS::S32 nsph  = sph.getNumberOfParticleLocal();
     for(PS::S32 i = 0; i < nsph; i++) {
         sph[i].copyFromForce(gravity.getForce(i));

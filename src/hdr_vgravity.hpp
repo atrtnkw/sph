@@ -99,7 +99,7 @@ public:
     }
     void copyFromFP(const MassLess & msls){         
         pos  = msls.pos;
-        eps2 = 0.5 * SPH::eps * SPH::eps; // This is not accurate.
+        eps2 = SPH::eps * SPH::eps;
     }
     PS::F64vec getPos() const {
         return this->pos;
@@ -122,7 +122,7 @@ public:
     void copyFromFP(const MassLess & msls){ 
         mass = msls.mass;
         pos  = msls.pos;
-        eps2 = 0.5 * SPH::eps * SPH::eps; // This is not accurate.
+        eps2 = SPH::eps * SPH::eps;
     }
     PS::F64vec getPos() const {
         return this->pos;

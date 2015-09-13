@@ -13,7 +13,8 @@ public:
     }
 
     void copyFromForce(const Gravity & gravity) {
-        this->pot = CodeUnit::grav * (gravity.pot + this->mass / SPH::eps);
+        //this->pot = CodeUnit::grav * (gravity.pot + this->mass / SPH::eps);
+        this->pot = CodeUnit::grav * gravity.pot;
     }
 
     void writeAscii(FILE *fp) const {
