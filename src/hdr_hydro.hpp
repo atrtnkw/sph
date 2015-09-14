@@ -5,8 +5,10 @@ public:
     PS::S32    id;
     PS::F64vec pos;
     PS::F64vec vel;
+    PS::F64    uene;
     PS::F64    ksr;
     PS::F64    hinv;
+    PS::F64    pres0;
     PS::F64    pres;
     PS::F64    rho;
     PS::F64    bswt;
@@ -14,17 +16,19 @@ public:
     PS::F64    alph;
     PS::F64    eta;
     void copyFromFP(const SPH & sph){ 
-        id   = sph.id;
-        pos  = sph.pos;
-        vel  = sph.vel;
-        ksr  = sph.ksr;
-        hinv = 1.d / sph.ksr;
-        pres = sph.pres / (sph.dens * sph.dens) * sph.grdh;
-        rho  = sph.dens;
-        bswt = 0.5 * sph.bswt;
-        vsnd = sph.vsnd;
-        alph = sph.alph;
-        eta  = sph.eta;
+        id    = sph.id;
+        pos   = sph.pos;
+        vel   = sph.vel;
+        uene  = sph.uene;
+        ksr   = sph.ksr;
+        hinv  = 1.d / sph.ksr;
+        pres0 = sph.pres;
+        pres  = sph.pres / (sph.dens * sph.dens) * sph.grdh;
+        rho   = sph.dens;
+        bswt  = 0.5 * sph.bswt;
+        vsnd  = sph.vsnd;
+        alph  = sph.alph;
+        eta   = sph.eta;
     }
     PS::F64vec getPos() const {
         return this->pos;
@@ -43,8 +47,10 @@ public:
     PS::F64    mass;
     PS::F64vec pos;
     PS::F64vec vel;
+    PS::F64    uene;
     PS::F64    ksr;
     PS::F64    hinv;
+    PS::F64    pres0;
     PS::F64    pres;
     PS::F64    rho;
     PS::F64    bswt;
@@ -52,18 +58,20 @@ public:
     PS::F64    alph;
     PS::F64    eta;
     void copyFromFP(const SPH & sph){ 
-        id   = sph.id;
-        mass = sph.mass;
-        pos  = sph.pos;
-        vel  = sph.vel;
-        ksr  = sph.ksr;
-        hinv = 1.d / sph.ksr;
-        pres = sph.pres / (sph.dens * sph.dens) * sph.grdh;
-        rho  = sph.dens;
-        bswt = 0.5 * sph.bswt;
-        vsnd = sph.vsnd;
-        alph = sph.alph;
-        eta  = sph.eta;
+        id    = sph.id;
+        mass  = sph.mass;
+        pos   = sph.pos;
+        vel   = sph.vel;
+        uene  = sph.uene;
+        ksr   = sph.ksr;
+        hinv  = 1.d / sph.ksr;
+        pres0 = sph.pres;
+        pres  = sph.pres / (sph.dens * sph.dens) * sph.grdh;
+        rho   = sph.dens;
+        bswt  = 0.5 * sph.bswt;
+        vsnd  = sph.vsnd;
+        alph  = sph.alph;
+        eta   = sph.eta;
     }
     PS::F64vec getPos() const {
         return this->pos;
@@ -93,9 +101,11 @@ struct calcDerivativeBasic {
             PS::S32    id_i    = epi[i].id;
             PS::F64vec x_i     = epi[i].pos;
             PS::F64vec v_i     = epi[i].vel;
+            PS::F64    u_i     = epi[i].uene;
             PS::F64    hi_i    = epi[i].hinv;
             PS::F64    hi4_i   = hi_i * SPH::calcVolumeInverse(hi_i);
             PS::F64    rh_i    = epi[i].rho;
+            PS::F64    pres_i  = epi[i].pres0;
             PS::F64    prhi2_i = epi[i].pres;
             PS::F64    bswt_i  = epi[i].bswt;
             PS::F64    cs_i    = epi[i].vsnd;
@@ -110,9 +120,11 @@ struct calcDerivativeBasic {
                 PS::F64    m_j     = epj[j].mass;
                 PS::F64vec x_j     = epj[j].pos;
                 PS::F64vec v_j     = epj[j].vel;
+                PS::F64    u_j     = epj[j].uene;
                 PS::F64    hi_j    = epj[j].hinv;
                 PS::F64    hi4_j   = hi_j * SPH::calcVolumeInverse(hi_j);
                 PS::F64    rh_j    = epj[j].rho;
+                PS::F64    pres_j  = epj[j].pres0;
                 PS::F64    prhi2_j = epj[j].pres;
                 PS::F64    bswt_j  = epj[j].bswt;
                 PS::F64    cs_j    = epj[j].vsnd;
@@ -132,14 +144,27 @@ struct calcDerivativeBasic {
                 PS::F64 dw_j = hi4_j * KernelSph::kernel1st(q_j);
                 PS::F64vec dw_ij  = m_j * dx_ij * ri_ij * 0.5d * (dw_i + dw_j);
 
-                PS::F64    mu_ij  = (xv_ij < 0.d) ? (xv_ij * ri_ij) : 0.d;
-                PS::F64    vs_ij  = cs_i + cs_j - 3.d * mu_ij;
-                PS::F64    pi_ij  = - 0.5d * vs_ij * mu_ij * (alph_i + alph_j) / (rh_i + rh_j);
-                PS::F64    f_ij   = 0.5d * (bswt_i + bswt_j);
-                PS::F64    vis_ij = f_ij * pi_ij;
+                PS::F64    mu_ij   = xv_ij * ri_ij;
+                PS::F64    mm_ij   = std::min(mu_ij, 0.);
+                PS::F64    vs_ij   = cs_i + cs_j - 3.d * mm_ij;
+                PS::F64    rhi_ij  = 1. / (rh_i + rh_j);
+                PS::F64    alph_ij = alph_i + alph_j;
+                PS::F64    pi_ij   = - 0.5d * vs_ij * mm_ij * alph_ij * rhi_ij;
+                PS::F64    f_ij    = 0.5d * (bswt_i + bswt_j);
+                PS::F64    vis_ij  = f_ij * pi_ij;
 
                 acc_i -=         dw_ij * (prhi2_i + prhi2_j + vis_ij);
                 ene_i += dv_ij * dw_ij * (prhi2_i + 0.5d * vis_ij);
+#ifdef THERMAL_CONDUCTIVITY
+                PS::F64    alphu_ij = 2.0;
+                PS::F64    dww_ij   = 0.5 * m_j * (dw_i + dw_j);
+                PS::F64    vsu_ij   = sqrt(fabs(pres_i - pres_j) * rhi_ij * 2.);
+                PS::F64vec rhat_ij  = dx_ij * ri_ij;
+                PS::F64    vr_i     = v_i * rhat_ij;
+                PS::F64    vr_j     = v_j * rhat_ij;
+                ene_i += dww_ij * rhi_ij * (0.25 * alph_ij * vs_ij * (vr_i * vr_i - vr_j * vr_j)
+                                            + alphu_ij * vsu_ij * (u_i - u_j));
+#endif
                 vsmx_i = (vs_ij > vsmx_i) ? vs_ij : vsmx_i;                
 
 #ifdef SYMMETRIZED_GRAVITY
