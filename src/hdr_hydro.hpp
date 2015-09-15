@@ -211,12 +211,15 @@ struct calcDerivativeX86 {
             v4df vx_i(epi[i].vel[0], epi[i+1].vel[0], epi[i+2].vel[0], epi[i+3].vel[0]);
             v4df vy_i(epi[i].vel[1], epi[i+1].vel[1], epi[i+2].vel[1], epi[i+3].vel[1]);
             v4df vz_i(epi[i].vel[2], epi[i+1].vel[2], epi[i+2].vel[2], epi[i+3].vel[2]);
+            v4df u_i(epi[i].uene, epi[i+1].uene, epi[i+2].uene, epi[i+3].uene);
             v4df hi_i(epi[i].hinv, epi[i+1].hinv, epi[i+2].hinv, epi[i+3].hinv);
             v4df rh_i(epi[i].rho, epi[i+1].rho, epi[i+2].rho, epi[i+3].rho);
+            v4df pres_i(epi[i].pres0, epi[i+1].pres0, epi[i+2].pres0, epi[i+3].pres0);
             v4df prhi2_i(epi[i].pres, epi[i+1].pres, epi[i+2].pres, epi[i+3].pres);
             v4df bswt_i(epi[i].bswt, epi[i+1].bswt, epi[i+2].bswt, epi[i+3].bswt);
             v4df cs_i(epi[i].vsnd, epi[i+1].vsnd, epi[i+2].vsnd, epi[i+3].vsnd);
             v4df alph_i(epi[i].alph, epi[i+1].alph, epi[i+2].alph, epi[i+3].alph);
+            v4df alphu_i(epi[i].alphu, epi[i+1].alphu, epi[i+2].alphu, epi[i+3].alphu);
             v4df hi4_i = hi_i * SPH::calcVolumeInverse(hi_i);
             v4df eta_i(epi[i].eta, epi[i+1].eta, epi[i+2].eta, epi[i+3].eta);
             v4df accx_i(0.d);
@@ -227,14 +230,18 @@ struct calcDerivativeX86 {
             v4df g1x_i(0.d);
             v4df g1y_i(0.d);
             v4df g1z_i(0.d);
+            v4df diffu_i(0.);
 
             for(PS::S32 j = 0; j < njp; j++) {
+                v4df vx_j(epj[j].vel[0]);
+                v4df vy_j(epj[j].vel[1]);
+                v4df vz_j(epj[j].vel[2]);
                 v4df dpx_ij = px_i - v4df(epj[j].pos[0]);
                 v4df dpy_ij = py_i - v4df(epj[j].pos[1]);
                 v4df dpz_ij = pz_i - v4df(epj[j].pos[2]);
-                v4df dvx_ij = vx_i - v4df(epj[j].vel[0]);
-                v4df dvy_ij = vy_i - v4df(epj[j].vel[1]);
-                v4df dvz_ij = vz_i - v4df(epj[j].vel[2]);
+                v4df dvx_ij = vx_i - vx_j;
+                v4df dvy_ij = vy_i - vy_j;
+                v4df dvz_ij = vz_i - vz_j;
 
                 v4df r2_ij = dpx_ij * dpx_ij + dpy_ij * dpy_ij + dpz_ij * dpz_ij;
                 v4df ri_ij = rsqrt(r2_ij);
@@ -247,18 +254,20 @@ struct calcDerivativeX86 {
                 v4df q_i = r1_ij * hi_i;
                 v4df q_j = r1_ij * hi_j;
 
-                v4df m_j   = v4df(epj[j].mass);
-                v4df dw_i  = hi4_i * KernelSph::kernel1st(q_i);
-                v4df dw_j  = hi4_j * KernelSph::kernel1st(q_j);
-                v4df dw_ij = m_j * ri_ij * (dw_i + dw_j);
+                v4df m_j    = v4df(epj[j].mass);
+                v4df dw_i   = hi4_i * KernelSph::kernel1st(q_i);
+                v4df dw_j   = hi4_j * KernelSph::kernel1st(q_j);
+                v4df dww_ij = m_j * (dw_i + dw_j);
+                v4df dw_ij  = ri_ij * dww_ij;
 
-                v4df mu_ij = xv_ij * ri_ij;
-                v4df vs_ij  = cs_i + v4df(epj[j].vsnd) - v4df(3.d) * mu_ij;
-                mu_ij = ((xv_ij < v4df(0.d)) & mu_ij);
-                v4df pi_ij  = v4df(-0.5d) * vs_ij * mu_ij * (alph_i + v4df(epj[j].alph))
-                    * rcp(rh_i + v4df(epj[j].rho));
-                v4df f_ij   = bswt_i + v4df(epj[j].bswt);
-                v4df vis_ij = f_ij * pi_ij;
+                v4df mu_ij   = xv_ij * ri_ij;
+                v4df mm_ij   = ((xv_ij < v4df(0.d)) & mu_ij);
+                v4df vs_ij   = cs_i + v4df(epj[j].vsnd) - v4df(3.d) * mm_ij;
+                v4df rhi_ij  = rcp(rh_i + v4df(epj[j].rho));
+                v4df alph_ij = alph_i + v4df(epj[j].alph);
+                v4df pi_ij   = v4df(-0.5d) * vs_ij * mm_ij * alph_ij * rhi_ij;
+                v4df f_ij    = bswt_i + v4df(epj[j].bswt);
+                v4df vis_ij  = f_ij * pi_ij;
 
                 v4df da_ij = dw_ij * (prhi2_i + v4df(epj[j].pres) + vis_ij);
                 accx_i -= da_ij * dpx_ij;
@@ -268,6 +277,25 @@ struct calcDerivativeX86 {
                 v4df de_ij = prhi2_i + v4df(0.5d) * vis_ij;
                 de_ij *= dw_ij;
                 ene_i += xv_ij * de_ij;
+
+#ifdef THERMAL_CONDUCTIVITY
+                v4df pres_ij  = v4df::fabs(pres_i - v4df(epj[j].pres0));
+                v4df vsu2_ij  = pres_ij * rhi_ij * v4df(2.);
+                v4df vsui_ij  = rsqrt(vsu2_ij);
+                vsui_ij = ((pres_ij != 0.) & vsui_ij);
+                v4df vsu_ij   = vsu2_ij * vsui_ij;
+                v4df alphu_ij = alphu_i + v4df(epj[j].alphu);
+                v4df xhat_ij  = dpx_ij * ri_ij;
+                v4df yhat_ij  = dpy_ij * ri_ij;
+                v4df zhat_ij  = dpz_ij * ri_ij;
+                v4df vr_i     = vx_i * xhat_ij + vy_i * yhat_ij + vz_i * zhat_ij;
+                v4df vr_j     = vx_j * xhat_ij + vy_j * yhat_ij + vz_j * zhat_ij;
+                v4df u_ij     = u_i - v4df(epj[j].uene);
+                ene_i += dww_ij * rhi_ij
+                    * (v4df(0.25) * alph_ij * vs_ij * (vr_i * vr_i - vr_j * vr_j)
+                       + alphu_ij * vsu_ij * u_ij);
+                diffu_i += u_ij * rhi_ij * dww_ij * ri_ij;
+#endif
 
                 vsmx_i = v4df::max(vsmx_i, vs_ij);
 
@@ -279,13 +307,14 @@ struct calcDerivativeX86 {
 #endif
             }
 
-            accx_i *= v4df(0.5);
-            accy_i *= v4df(0.5);
-            accz_i *= v4df(0.5);
-            ene_i  *= v4df(0.5);
+            accx_i  *= v4df(0.5);
+            accy_i  *= v4df(0.5);
+            accz_i  *= v4df(0.5);
+            ene_i   *= v4df(0.5);
             g1x_i   *= v4df(0.5);
             g1y_i   *= v4df(0.5);
             g1z_i   *= v4df(0.5);
+            diffu_i *= v4df(2.);
 
             PS::F64 buf_ax[nvector];
             PS::F64 buf_ay[nvector];
@@ -295,6 +324,7 @@ struct calcDerivativeX86 {
             PS::F64 buf_g1x[nvector];            
             PS::F64 buf_g1y[nvector];            
             PS::F64 buf_g1z[nvector];            
+            PS::F64 buf_diffu[nvector];
             accx_i.store(buf_ax);
             accy_i.store(buf_ay);
             accz_i.store(buf_az);
@@ -303,6 +333,7 @@ struct calcDerivativeX86 {
             g1x_i.store(buf_g1x);
             g1y_i.store(buf_g1y);
             g1z_i.store(buf_g1z);
+            diffu_i.store(buf_diffu);
 
             PS::S32 nii = ((nip - i) < nvector) ? (nip - i) : nvector;
             for(PS::S32 ii = 0; ii < nii; ii++) {
@@ -314,6 +345,7 @@ struct calcDerivativeX86 {
                 derivative[i+ii].accg[0] = buf_g1x[ii];
                 derivative[i+ii].accg[1] = buf_g1y[ii];
                 derivative[i+ii].accg[2] = buf_g1z[ii];
+                derivative[i+ii].diffu   = buf_diffu[ii];
             }
 
         }

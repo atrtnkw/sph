@@ -217,6 +217,8 @@ int main(int argc, char **argv)
             char filename[64];
             sprintf(filename, "hoge_%e.dat", time);
             sph.writeParticleAscii(filename);            
+            PS::Finalize();
+            exit(0);
         }
         */
 
