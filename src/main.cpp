@@ -150,7 +150,7 @@ int main(int argc, char **argv)
         PS::F64 etot = calcEnergy(sph);
         WT::reduceInterProcess();
         if(rank == 0) {
-            fprintf(stderr, "time: %.10f %+e %+e\n", time, dtime, etot);
+            //fprintf(stderr, "time: %.10f %+e %+e\n", time, dtime, etot);
             fprintf(fplog, "time: %.10f %+e %+e\n", time, dtime, etot);
             fflush(fplog);
             WT::dump(time, fptim);

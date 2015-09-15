@@ -1,13 +1,13 @@
-FDPS_DIR = ../../../fdps-jenever0/src
-#FDPS_DIR = ../../fdps/src
+#FDPS_DIR = ../../../fdps-jenever0/src
+FDPS_DIR = ../../fdps/src
 
 PHANTOM_DIR = ${FDPS_DIR}/phantom_grape_x86/G5/newton/libpg5
 
 PS_PATH  = -I${FDPS_DIR}
 PS_PATH += -I${PHANTOM_DIR}
 
-CCC = mpicxx
-#CCC = CC
+#CCC = mpicxx
+CCC = CC
 #CCC = mpicxx-openmpi-gcc49
 #CCC = mpicxx-mpich-gcc49
 #CCC = g++
@@ -33,8 +33,8 @@ CFLAGS += -DWENDLANDC2
 #CFLAGS += -DWENDLANDC4
 #CFLAGS += -DCUBICSPLINE
 #
-#CFLAGS += -DUSE_AT1D
-CFLAGS += -DUSE_AT2D
+CFLAGS += -DUSE_AT1D
+#CFLAGS += -DUSE_AT2D
 #
 #CFLAGS += -DGRAVITY
 #CFLAGS += -DSYMMETRIZED_GRAVITY
