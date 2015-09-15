@@ -14,6 +14,7 @@ public:
     PS::F64    bswt;
     PS::F64    vsnd;
     PS::F64    alph;
+    PS::F64    alphu;
     PS::F64    eta;
     void copyFromFP(const SPH & sph){ 
         id    = sph.id;
@@ -28,6 +29,7 @@ public:
         bswt  = 0.5 * sph.bswt;
         vsnd  = sph.vsnd;
         alph  = sph.alph;
+        alphu = sph.alphu;
         eta   = sph.eta;
     }
     PS::F64vec getPos() const {
@@ -56,6 +58,7 @@ public:
     PS::F64    bswt;
     PS::F64    vsnd;
     PS::F64    alph;
+    PS::F64    alphu;
     PS::F64    eta;
     void copyFromFP(const SPH & sph){ 
         id    = sph.id;
@@ -71,6 +74,7 @@ public:
         bswt  = 0.5 * sph.bswt;
         vsnd  = sph.vsnd;
         alph  = sph.alph;
+        alphu = sph.alphu;
         eta   = sph.eta;
     }
     PS::F64vec getPos() const {
@@ -110,11 +114,13 @@ struct calcDerivativeBasic {
             PS::F64    bswt_i  = epi[i].bswt;
             PS::F64    cs_i    = epi[i].vsnd;
             PS::F64    alph_i  = epi[i].alph;
+            PS::F64    alphu_i = epi[i].alphu;
             PS::F64    eta_i   = epi[i].eta;
             PS::F64vec acc_i   = 0.d;
             PS::F64    ene_i   = 0.d;            
             PS::F64    vsmx_i  = 0.d;
             PS::F64vec g1_i    = 0.;
+            PS::F64    diffu_i = 0.;
             for(PS::S32 j = 0; j < njp; j++) {
                 PS::S32    id_j    = epj[j].id;
                 PS::F64    m_j     = epj[j].mass;
@@ -129,6 +135,7 @@ struct calcDerivativeBasic {
                 PS::F64    bswt_j  = epj[j].bswt;
                 PS::F64    cs_j    = epj[j].vsnd;
                 PS::F64    alph_j  = epj[j].alph;
+                PS::F64    alphu_j = epj[j].alphu;
                 PS::F64    eta_j   = epj[j].eta;
 
                 PS::F64vec dx_ij = x_i - x_j;
@@ -156,14 +163,16 @@ struct calcDerivativeBasic {
                 acc_i -=         dw_ij * (prhi2_i + prhi2_j + vis_ij);
                 ene_i += dv_ij * dw_ij * (prhi2_i + 0.5d * vis_ij);
 #ifdef THERMAL_CONDUCTIVITY
-                PS::F64    alphu_ij = 2.0;
+                PS::F64    alphu_ij = alphu_i + alphu_j;
                 PS::F64    dww_ij   = 0.5 * m_j * (dw_i + dw_j);
                 PS::F64    vsu_ij   = sqrt(fabs(pres_i - pres_j) * rhi_ij * 2.);
                 PS::F64vec rhat_ij  = dx_ij * ri_ij;
                 PS::F64    vr_i     = v_i * rhat_ij;
                 PS::F64    vr_j     = v_j * rhat_ij;
+                PS::F64    u_ij     = u_i - u_j;
                 ene_i += dww_ij * rhi_ij * (0.25 * alph_ij * vs_ij * (vr_i * vr_i - vr_j * vr_j)
-                                            + alphu_ij * vsu_ij * (u_i - u_j));
+                                            + alphu_ij * vsu_ij * u_ij);
+                diffu_i += u_ij * rhi_ij * dww_ij * ri_ij;
 #endif
                 vsmx_i = (vs_ij > vsmx_i) ? vs_ij : vsmx_i;                
 
@@ -172,10 +181,11 @@ struct calcDerivativeBasic {
                 g1_i += dg_ij;
 #endif
             }
-            derivative[i].acc  = acc_i;
-            derivative[i].accg = g1_i;
-            derivative[i].udot = ene_i;
-            derivative[i].vsmx = vsmx_i;
+            derivative[i].acc   = acc_i;
+            derivative[i].accg  = g1_i;
+            derivative[i].udot  = ene_i;
+            derivative[i].vsmx  = vsmx_i;
+            derivative[i].diffu = 4. * fabs(diffu_i);
         }
 
     }

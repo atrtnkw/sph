@@ -32,11 +32,13 @@ public:
     PS::F64vec accg;
     PS::F64    udot;
     PS::F64    vsmx;
+    PS::F64    diffu;
     void clear(){
-        acc  = 0.0;
-        accg = 0.0;
-        udot = 0.0;
-        vsmx = 0.0;
+        acc   = 0.0;
+        accg  = 0.0;
+        udot  = 0.0;
+        vsmx  = 0.0;
+        diffu = 0.0;
     }
 };
 
@@ -105,6 +107,9 @@ public:
     PS::F64    alph;
     PS::F64    alph2;
     PS::F64    adot;
+    PS::F64    alphu;
+    PS::F64    alphu2;
+    PS::F64    adotu;
     PS::F64    dens;
     PS::F64    pres;
     PS::F64    vsnd;
@@ -123,6 +128,7 @@ public:
     PS::F64vec accg1;
     PS::F64vec accg2;
     PS::F64    eta;
+    PS::F64    diffu;
     static PS::F64ort cbox;
     static PS::F64    cinv;
     static PS::F64    alphamax, alphamin;
@@ -130,6 +136,7 @@ public:
     static PS::F64    eps;
     static PS::F64    ksrmax;
     static PS::F64vec omg;
+    static PS::F64    epsu;
 
     PS::F64vec getPos() const {
         return this->pos;
@@ -161,6 +168,7 @@ public:
         this->udot  = derivative.udot;
         this->vsmx  = derivative.vsmx;
         this->acc   = this->acch + this->accg1 + this->accg2;
+        this->diffu = derivative.diffu;
     }
 
     void readAscii(FILE *fp) {
@@ -169,6 +177,7 @@ public:
                &this->pos[0], &this->pos[1], &this->pos[2],
                &this->vel[0], &this->vel[1], &this->vel[2],
                &this->uene,   &this->alph,   &this->ksr);
+        this->alphu = this->alph;
     }
 
     void writeAscii(FILE *fp) const {
@@ -176,7 +185,7 @@ public:
         fprintf(fp, " %+e %+e %+e", this->pos[0], this->pos[1], this->pos[2]);
         fprintf(fp, " %+e %+e %+e", this->vel[0], this->vel[1], this->vel[2]);
         fprintf(fp, " %+e %+e %+e", this->acc[0], this->acc[1], this->acc[2]);
-        fprintf(fp, " %+e %+e %+e", this->uene, this->alph, this->ksr);
+        fprintf(fp, " %+e %+e %+e %+e", this->uene, this->alph, this->alphu, this->ksr);
         fprintf(fp, " %+e %+e %+e", this->dens, this->vsnd, this->pres);
         fprintf(fp, " %+e %+e %+e", this->divv, this->rotv, this->bswt);
         fprintf(fp, " %+e %6d %+e", this->grdh, this->np, this->pot);
@@ -199,18 +208,24 @@ public:
         PS::F64 src;
         src = - divv * (alphamax - this->alph);
         src = (src > 0.) ? src : 0.;
-        this->adot = - (this->alph - alphamin)
-            * (0.25 * this->vsnd * KernelSph::ksrh) / this->ksr + src;
+        PS::F64 tauinv = (0.25 * this->vsnd * KernelSph::ksrh) / this->ksr;
+        this->adot = - (this->alph - alphamin) * tauinv + src;
+#ifdef THERMAL_CONDUCTIVITY
+        PS::F64 srcu;
+        srcu  = this->ksr * KernelSph::ksrhinv * this->diffu / sqrt(this->uene + this->epsu);
+        srcu *= (alphamax - this->alphu);
+        this->adotu = - (this->alphu - alphamin) * tauinv + srcu;
+#endif
     }
 
-    PS::F64 calcTimeStep() {
-        return tceff * 2. * this->ksr / (this->vsmx * KernelSph::ksrh);
-    }
 //    PS::F64 calcTimeStep() {
-//        PS::F64 dthydro  = tceff * 2. * this->ksr / (this->vsmx * KernelSph::ksrh);
-//        PS::F64 dtenergy = tceff * this->uene / fabs(this->udot);
-//        return std::min(dthydro, dtenergy);
+//        return tceff * 2. * this->ksr / (this->vsmx * KernelSph::ksrh);
 //    }
+    PS::F64 calcTimeStep() {
+        PS::F64 dthydro = tceff * 2. * this->ksr / (this->vsmx * KernelSph::ksrh);
+        PS::F64 dtalphu = tceff * this->alphu / fabs(this->adotu);
+        return std::min(dthydro, dtalphu);
+    }
 
     PS::F64 calcEnergy() {
         return this->mass * (0.5 * this->vel * this->vel + this->uene + 0.5 * this->pot);
@@ -242,19 +257,22 @@ public:
     }
 
     void predict(PS::F64 dt) {
-        this->pos   = this->pos  +       this->vel  * dt  + 0.5 * this->acc * dt * dt;
-        this->vel2  = this->vel  + 0.5 * this->acc  * dt;
-        this->vel   = this->vel  +       this->acc  * dt;
-        this->uene2 = this->uene + 0.5 * this->udot * dt;
-        this->uene  = this->uene +       this->udot * dt;
-        this->alph2 = this->alph + 0.5 * this->adot * dt;
-        this->alph  = this->alph +       this->adot * dt;
+        this->pos    = this->pos   +       this->vel   * dt  + 0.5 * this->acc * dt * dt;
+        this->vel2   = this->vel   + 0.5 * this->acc   * dt;
+        this->vel    = this->vel   +       this->acc   * dt;
+        this->uene2  = this->uene  + 0.5 * this->udot  * dt;
+        this->uene   = this->uene  +       this->udot  * dt;
+        this->alph2  = this->alph  + 0.5 * this->adot  * dt;
+        this->alph   = this->alph  +       this->adot  * dt;
+        this->alphu2 = this->alphu + 0.5 * this->adotu * dt;
+        this->alphu  = this->alphu +       this->adotu * dt;
     }
 
     void correct(PS::F64 dt) {
-        this->vel   = this->vel2  + 0.5 * this->acc  * dt;
-        this->uene  = this->uene2 + 0.5 * this->udot * dt;
-        this->alph  = this->alph2 + 0.5 * this->adot * dt;
+        this->vel   = this->vel2   + 0.5 * this->acc   * dt;
+        this->uene  = this->uene2  + 0.5 * this->udot  * dt;
+        this->alph  = this->alph2  + 0.5 * this->adot  * dt;
+        this->alphu = this->alphu2 + 0.5 * this->adotu * dt;
     }
 #endif
 
@@ -271,6 +289,7 @@ PS::F64    SPH::alphamax, SPH::alphamin;
 PS::F64    SPH::eps;
 PS::F64    SPH::ksrmax = std::numeric_limits<double>::max();
 PS::F64vec SPH::omg;
+PS::F64    SPH::epsu;
 
 #ifdef USE_AT1D
 inline PS::F64 SPH::calcVolumeInverse(const PS::F64 hi) {return hi;}
@@ -310,6 +329,19 @@ void setParameterParticle(Theader & header) {
     SPH::eps      = header.eps;
     
     return;
+}
+
+template <class Tptcl>
+PS::F64 setEpsilonOfInternalEnergy(Tptcl & system) {
+    PS::F64 uminloc = std::numeric_limits<double>::max();
+    PS::S32 nloc    = system.getNumberOfParticleLocal();
+    for(PS::S32 i = 0; i < nloc; i++) {
+        if(system[i].uene < uminloc) {
+            uminloc = system[i].uene;
+        }
+    }
+    PS::F64 uminglb = PS::Comm::getMinValue(uminloc);
+    return 1e-4 * uminglb;
 }
 
 template <class Tptcl>

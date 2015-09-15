@@ -113,6 +113,8 @@ int main(int argc, char **argv)
     calcFieldVariable(sph);
     WT::accumulateOthers();
 
+    SPH::epsu = setEpsilonOfInternalEnergy(sph);
+
 #ifdef SYMMETRIZED_GRAVITY
     PS::TreeForForce<PS::SEARCH_MODE_LONG, Gravity,
         SymmetrizedGravityEPI, SymmetrizedGravityEPJ, PS::MomentMonopoleSymmetrized,
@@ -211,7 +213,7 @@ int main(int argc, char **argv)
                       calcDensity(), calcDerivative(), calcGravityEPJ(), calcGravitySPJ());
 
         /*
-        if(time > 0.00335) {
+        if(time >= 0.0) {
             char filename[64];
             sprintf(filename, "hoge_%e.dat", time);
             sph.writeParticleAscii(filename);            
