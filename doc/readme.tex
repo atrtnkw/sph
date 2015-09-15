@@ -52,20 +52,30 @@ each particle as follows:
 \item Calculate the position, and predict the velocity and energy:
   \begin{align}
     \bm{r}_{i} &= \bm{r}^{(0)}_i + \bm{v}^{(0)}_i \Delta t +
-    \frac{1}{2} \bm{a}^{(0)}_i \Delta t^2 \\
+    \frac{1}{2} \bm{a}^{(0)}_i \Delta t^2, \\
     %%
     \bm{v}^{(1/2)}_i &= \bm{v}^{(0)}_i + \frac{1}{2} \bm{a}^{(0)}
-    \Delta t \\
+    \Delta t, \\
     %%
     u^{(1/2)}_i &= u^{(0)}_i + \frac{1}{2} \dot{u}^{(0)} \Delta t
-    \redtext{+ \epsilon_{{\rm nuc},i}(\Delta t/2)} \\
+    \redtext{+ \epsilon_{{\rm nuc},i}(\Delta t/2)}, \\
     %%
-    \tilde{\bm{v}}_{i} &= \bm{v}^{(0)}_i + \bm{a}^{(0)}_i \Delta t \\
+    \alpha^{(1/2)}_i &= \alpha^{(0)}_i + \frac{1}{2}
+    \dot{\alpha}^{(0)} \Delta t, \\
+    %%
+    \alpha^{{\rm u},(1/2)}_i &= \alpha^{{\rm u},(0)}_i + \frac{1}{2}
+    \dot{\alpha}^{{\rm u},(0)} \Delta t, \\
+    %%
+    \tilde{\bm{v}}_{i} &= \bm{v}^{(0)}_i + \bm{a}^{(0)}_i \Delta t, \\
     %%
     \tilde{\bm{u}}_{i} &= \bm{u}^{(0)}_i + \dot{\bm{u}}^{(0)}_i \Delta
-    t \redtext{+ \epsilon_{{\rm nuc},i}(\Delta t)} \\
+    t \redtext{+ \epsilon_{{\rm nuc},i}(\Delta t)}, \\
     %%
-    \tilde{\alpha}_i &= \alpha^{(0)}_i + \dot{\alpha}^{(0)}_i \Delta t,
+    \tilde{\alpha}_i &= \alpha^{(0)}_i + \dot{\alpha}^{(0)}_i \Delta t
+    \\
+    %%
+    \tilde{\alpha}^{\rm u}_i &= \alpha^{{\rm u},(0)}_i +
+    \dot{\alpha}^{{\rm u},(0)}_i \Delta t,
   \end{align}
   \redtext{where ($\epsilon_{{\rm nuc},i}$) is energy generated
     through nuclear reaction. When the reaction is exothermic, the
@@ -80,31 +90,28 @@ each particle as follows:
   \item Estimate the density by the following
     expression: \label{item:estimatedensity}
     \begin{align}
-      \rho_i &= \sum_j m_j W_i \\ \Omega_i &= 1 + \frac{1}{D}
-      \frac{H_i}{\rho_i} \sum_j m_j \frac{\partial W_i}{\partial H_i}
+      \rho_i = \sum_j m_j W_i
     \end{align}
     where $W_i=W(r_{ij},H_i)$, $r_{ij}=|\bm{r}_{ij}|$, and
     $\bm{r}_{ij}=\bm{r}_i-\bm{r}_j$. The kernel function is expressed
     as
     \begin{align}
-      W(r,H) &= H^{-D} w(r/H), \\ \frac{\partial
-        W(r,H)}{\partial H} &= -H^{-(D+1)} \left[ D w(q) + q
-        \frac{\partial w}{\partial q} \right].
+      W(r,H) = H^{-D} w(r/H).
     \end{align}
-    The formula of $w(q)$ and $\partial w/\partial q$ are described in
-    Appendix~\ref{sec:kernels}.
-  \item calculate the kernel length as follow:
+    The formula of $w(q)$ is described in Appendix~\ref{sec:kernels}.
+  \item Calculate the kernel length as follow:
     \begin{align}
-      H_i = \max \left[ (H/h) \times \eta \left( \frac{m_i}{\rho_i}
+      H_i = \max \left[ C_{H/h} \times \eta \left( \frac{m_i}{\rho_i}
         \right)^{1/D}, H_{\max} \right],
     \end{align}
     where $h$ is the kernel length. Here, $H_{\max}$ is the initial
     distance of the binary separation, or the maximum \texttt{double}
-    in the case of the single WD. The values of $\eta$ and $H/h$ are
-    described in Appendix~\ref{sec:kernels}.
+    in the case of the single WD. The values of $\eta$ and $C_{H/h}$
+    are described in Appendix~\ref{sec:kernels}.
   \item Return to step~(\ref{item:estimatedensity}) unless this is the
     3rd time.
-  \item Calculate divergence and rotation of $\bm{v}$:
+  \item Calculate divergence and rotation of $\bm{v}$, grad-h term,
+    and gravity correction term:
     \begin{align}
       \nabla \cdot \tilde{\bm{v}}_i &= - \frac{1}{\Omega_i \rho_i} \sum
       \tilde{\bm{v}}_{ij} \cdot \left[ m_j \frac{\partial
@@ -112,14 +119,27 @@ each particle as follows:
 %%
       \nabla \times \tilde{\bm{v}}_i &= \frac{1}{\Omega_i \rho_i} \sum
       \tilde{\bm{v}}_{ij} \times \left[ m_j \frac{\partial
-          W_i}{\partial r_{ij}} \frac{\bm{r}_{ij}}{r_{ij}} \right].
+          W_i}{\partial r_{ij}} \frac{\bm{r}_{ij}}{r_{ij}} \right],
+      \\
+%%
+      \Omega_i &= 1 + \frac{1}{D} \frac{H_i}{\rho_i} \sum_j m_j
+      \frac{\partial W_i}{\partial H_i},
     \end{align}
-    The
-    derivative of the kernel function is as follows:
+    The derivatives of the kernel function are as follows:
     \begin{align}
-      \frac{\partial W(r,H)}{\partial r} = H^{-(D+1)} \frac{\partial
-        w(r/H)}{\partial (r/H)}.
+      \frac{\partial W(r,H)}{\partial r} &= H^{-(D+1)} \frac{\partial
+        w(r/H)}{\partial (r/H)} \\
+%%
+      \frac{\partial W(r,H)}{\partial H} &= -H^{-(D+1)} \left[ D w(q)
+        + q \frac{\partial w}{\partial q} \right].
     \end{align}
+    The formula of $\partial w/\partial q$ is described in
+    Appendix~\ref{sec:kernels}.
+%%    The $\eta_i$ can be possibly as
+%%    \begin{align}
+%%      \eta_i = \frac{H_i}{D\rho_i} \frac{1}{\Omega_i} \sum_j m_j
+%%      \frac{\partial \phi(r_{ij},H_{ij})}{\partial H}
+%%    \end{align}
   \end{enumerate}
   
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -141,47 +161,113 @@ each particle as follows:
   \end{align}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\item Calculate the acceleration and the time derivative of the
-  energy:
+\item Calculate the gravity and its correction term:
   \begin{align}
-    \bm{a}_i &= - \sum \left( \frac{\tilde{P}_i}{\Omega_i \rho_i^2} +
+    \bm{g}_{2,i} &= - \frac{G}{2} \sum_j m_j
+    \frac{\bm{r}_{ij}}{r_{ij}} \left[ \frac{\partial
+        \phi(r_{ij},H_i)}{\partial r_{ij}} + \frac{\partial
+        \phi(r_{ij},H_j)}{\partial r_{ij}} \right], \\
+%%
+    \phi_i &= \frac{G}{2} \sum_j m_j \left[ \phi(r_{ij},H_i) +
+      \phi(r_{ij},H_j) \right] \\
+%%
+    \eta_i &= \frac{H_i}{D\rho_i} \frac{1}{\Omega_i} \sum_j m_j
+    \frac{\partial \phi(r_{ij},H_i)}{\partial H_i},
+  \end{align}
+  where the potential is expressed as:
+  \begin{align}
+    \phi(r,H) &= - \frac{1}{\left( r^2 + H^2 C_{H/h}^{-2}
+      \right)^{1/2}} \\
+%%
+    \frac{\partial \phi(r,H)}{\partial r} &= \frac{r}{\left( r^2 + H^2
+      C_{H/h}^{-2} \right)^{3/2}}, \\
+%%
+    \frac{\partial \phi(r,H)}{\partial H} &=
+    \frac{HC_{H/h}^{-2}}{\left( r^2 + H^2 C_{H/h}^{-2} \right)^{3/2}}.
+  \end{align}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\item Calculate the hydro acceleration, the time derivative of the
+  energy, and one term of the gravity:
+  \begin{align}
+    \bm{a}_i &= - \frac{1}{2} \sum_j \left(
+    \frac{\tilde{P}_i}{\Omega_i \rho_i^2} +
     \frac{\tilde{P}_j}{\Omega_j \rho_j^2} + f_{ij} \Pi_{ij} \right)
-    \left[ \frac{m_j}{2} \left( \frac{\partial W_i}{\partial r_{ij}} +
+    \left[ m_j \left( \frac{\partial W_i}{\partial r_{ij}} +
       \frac{\partial W_j}{\partial r_{ij}} \right)
-      \frac{\bm{r}_{ij}}{r_{ij}} \right], \\ \dot{u}_i &= \sum \left(
-    \frac{\tilde{P}_i}{\Omega_i \rho_i^2} + \frac{f_{ij} \Pi_{ij}}{2}
-    \right) \left[ \frac{m_j}{2} \left( \frac{\partial W_i}{\partial
-        r_{ij}} + \frac{\partial W_j}{\partial r_{ij}} \right)
-      \frac{\bm{r}_{ij}}{r_{ij}} \right] \cdot \tilde{\bm{v}}_{ij},
+      \frac{\bm{r}_{ij}}{r_{ij}} \right], \\
+%%
+    \dot{u}_i &= \frac{1}{2} \sum_j \left( \frac{\tilde{P}_i}{\Omega_i
+      \rho_i^2} + \frac{f_{ij} \Pi_{ij}}{2} \right)
+    \left[ m_j \left( \frac{\partial W_i}{\partial r_{ij}} +
+      \frac{\partial W_j}{\partial r_{ij}} \right)
+      \frac{\bm{r}_{ij}}{r_{ij}} \right] \cdot
+    \tilde{\bm{v}}_{ij}, \label{eq:udot0} \\
+%%
+    \bm{g}_{1,i} &= \frac{G}{2} \sum_j m_j \left[ \left( \eta_i
+      \frac{\partial W_{i}}{\partial r_{ij}} + \eta_j \frac{\partial
+        W_{j}}{\partial r_{ij}} \right) \frac{\bm{r}_{ij}}{r_{ij}}
+      \right], \\    
+%%
+    \left( \nabla^2 u \right)_i &= \sum_j \frac{u_i - u_j}{\rho_{ij}}
+    \left[ m_j \left( \frac{\partial W_i}{\partial r_{ij}} +
+      \frac{\partial W_j}{\partial r_{ij}} \right)
+      \frac{1}{r_{ij}} \right],
   \end{align}
   where $f_{ij}=(f_i+f_j)/2$, and $\Pi_{ij}$ is an artificial
   viscosity. The artificial viscosity is expressed as follows:
   \begin{align}
-    \Pi_{ij} &= - \frac{\tilde{\alpha}_i}{2} \frac{v_{ij}^{\rm sig}
-      w_{ij}}{\rho_{ij}} \\
+    \Pi_{ij} &= - \frac{\tilde{\alpha}_{ij}}{2} \frac{v_{ij}^{\rm sig}
+      \min\left(w_{ij},0\right)}{\rho_{ij}} \\
 %%
-    v_{ij}^{\rm sig} &= c_{{\rm s},i} + c_{{\rm s},j} - 3 w_{ij} \\
+    v_{ij}^{\rm sig} &= c_{{\rm s},i} + c_{{\rm s},j} - 3
+    \min(w_{ij},0) \\
 %%
-    w_{ij} &= \left\{
-    \begin{array}{ll}
-      \displaystyle \frac{\bm{r}_{ij} \cdot
-        \tilde{\bm{v}}_{ij}}{|\bm{r}_{ij}|} & (\bm{r}_{ij} \cdot
-     \tilde{\bm{v}}_{ij} < 0) \\ 0 & (\bm{r}_{ij} \cdot
-      \tilde{\bm{v}}_{ij} \ge 0)
-    \end{array}
-    \right.    
+    w_{ij} &= \frac{\bm{r}_{ij} \cdot
+      \tilde{\bm{v}}_{ij}}{|\bm{r}_{ij}|}
   \end{align}
-  where $\rho_{ij}=(\rho_i+\rho_j)/2$.
+  where $\tilde{\alpha}_{ij}=(\tilde{\alpha}_i+\tilde{\alpha}_j)/2$,
+  and $\rho_{ij}=(\rho_i+\rho_j)/2$. If we introduce Price's thermal
+  conductivity, equation~(\ref{eq:udot0}) can be rewritten as:
+  \begin{align}
+    \dot{u}_i = &\frac{1}{2} \sum_j m_j \left( \frac{\partial
+      W_i}{\partial r_{ij}} + \frac{\partial W_j}{\partial r_{ij}}
+    \right) \nonumber \\ 
+%%
+    &\times \Biggl\{ \left( \frac{\tilde{P}_i w_{ij}}{\Omega_i
+      \rho_i^2} + \frac{f_{ij}\Pi_{ij}}{2} \right) w_{ij} \nonumber \\
+%%
+    &+ \frac{1}{\rho_{ij}} \left[ \frac{1}{4} \tilde{\alpha}_{ij}
+      v_{ij}^{\rm sig} \left( \hat{v}_i^2 - \hat{v}_j^2 \right) +
+      \tilde{\alpha}_{ij}^{\rm u} v_{ij}^{\rm u,sig} \left( u_i - u_j
+      \right) \right] \Biggr\}
+  \end{align}
+  where $\tilde{\alpha}_{ij}^{\rm u}=1$ temporarily, and
+  \begin{align}
+    \hat{v}_i &= \frac{\bm{v}_{i} \cdot \bm{r}_{ij}}{r_{ij}}
+    \\ 
+%%
+    \hat{v}_j &= \frac{\bm{v}_{j} \cdot \bm{r}_{ij}}{r_{ij}}
+    \\ 
+%%
+    v_{ij}^{\rm u,sig} &= \left( \frac{| \tilde{P}_i - \tilde{P}_j
+      |}{\rho_{ij}} \right)^{1/2}
+  \end{align}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\item Calculate $\dot{\alpha}$:
+\item Calculate $\dot{\alpha}$ and $\dot{\alpha}^{\rm u}$:
   \begin{align}
     \dot{\alpha}_i &= - \frac{\tilde{\alpha}_i - \alpha_{\rm
-        min}}{h_i/(0.25\tilde{c}_{{\rm s},i})} + S_i \\ 
-    %%
-    S_i &= \max \left[ -(\nabla \cdot \tilde{\bm{v}}_i)(\alpha_{\rm
-        max}-\tilde{\alpha}_i), 0 \right]
+        min}}{h_i/(0.25\tilde{c}_{{\rm s},i})} + \max \left[ -(\nabla
+      \cdot \tilde{\bm{v}}_i)(\alpha_{\rm max}-\tilde{\alpha}_i), 0
+      \right] \\
+%%
+    \dot{\alpha}^{\rm u}_i &= - \frac{\tilde{\alpha}^{\rm u}_i -
+      \alpha_{\rm min}^{\rm u}}{h_i/(0.25\tilde{c}_{{\rm s},i})} +
+    \frac{h_i|\nabla^2u|_i}{(u_i+\epsilon^{\rm u})^{1/2}} \left(
+    \alpha_{\max} - \tilde{\alpha}^{\rm u}_i \right),
   \end{align}
+  where we set $\epsilon^{\rm u}=0.0001u_{0,\min}$.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \item Correct the velocity and energy:
@@ -192,7 +278,10 @@ each particle as follows:
       \epsilon_{{\rm nuc},i}(\Delta t / 2)} \\
     %%
     \alpha_i &= \alpha^{(1/2)}_i + \frac{1}{2} \dot{\alpha}_i \Delta
-    t.
+    t, \\
+    %%
+    \alpha^{\rm u}_i &= \alpha^{{\rm u},(1/2)}_i + \frac{1}{2}
+    \dot{\alpha}^{\rm u}_i \Delta t.
   \end{align}
   \redtext{When the reaction is exothermic, the density and
     temperature are fixed at this time. On the other hand, when the
@@ -253,7 +342,7 @@ We describe the cubic spline kernel:
 \end{align}
 where $\sigma = 2/3$ (1D), $10/7\pi$ (2D), and $1/\pi$ (3D).
 
-For this kernel, $\eta=1.2$, and $H/h=2$.
+For this kernel, $\eta=1.2$, and $C_{H/h}=2$.
 
 The equations~(\ref{eq:cubicspline0-1}) and (\ref{eq:cubicspline0-2})
 can be rewritten as
@@ -279,7 +368,7 @@ and in the case of $D = 2, 3$,
     q} &= 4 C_{\rm W} \left[(1-q)^4_+ - (1-q)^3_+ (1+4q) \right],
 \end{align}
 where $C_{\rm W}=5/4$ ($D=1$), $7/\pi$ ($D=2$), and $21/(2\pi)$
-($D=3$). For this kernel, $\eta=1.6$, and $H/h=1.620185(D=1)$,
+($D=3$). For this kernel, $\eta=1.6$, and $C_{H/h}=1.620185(D=1)$,
 $1.897367(D=2)$, and $1.93492(D=3)$.
 
 \subsection{Wendland C$^4$ kernel}
@@ -300,7 +389,7 @@ and in the case of $D = 2, 3$,
   \right\}
 \end{align}
 where $C_{\rm W}=3/2$ ($D=1$), $9/\pi$ ($D=2$), and $495/(32\pi)$
-($D=3$). For this kernel, $\eta=1.6$, and $H/h=1.936492(D=1)$,
+($D=3$). For this kernel, $\eta=1.6$, and $C_{H/h}=1.936492(D=1)$,
 $2.171239(D=2)$, and $2.207940(D=3)$.
 
 \section{SPH tests}
