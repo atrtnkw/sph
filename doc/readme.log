@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.15 (TeX Live 2014) (preloaded format=latex 2014.12.12)  19 AUG 2015 20:14
+This is pdfTeX, Version 3.14159265-2.6-1.40.15 (TeX Live 2014) (preloaded format=latex 2014.12.12)  15 SEP 2015 17:58
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -146,25 +146,26 @@ LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 44.
 LaTeX Font Info:    ... okay on input line 44.
  [1
 
-] [2] [3] [4]
+] [2] [3] [4] [5]
 File: fig/shock_1d/draw.png Graphic file (type bmp)
  <fig/shock_1d/draw.png>
 File: fig/shock_3d/draw.png Graphic file (type bmp)
- <fig/shock_3d/draw.png>
-File: fig/strong/draw.png Graphic file (type bmp)
 
-<fig/strong/draw.png>
+<fig/shock_3d/draw.png>
+File: fig/strong/draw.png Graphic file (type bmp)
+ <fig/strong/draw.png>
 File: fig/pex/draw.png Graphic file (type bmp)
  <fig/pex/draw.png>
 File: fig/evrard/draw.png Graphic file (type bmp)
- <fig/evrard/draw.png>
-Overfull \hbox (53.33858pt too wide) in paragraph at lines 347--348
+
+<fig/evrard/draw.png>
+Overfull \hbox (53.33858pt too wide) in paragraph at lines 436--437
  [] 
  []
 
 File: fig/eos/draw.png Graphic file (type bmp)
 <fig/eos/draw.png>
-Overfull \hbox (53.33858pt too wide) in paragraph at lines 357--358
+Overfull \hbox (53.33858pt too wide) in paragraph at lines 446--447
  [] 
  []
 
@@ -172,51 +173,51 @@ File: fig/wdeq/draw.png Graphic file (type bmp)
 <fig/wdeq/draw.png>
 File: fig/bwd.1.8_he1e-1/draw.png Graphic file (type bmp)
  <fig/bwd.1.8_he1e-1/draw.png>
-Overfull \hbox (53.33858pt too wide) in paragraph at lines 374--375
+Overfull \hbox (53.33858pt too wide) in paragraph at lines 463--464
  [] 
  []
 
 File: fig/wddamp/draw.png Graphic file (type bmp)
 <fig/wddamp/draw.png>
-Overfull \hbox (53.33858pt too wide) in paragraph at lines 383--384
+Overfull \hbox (53.33858pt too wide) in paragraph at lines 472--473
  [] 
  []
 
 
-LaTeX Warning: Float too large for page by 28.69759pt on input line 386.
+LaTeX Warning: Float too large for page by 28.69759pt on input line 475.
 
 File: fig/wddamp/draw2.png Graphic file (type bmp)
 <fig/wddamp/draw2.png>
-Overfull \hbox (53.33858pt too wide) in paragraph at lines 390--391
+Overfull \hbox (53.33858pt too wide) in paragraph at lines 479--480
  [] 
  []
 
 File: fig/bwd.1.8/draw.png Graphic file (type bmp)
 <fig/bwd.1.8/draw.png>
-Overfull \hbox (53.33858pt too wide) in paragraph at lines 397--398
+Overfull \hbox (53.33858pt too wide) in paragraph at lines 486--487
  [] 
  []
 
 
-LaTeX Warning: Float too large for page by 57.1375pt on input line 401.
+LaTeX Warning: Float too large for page by 57.1375pt on input line 490.
 
 File: fig/bwd.1.5/draw.png Graphic file (type bmp)
 <fig/bwd.1.5/draw.png>
-Overfull \hbox (53.33858pt too wide) in paragraph at lines 405--406
+Overfull \hbox (53.33858pt too wide) in paragraph at lines 494--495
  [] 
  []
 
 
-LaTeX Warning: Float too large for page by 57.1375pt on input line 409.
+LaTeX Warning: Float too large for page by 57.1375pt on input line 498.
 
-[5] [6] [7] [8] [9] [10] [11] [12] [13] [14] [15] (./readme.aux) ) 
+[6] [7] [8] [9] [10] [11] [12] [13] [14] [15] [16] (./readme.aux) ) 
 Here is how much of TeX's memory you used:
- 1504 strings out of 493110
- 18582 string characters out of 6135029
+ 1505 strings out of 493110
+ 18592 string characters out of 6135029
  82413 words of memory out of 5000000
- 4964 multiletter control sequences out of 15000+600000
+ 4965 multiletter control sequences out of 15000+600000
  13803 words of font info for 49 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 27i,16n,24p,381b,344s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 27i,14n,24p,381b,340s stack positions out of 5000i,500n,10000p,200000b,80000s
 
-Output written on readme.dvi (15 pages, 22896 bytes).
+Output written on readme.dvi (16 pages, 29340 bytes).

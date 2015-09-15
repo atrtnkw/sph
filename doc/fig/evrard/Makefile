@@ -1,5 +1,5 @@
 all:
-	sh omit.sh
+#	sh omit.sh
 	sh ../fig.sh draw
 
 clean:
