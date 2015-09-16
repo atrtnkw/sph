@@ -1,16 +1,19 @@
+###### AT_PLATFORM ########
+use_xc  = yes
+###########################
+
+ifeq ($(use_xc), yes)
+FDPS_DIR = ../../fdps/src
+CCC = CC
+else
 FDPS_DIR = ../../../fdps-jenever0/src
-#FDPS_DIR = ../../fdps/src
+CCC = mpicxx
+endif
 
 PHANTOM_DIR = ${FDPS_DIR}/phantom_grape_x86/G5/newton/libpg5
 
 PS_PATH  = -I${FDPS_DIR}
 PS_PATH += -I${PHANTOM_DIR}
-
-CCC = mpicxx
-#CCC = CC
-#CCC = mpicxx-openmpi-gcc49
-#CCC = mpicxx-mpich-gcc49
-#CCC = g++
 
 CFLAGS = -O3 -march=core-avx2 -ffast-math -funroll-loops #-Wall
 CFLAGS += -DPARTICLE_SIMULATOR_THREAD_PARALLEL -fopenmp

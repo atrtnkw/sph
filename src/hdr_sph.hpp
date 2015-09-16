@@ -190,6 +190,9 @@ public:
         fprintf(fp, " %+e %+e %+e", this->divv, this->rotv, this->bswt);
         fprintf(fp, " %+e %6d %+e", this->grdh, this->np, this->pot);
         fprintf(fp, " %+e", this->eta);
+        /////////////////////
+        //fprintf(fp, " %+e %+e %+e", this->adotu, this->diffu, this->udot);
+        /////////////////////
         fprintf(fp, "\n");
     }
 
@@ -218,13 +221,10 @@ public:
 #endif
     }
 
-//    PS::F64 calcTimeStep() {
-//        return tceff * 2. * this->ksr / (this->vsmx * KernelSph::ksrh);
-//    }
     PS::F64 calcTimeStep() {
         PS::F64 dthydro = tceff * 2. * this->ksr / (this->vsmx * KernelSph::ksrh);
-        PS::F64 dtalphu = tceff * this->alphu / fabs(this->adotu);
-        return std::min(dthydro, dtalphu);
+        PS::F64 dtenerg = tceff * this->uene / fabs(this->udot);
+        return std::min(dthydro, dtenerg);
     }
 
     PS::F64 calcEnergy() {

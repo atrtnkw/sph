@@ -213,9 +213,9 @@ int main(int argc, char **argv)
                       calcDensity(), calcDerivative(), calcGravityEPJ(), calcGravitySPJ());
 
         /*
-        if(time >= 0.0) {
+        if(time >= 0.01336) {
             char filename[64];
-            sprintf(filename, "hoge_%e.dat", time);
+            sprintf(filename, "snap/hoge_%e.dat", time);
             sph.writeParticleAscii(filename);            
             PS::Finalize();
             exit(0);
@@ -269,7 +269,7 @@ template <class Tptcl>
 PS::F64 calcTimeStep(Tptcl & system,
                      PS::F64 t,
                      PS::F64 dt) {
-    const PS::F64 dtmin = 1e-10;
+    const PS::F64 dtmin = 1e-16;
 
     PS::S32 nloc = system.getNumberOfParticleLocal();
     PS::F64 dtc = 1e30;

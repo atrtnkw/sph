@@ -315,6 +315,7 @@ struct calcDerivativeX86 {
             g1y_i   *= v4df(0.5);
             g1z_i   *= v4df(0.5);
             diffu_i *= v4df(2.);
+            diffu_i  = v4df::fabs(diffu_i);
 
             PS::F64 buf_ax[nvector];
             PS::F64 buf_ay[nvector];
