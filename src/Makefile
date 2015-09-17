@@ -27,20 +27,20 @@ CLIBS += -L${PHANTOM_DIR} -lpg5
 ############# AT_FLAGS ##################
 #CFLAGS += -DTIMETEST
 #
-#CFLAGS += -DTHERMAL_CONDUCTIVITY
+CFLAGS += -DTHERMAL_CONDUCTIVITY
 #
-CFLAGS += -DENABLE_SIMDX86
+#CFLAGS += -DENABLE_SIMDX86
 #CFLAGS += -DENABLE_SIMDX86_SINGLE
 #
 CFLAGS += -DWENDLANDC2
 #CFLAGS += -DWENDLANDC4
 #CFLAGS += -DCUBICSPLINE
 #
-#CFLAGS += -DUSE_AT1D
+CFLAGS += -DUSE_AT1D
 #CFLAGS += -DUSE_AT2D
 #
-CFLAGS += -DGRAVITY
-CFLAGS += -DSYMMETRIZED_GRAVITY
+#CFLAGS += -DGRAVITY
+#CFLAGS += -DSYMMETRIZED_GRAVITY
 #
 #CFLAGS += -DDAMPING
 #########################################
@@ -63,7 +63,7 @@ asm: main.cpp $(HDR) $(ETC)
 
 clean:
 	rm -f *~
-	rm -f test.o*
+	rm -f *.o[0-9]*
 	rm -f core
 	rm -f *.s
 distclean:

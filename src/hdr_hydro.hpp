@@ -147,43 +147,44 @@ struct calcDerivativeBasic {
                 PS::F64    q_i   = r1_ij * hi_i;
                 PS::F64    q_j   = r1_ij * hi_j;
 
-                PS::F64 dw_i = hi4_i * KernelSph::kernel1st(q_i);
-                PS::F64 dw_j = hi4_j * KernelSph::kernel1st(q_j);
-                PS::F64vec dw_ij  = m_j * dx_ij * ri_ij * 0.5d * (dw_i + dw_j);
+                PS::F64 dw_i    = hi4_i * KernelSph::kernel1st(q_i);
+                PS::F64 dw_j    = hi4_j * KernelSph::kernel1st(q_j);
+                PS::F64 mdw_ij  = m_j * (dw_i + dw_j);
+                PS::F64 mrdw_ij = ri_ij * mdw_ij;
 
-                PS::F64    mu_ij   = xv_ij * ri_ij;
-                PS::F64    mm_ij   = std::min(mu_ij, 0.);
-                PS::F64    vs_ij   = cs_i + cs_j - 3.d * mm_ij;
-                PS::F64    rhi_ij  = 1. / (rh_i + rh_j);
-                PS::F64    alph_ij = alph_i + alph_j;
-                PS::F64    pi_ij   = - 0.5d * vs_ij * mm_ij * alph_ij * rhi_ij;
-                PS::F64    f_ij    = 0.5d * (bswt_i + bswt_j);
-                PS::F64    vis_ij  = f_ij * pi_ij;
+                PS::F64 w_ij    = xv_ij * ri_ij;
+                PS::F64 w0_ij   = std::min(w_ij, 0.);
+                PS::F64 vs_ij   = cs_i + cs_j - 3.d * w0_ij;
+                PS::F64 rhi_ij  = 1. / (rh_i + rh_j);
+                PS::F64 alph_ij = alph_i + alph_j;
+                PS::F64 f_ij    = bswt_i + bswt_j;
+                PS::F64 vis0_ij = f_ij * alph_ij * vs_ij;
+                PS::F64 vis_ij  = -0.5 * vis0_ij * w0_ij * rhi_ij;
 
-                acc_i -=         dw_ij * (prhi2_i + prhi2_j + vis_ij);
-                ene_i += dv_ij * dw_ij * (prhi2_i + 0.5d * vis_ij);
+                acc_i -= (mrdw_ij * (prhi2_i + prhi2_j + vis_ij)) * dx_ij;
+                vsmx_i = (vs_ij > vsmx_i) ? vs_ij : vsmx_i;                                
+
 #ifdef THERMAL_CONDUCTIVITY
-                PS::F64    alphu_ij = alphu_i + alphu_j;
-                PS::F64    dww_ij   = 0.5 * m_j * (dw_i + dw_j);
-                PS::F64    vsu_ij   = sqrt(fabs(pres_i - pres_j) * rhi_ij * 2.);
-                PS::F64vec rhat_ij  = dx_ij * ri_ij;
-                PS::F64    vr_i     = v_i * rhat_ij;
-                PS::F64    vr_j     = v_j * rhat_ij;
-                PS::F64    u_ij     = u_i - u_j;
-                ene_i += dww_ij * rhi_ij * (0.25 * alph_ij * vs_ij * (vr_i * vr_i - vr_j * vr_j)
-                                            + alphu_ij * vsu_ij * u_ij);
-                diffu_i += u_ij * rhi_ij * dww_ij * ri_ij;
+                PS::F64 vsu_ij   = sqrt(fabs(pres_i - pres_j) * rhi_ij * 2.);
+                PS::F64 alphu_ij = alphu_i + alphu_j;
+                PS::F64 u_ij     = u_i - u_j;
+                PS::F64 de_ij    = prhi2_i * w_ij - rhi_ij
+                    * (0.25 * vis0_ij * w0_ij * w0_ij - alphu_ij * vsu_ij * u_ij);
+                ene_i   += mdw_ij * de_ij;
+                diffu_i += u_ij * rhi_ij * mrdw_ij;
+#else
+                PS::F64 de_ij = prhi2_i + 0.5 * vis_ij;
+                ene_i += de_ij * mdw_ij * w_ij;
 #endif
-                vsmx_i = (vs_ij > vsmx_i) ? vs_ij : vsmx_i;                
 
 #ifdef SYMMETRIZED_GRAVITY
-                PS::F64vec dg_ij = m_j * dx_ij * ri_ij * 0.5d * (eta_i * dw_i + eta_j * dw_j);
+                PS::F64vec dg_ij = dx_ij * (m_j * ri_ij * (eta_i * dw_i + eta_j * dw_j));
                 g1_i += dg_ij;
 #endif
             }
-            derivative[i].acc   = acc_i;
-            derivative[i].accg  = g1_i;
-            derivative[i].udot  = ene_i;
+            derivative[i].acc   = 0.5 * acc_i;
+            derivative[i].accg  = 0.5 * g1_i;
+            derivative[i].udot  = 0.5 * ene_i;
             derivative[i].vsmx  = vsmx_i;
             derivative[i].diffu = 4. * fabs(diffu_i);
         }
