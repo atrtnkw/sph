@@ -388,7 +388,8 @@ public:
     
 #ifdef WD_DAMPING1
     void correct(PS::F64 dt) {
-        this->acc  -= this->vel / (128.d * dt);
+        //this->acc  -= this->vel / (128.d * dt);
+        this->acc  -= this->vel * 0.05;
         this->vel   = this->vel2   + 0.5 * this->acc   * dt;
         this->uene  = this->uene2  + 0.5 * this->udot  * dt;
         this->alph  = this->alph2  + 0.5 * this->adot  * dt;
