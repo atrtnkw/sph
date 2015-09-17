@@ -1,13 +1,34 @@
 ###### AT_PLATFORM ########
-use_xc  = yes
+use_xc  = no
+###### AT_MPI_OPENMP ######
+use_mpi = yes
+use_omp = yes
 ###########################
+###### AT_FLAGS ##############################
+CFLAGS += -DTHERMAL_CONDUCTIVITY
+#
+#CFLAGS += -DTEMPORARY
+CFLAGS += -DENABLE_SIMDX86
+#CFLAGS += -DENABLE_SIMDX86_SINGLE
+#
+CFLAGS += -DWENDLANDC2
+#CFLAGS += -DWENDLANDC4
+#CFLAGS += -DCUBICSPLINE
+#
+#CFLAGS += -DUSE_AT1D
+#CFLAGS += -DUSE_AT2D
+#
+CFLAGS += -DSYMMETRIZED_GRAVITY
+CFLAGS += -DWD_DAMPING1
+#CFLAGS += -DWD_DAMPING2
+#CFLAGS += -DWD_DAMPINGB
+##############################################
+##############################################
 
 ifeq ($(use_xc), yes)
 FDPS_DIR = ../../fdps/src
-CCC = CC
 else
 FDPS_DIR = ../../../fdps-jenever0/src
-CCC = mpicxx
 endif
 
 PHANTOM_DIR = ${FDPS_DIR}/phantom_grape_x86/G5/newton/libpg5
@@ -15,48 +36,53 @@ PHANTOM_DIR = ${FDPS_DIR}/phantom_grape_x86/G5/newton/libpg5
 PS_PATH  = -I${FDPS_DIR}
 PS_PATH += -I${PHANTOM_DIR}
 
-CFLAGS = -O3 -march=core-avx2 -ffast-math -funroll-loops #-Wall
-CFLAGS += -DPARTICLE_SIMULATOR_THREAD_PARALLEL -fopenmp
-CFLAGS += -DPARTICLE_SIMULATOR_MPI_PARALLEL
-#CFLAGS += -DPARTICLE_SIMULATOR_TWO_DIMENSION
+ifeq ($(use_xc), yes)
+CCC = CC
+FCC = ftn
+else
+CCC = g++
+FCC = gfortran
+ifeq ($(use_mpi), yes)
+CCC = mpicxx
+FCC = mpif90
+endif
+endif
+
+CFLAGS += -O3 -march=core-avx2 -ffast-math -funroll-loops #-Wall
 #CFLAGS += -DSANITY_CHECK_REALLOCATABLE_ARRAY
+CLIBS  += -L${PHANTOM_DIR} -lpg5
+CLIBS  += -lstdc++ -lm
+FFLAGS += -I. -I./heos
 
-CLIBS += -L${PHANTOM_DIR} -lpg5
+ifeq ($(use_omp), yes)
+CFLAGS += -DPARTICLE_SIMULATOR_THREAD_PARALLEL -fopenmp
+endif
+ifeq ($(use_mpi), yes)
+CFLAGS += -DPARTICLE_SIMULATOR_MPI_PARALLEL
+ifeq ($(use_xc), yes)
+CLIBS  +=
+else
+CLIBS  += -lmpi_cxx
+endif
+endif
 
-#########################################
-############# AT_FLAGS ##################
-#CFLAGS += -DTIMETEST
-#
-CFLAGS += -DTHERMAL_CONDUCTIVITY
-#
-#CFLAGS += -DENABLE_SIMDX86
-#CFLAGS += -DENABLE_SIMDX86_SINGLE
-#
-CFLAGS += -DWENDLANDC2
-#CFLAGS += -DWENDLANDC4
-#CFLAGS += -DCUBICSPLINE
-#
-CFLAGS += -DUSE_AT1D
-#CFLAGS += -DUSE_AT2D
-#
-#CFLAGS += -DGRAVITY
-#CFLAGS += -DSYMMETRIZED_GRAVITY
-#
-#CFLAGS += -DDAMPING
-#########################################
-#########################################
-
-OBJ = main.o
-HDR = hdr_sph.hpp hdr_kernel.hpp hdr_density.hpp hdr_hydro.hpp \
-	hdr_gravity.hpp hdr_damp.hpp hdr_time.hpp vector_x86.hpp \
-	hdr_vgravity.hpp
+OBJ = main.o heos/eos.o
+HDR = hdr_sph.hpp hdr_eos.hpp hdr_kernel.hpp hdr_density.hpp hdr_hydro.hpp \
+	hdr_gravity.hpp hdr_damp.hpp hdr_time.hpp hdr_massless.hpp
 ETC = Makefile
 
 run: $(OBJ) $(HDR) $(ETC)
-	$(CCC) $(PS_PATH) $(CFLAGS) -o run $(OBJ) $(CLIBS)
+ifeq ($(use_xc), yes)
+	$(CCC) $(PS_PATH) $(CFLAGS) $(FFLAGS) -o run $(OBJ) $(CLIBS)
+else
+	$(FCC) $(PS_PATH) $(CFLAGS) $(FFLAGS) -o run $(OBJ) $(CLIBS)
+endif
 
 main.o: main.cpp $(HDR) $(ETC)
 	$(CCC) $(PS_PATH) $(CFLAGS) -c main.cpp
+
+heos/eos.o: heos/eos.f
+	make -C heos -f Makefile.heos FCC="$(FCC)"
 
 asm: main.cpp $(HDR) $(ETC)
 	$(CCC) $(PS_PATH) $(CFLAGS) -S main.cpp
@@ -66,17 +92,20 @@ clean:
 	rm -f *.o[0-9]*
 	rm -f core
 	rm -f *.s
+	make -C heos -f Makefile.heos clean
 distclean:
 	make clean
 	rm -f *.o
+	make -C heos -f Makefile.heos distclean
 allclean:
 	make distclean
-	rm -f run
+	rm -f run EOS_*.dat
+	make -C heos -f Makefile.heos allclean
 
 change:
-	cp hdr_sph.hpp ideal/hdr_sph.hpp
-	cp main.cpp ideal/main.cpp
-	cp Makefile ideal/Makefile.all
-	cp heos/hdr_sph.hpp .
-	cp heos/main.cpp .
-	cp heos/Makefile.all Makefile
+	cp hdr_sph.hpp heos/hdr_sph.hpp
+	cp main.cpp heos/main.cpp
+	cp Makefile heos/Makefile.all
+	cp ideal/hdr_sph.hpp .
+	cp ideal/Makefile.all Makefile
+	cp ideal/main.cpp main.cpp

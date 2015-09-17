@@ -20,7 +20,7 @@ public:
         id    = sph.id;
         pos   = sph.pos;
         vel   = sph.vel;
-        uene  = sph.uene;
+        //uene  = sph.uene;       
         ksr   = sph.ksr;
         hinv  = 1.d / sph.ksr;
         pres0 = sph.pres;
@@ -31,6 +31,8 @@ public:
         alph  = sph.alph;
         alphu = sph.alphu;
         eta   = sph.eta;
+        PS::F64 umin = CalcEquationOfState::getEnergyMin(sph.dens, sph.abar, sph.zbar);
+        uene  = std::max(sph.uene - umin, 0.);
     }
     PS::F64vec getPos() const {
         return this->pos;
@@ -65,7 +67,7 @@ public:
         mass  = sph.mass;
         pos   = sph.pos;
         vel   = sph.vel;
-        uene  = sph.uene;
+        //uene  = sph.uene;
         ksr   = sph.ksr;
         hinv  = 1.d / sph.ksr;
         pres0 = sph.pres;
@@ -76,6 +78,8 @@ public:
         alph  = sph.alph;
         alphu = sph.alphu;
         eta   = sph.eta;
+        PS::F64 umin = CalcEquationOfState::getEnergyMin(sph.dens, sph.abar, sph.zbar);
+        uene  = std::max(sph.uene - umin, 0.);
     }
     PS::F64vec getPos() const {
         return this->pos;

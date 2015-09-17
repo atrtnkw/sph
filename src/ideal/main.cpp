@@ -113,6 +113,8 @@ int main(int argc, char **argv)
     calcFieldVariable(sph);
     WT::accumulateOthers();
 
+    SPH::epsu = setEpsilonOfInternalEnergy(sph);
+
 #ifdef SYMMETRIZED_GRAVITY
     PS::TreeForForce<PS::SEARCH_MODE_LONG, Gravity,
         SymmetrizedGravityEPI, SymmetrizedGravityEPJ, PS::MomentMonopoleSymmetrized,
@@ -150,6 +152,7 @@ int main(int argc, char **argv)
         PS::F64 etot = calcEnergy(sph);
         WT::reduceInterProcess();
         if(rank == 0) {
+            //fprintf(stderr, "time: %.10f %+e %+e\n", time, dtime, etot);
             fprintf(fplog, "time: %.10f %+e %+e\n", time, dtime, etot);
             fflush(fplog);
             WT::dump(time, fptim);
@@ -209,6 +212,16 @@ int main(int argc, char **argv)
         calcSPHKernel(dinfo, sph, density, derivative, gravity,
                       calcDensity(), calcDerivative(), calcGravityEPJ(), calcGravitySPJ());
 
+        /*
+        if(time >= 0.01336) {
+            char filename[64];
+            sprintf(filename, "snap/hoge_%e.dat", time);
+            sph.writeParticleAscii(filename);            
+            PS::Finalize();
+            exit(0);
+        }
+        */
+
         WT::start();
         correct(sph, dtime);
         WT::accumulateIntegrateOrbit();
@@ -256,7 +269,8 @@ template <class Tptcl>
 PS::F64 calcTimeStep(Tptcl & system,
                      PS::F64 t,
                      PS::F64 dt) {
-    const PS::F64 dtmin = 1e-10;
+    // check
+    const PS::F64 dtmin = 1e-16;
 
     PS::S32 nloc = system.getNumberOfParticleLocal();
     PS::F64 dtc = 1e30;
@@ -266,7 +280,7 @@ PS::F64 calcTimeStep(Tptcl & system,
             dtc = dttmp;
     }
     dtc = PS::Comm::getMinValue(dtc);
-
+    
     if(dt > dtc) {
         while(dt > dtc) {
             dt *= 0.5;
