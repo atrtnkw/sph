@@ -269,6 +269,7 @@ template <class Tptcl>
 PS::F64 calcTimeStep(Tptcl & system,
                      PS::F64 t,
                      PS::F64 dt) {
+    // check
     const PS::F64 dtmin = 1e-16;
 
     PS::S32 nloc = system.getNumberOfParticleLocal();
@@ -279,7 +280,7 @@ PS::F64 calcTimeStep(Tptcl & system,
             dtc = dttmp;
     }
     dtc = PS::Comm::getMinValue(dtc);
-
+    
     if(dt > dtc) {
         while(dt > dtc) {
             dt *= 0.5;

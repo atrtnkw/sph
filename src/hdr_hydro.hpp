@@ -233,15 +233,12 @@ struct calcDerivativeX86 {
             v4df diffu_i(0.);
 
             for(PS::S32 j = 0; j < njp; j++) {
-                v4df vx_j(epj[j].vel[0]);
-                v4df vy_j(epj[j].vel[1]);
-                v4df vz_j(epj[j].vel[2]);
                 v4df dpx_ij = px_i - v4df(epj[j].pos[0]);
                 v4df dpy_ij = py_i - v4df(epj[j].pos[1]);
                 v4df dpz_ij = pz_i - v4df(epj[j].pos[2]);
-                v4df dvx_ij = vx_i - vx_j;
-                v4df dvy_ij = vy_i - vy_j;
-                v4df dvz_ij = vz_i - vz_j;
+                v4df dvx_ij = vx_i - v4df(epj[j].vel[0]);
+                v4df dvy_ij = vy_i - v4df(epj[j].vel[1]);
+                v4df dvz_ij = vz_i - v4df(epj[j].vel[2]);
 
                 v4df r2_ij = dpx_ij * dpx_ij + dpy_ij * dpy_ij + dpz_ij * dpz_ij;
                 v4df ri_ij = rsqrt(r2_ij);
@@ -254,50 +251,42 @@ struct calcDerivativeX86 {
                 v4df q_i = r1_ij * hi_i;
                 v4df q_j = r1_ij * hi_j;
 
-                v4df m_j    = v4df(epj[j].mass);
-                v4df dw_i   = hi4_i * KernelSph::kernel1st(q_i);
-                v4df dw_j   = hi4_j * KernelSph::kernel1st(q_j);
-                v4df dww_ij = m_j * (dw_i + dw_j);
-                v4df dw_ij  = ri_ij * dww_ij;
+                v4df m_j     = v4df(epj[j].mass);
+                v4df dw_i    = hi4_i * KernelSph::kernel1st(q_i);
+                v4df dw_j    = hi4_j * KernelSph::kernel1st(q_j);
+                v4df mdw_ij  = m_j * (dw_i + dw_j);
+                v4df mrdw_ij = ri_ij * mdw_ij;
 
-                v4df mu_ij   = xv_ij * ri_ij;
-                v4df mm_ij   = ((xv_ij < v4df(0.d)) & mu_ij);
-                v4df vs_ij   = cs_i + v4df(epj[j].vsnd) - v4df(3.d) * mm_ij;
+                v4df w_ij    = xv_ij * ri_ij;
+                v4df w0_ij   = ((xv_ij < v4df(0.d)) & w_ij);
+                v4df vs_ij   = cs_i + v4df(epj[j].vsnd) - v4df(3.d) * w0_ij;
                 v4df rhi_ij  = rcp(rh_i + v4df(epj[j].rho));
                 v4df alph_ij = alph_i + v4df(epj[j].alph);
-                v4df pi_ij   = v4df(-0.5d) * vs_ij * mm_ij * alph_ij * rhi_ij;
                 v4df f_ij    = bswt_i + v4df(epj[j].bswt);
-                v4df vis_ij  = f_ij * pi_ij;
+                v4df vis0_ij = f_ij * alph_ij * vs_ij;
+                v4df vis_ij  = v4df(-0.5d) * vis0_ij * w0_ij * rhi_ij;
 
-                v4df da_ij = dw_ij * (prhi2_i + v4df(epj[j].pres) + vis_ij);
+                v4df da_ij = mrdw_ij * (prhi2_i + v4df(epj[j].pres) + vis_ij);
                 accx_i -= da_ij * dpx_ij;
                 accy_i -= da_ij * dpy_ij;
                 accz_i -= da_ij * dpz_ij;
+                vsmx_i  = v4df::max(vsmx_i, vs_ij);
 
-                v4df de_ij = prhi2_i + v4df(0.5d) * vis_ij;
-                de_ij *= dw_ij;
-                ene_i += xv_ij * de_ij;
-
-#ifdef THERMAL_CONDUCTIVITY
-                v4df pres_ij  = v4df::fabs(pres_i - v4df(epj[j].pres0));
-                v4df vsu2_ij  = pres_ij * rhi_ij * v4df(2.);
-                v4df vsui_ij  = rsqrt(vsu2_ij);
-                vsui_ij = ((pres_ij != 0.) & vsui_ij);
+#ifdef THERMAL_CONDUCTIVITY                
+                v4df vsu2_ij  = v4df::fabs(pres_i - v4df(epj[j].pres0)) * rhi_ij * v4df(2.);
+                v4df vsui_ij  = ((vsu2_ij != 0.) & rsqrt(vsu2_ij));
                 v4df vsu_ij   = vsu2_ij * vsui_ij;
                 v4df alphu_ij = alphu_i + v4df(epj[j].alphu);
-                v4df xhat_ij  = dpx_ij * ri_ij;
-                v4df yhat_ij  = dpy_ij * ri_ij;
-                v4df zhat_ij  = dpz_ij * ri_ij;
-                v4df vr_i     = vx_i * xhat_ij + vy_i * yhat_ij + vz_i * zhat_ij;
-                v4df vr_j     = vx_j * xhat_ij + vy_j * yhat_ij + vz_j * zhat_ij;
                 v4df u_ij     = u_i - v4df(epj[j].uene);
-                ene_i += dww_ij * rhi_ij
-                    * (v4df(0.25) * alph_ij * vs_ij * (vr_i * vr_i - vr_j * vr_j)
-                       + alphu_ij * vsu_ij * u_ij);
-                diffu_i += u_ij * rhi_ij * dww_ij * ri_ij;
+                v4df de_ij    = prhi2_i * w_ij - rhi_ij
+                    * (v4df(0.25) * vis0_ij * w0_ij * w0_ij - alphu_ij * vsu_ij * u_ij);
+                ene_i   += mdw_ij * de_ij;
+                diffu_i += u_ij * rhi_ij * mrdw_ij;
+#else
+                v4df de_ij = prhi2_i + v4df(0.5d) * vis_ij;
+                de_ij *= mrdw_ij;
+                ene_i += xv_ij * de_ij;                
 #endif
-
-                vsmx_i = v4df::max(vsmx_i, vs_ij);
 
 #ifdef SYMMETRIZED_GRAVITY
                 v4df dg_ij  = m_j * ri_ij * (eta_i * dw_i + v4df(epj[j].eta) * dw_j);

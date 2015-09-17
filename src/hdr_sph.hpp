@@ -191,7 +191,7 @@ public:
         fprintf(fp, " %+e %6d %+e", this->grdh, this->np, this->pot);
         fprintf(fp, " %+e", this->eta);
         /////////////////////
-        //fprintf(fp, " %+e %+e %+e", this->adotu, this->diffu, this->udot);
+        fprintf(fp, " %+e %+e %+e", this->adotu, this->diffu, this->udot);
         /////////////////////
         fprintf(fp, "\n");
     }
@@ -221,6 +221,7 @@ public:
 #endif
     }
 
+    // check
     PS::F64 calcTimeStep() {
         PS::F64 dthydro = tceff * 2. * this->ksr / (this->vsmx * KernelSph::ksrh);
         PS::F64 dtenerg = tceff * this->uene / fabs(this->udot);
