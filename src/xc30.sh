@@ -1,15 +1,15 @@
 #PBS -N rb0081110
-#PBS -l mppwidth=144
+#PBS -l mppwidth=288
 #PBS -j oe
-##PBS -q large-b
-#PBS -q bulk-b
+#PBS -q large-b
+##PBS -q bulk-b
 ##PBS -q short-b
 ##PBS -q debug
 
-NPARALLEL=144
+NPARALLEL=288
 NPROCESS=$NPARALLEL
-odir=rlxb_b1.10-1.00
-ifile=r008k/nonb/b1.10-1.00.init
+odir=t00
+ifile=../r008k/rlxb_b1.10-1.00/b1.10-1.00.init
 #
 tempodir=snap
 fexe=run

@@ -85,7 +85,6 @@ int main(int argc, char **argv)
 
     PS::S32 rank = PS::Comm::getRank();
     PS::S32 size = PS::Comm::getNumberOfProc();
-    PS::F64 dtime;
     Header header;
     PS::DomainInfo dinfo;
     dinfo.initialize();
@@ -151,14 +150,12 @@ int main(int argc, char **argv)
         header.ksrmax = SPH::ksrmax;
         SPH::epsu     = setEpsilonOfInternalEnergy(sph);
         header.epsu   = SPH::epsu;
+        header.dtime  = MaximumTimeStep;
         WT::accumulateOthers();
 
 #ifdef SYMMETRIZED_GRAVITY
 #else
-        //WT::start();
         g5_set_eps_to_all(SPH::eps);
-        //calcGravityKernel(dinfo, sph, msls, gravity);
-        //WT::accumulateCalcGravity();
 #endif
 
         calcSPHKernel(header, dinfo, sph, msls,
@@ -209,14 +206,14 @@ int main(int argc, char **argv)
         density.clearTimeProfile();
         */
 
-        doThisEveryTime(dtime, tout, header, dinfo, sph, msls, fplog, fptim);
-
         WT::start();
-        dtime = calcTimeStep(sph, header.time, MaximumTimeStep);
+        header.dtime = calcTimeStep(sph, header.time, header.dtime);
         WT::accumulateOthers();
 
+        doThisEveryTime(tout, header, dinfo, sph, msls, fplog, fptim);
+
         WT::start();
-        predict(sph, dtime);
+        predict(sph, header.dtime);
         WT::accumulateIntegrateOrbit();
         WT::start();
         if(SPH::cbox.low_[0] != SPH::cbox.high_[0]) {
@@ -241,19 +238,11 @@ int main(int argc, char **argv)
                       density, derivative, gravity,
                       calcDensity(), calcDerivative());
 
-        /*
-#ifdef GRAVITY
         WT::start();
-        calcGravityKernel(dinfo, sph, msls, gravity);
-        WT::accumulateCalcGravity();
-#endif
-        */
-
-        WT::start();
-        correct(sph, dtime);
+        correct(sph, header.dtime);
         WT::accumulateIntegrateOrbit();
 
-        header.time += dtime;
+        header.time += header.dtime;
     }
 
     fclose(fplog);
@@ -301,6 +290,12 @@ PS::F64 calcTimeStep(Tptcl & system,
     }
     dtc = PS::Comm::getMinValue(dtc);
 
+    if(dtc < 1e-9) {
+        system.writeParticleAscii("snap/hoge.dat");
+        PS::Finalize();
+        exit(0);
+    }
+
     assert(dtc >= 0.0);
 
     if(dt > dtc) {
@@ -308,7 +303,8 @@ PS::F64 calcTimeStep(Tptcl & system,
             dt *= 0.5;
             assert(dt > dtmin);
         }        
-    } else if(2. * dt <= dtc) {
+//    } else if(2. * dt <= dtc) {
+    } else if(2. * dt <= dtc && 2. * dt <= MaximumTimeStep) {
         PS::F64 dt2 = 2. * dt;
         if(t - (PS::S64)(t / dt2) * dt2 == 0.) {
             dt *= 2.;

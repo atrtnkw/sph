@@ -72,6 +72,7 @@ public:
 class Header {
 public:
     PS::F64    time;
+    PS::F64    dtime;
     PS::F64    tend;
     PS::F64    dtsp;
     PS::S32    istp;
@@ -86,6 +87,7 @@ public:
 
     Header() {
         time       = 0.0;
+        dtime      = 0.0;
         tend       = 0.0;
         dtsp       = 0.0;
         istp       = 0;
@@ -120,18 +122,19 @@ public:
     void readRestartFile(FILE *fp,
                          Tdinfo & dinfo) {
         PS::F64 (*cvt)(PS::U64) = convertU64ToF64;        
-        PS::U64 utime, utend, udtsp;
+        PS::U64 utime, udtime, utend, udtsp;
         PS::U64 ualphamax, ualphamin, utceff;
         PS::U64 ueps, uepsu;
         PS::U64 uksrmax;
-        fscanf(fp, "%llx %llx %llx %d", &utime, &utend, &udtsp, &this->istp);
+        fscanf(fp, "%llx %llx %llx %llx %d", &utime, &udtime, &utend, &udtsp, &this->istp);
         fscanf(fp, "%llx %llx %llx", &ualphamax, &ualphamin, &utceff);
         fscanf(fp, "%llx %llx", &ueps, &uepsu);
         fscanf(fp, "%llx", &uksrmax);
         fscanf(fp, "%d", &this->nptcl);
-        time = cvt(utime);
-        tend = cvt(utend);
-        dtsp = cvt(udtsp);
+        time  = cvt(utime);
+        dtime = cvt(udtime);
+        tend  = cvt(utend);
+        dtsp  = cvt(udtsp);
         alphamax = cvt(ualphamax);
         alphamin = cvt(ualphamin);
         tceff    = cvt(utceff);
@@ -158,7 +161,7 @@ public:
     void writeRestartFile(FILE *fp,
                           Tdinfo & dinfo) {
         PS::U64 (*cvt)(PS::F64) = convertF64ToU64;
-        fprintf(fp, "%llx %llx %llx %d\n", cvt(time), cvt(tend), cvt(dtsp), istp);
+        fprintf(fp, "%llx %llx %llx %llx %d\n", cvt(time), cvt(dtime), cvt(tend), cvt(dtsp), istp);
         fprintf(fp, "%llx %llx %llx\n", cvt(alphamax), cvt(alphamin), cvt(tceff));
         fprintf(fp, "%llx %llx\n", cvt(eps), cvt(epsu));
         fprintf(fp, "%llx\n", cvt(ksrmax));
@@ -217,6 +220,7 @@ public:
     static PS::F64ort cbox;
     static PS::F64    cinv;
     static PS::F64    alphamax, alphamin;
+    static PS::F64    alphaumin;
     static PS::F64    tceff;
     static PS::F64    eps;
     static PS::F64    epsu;
@@ -254,6 +258,7 @@ public:
         this->udot  = derivative.udot;
         this->vsmx  = derivative.vsmx;
         this->acc   = this->acch + this->accg1 + this->accg2;        
+        this->diffu = derivative.diffu;
     }
 
     void readAscii(FILE *fp) {        
@@ -301,6 +306,9 @@ public:
 #ifdef WD_DAMPINGB
         fprintf(fp, " %+.16e", SPH::omg[2]);
 #endif
+        //////////////
+        fprintf(fp, " %+.16e %+.16e %+.16e", this->udot*UnitOfEnergy*UnitOfTime, this->vsmx*UnitOfVelocity, this->diffu);
+        //////////////
         fprintf(fp, "\n");
 
     }
@@ -336,15 +344,19 @@ public:
         this->adot = - (this->alph - alphamin) * tauinv + src;
 #ifdef THERMAL_CONDUCTIVITY
         PS::F64 srcu;
-        srcu  = this->ksr * KernelSph::ksrhinv * this->diffu / sqrt(this->uene + this->epsu);
+        PS::F64 uene = std::max(this->uene, 0.);
+        srcu  = this->ksr * KernelSph::ksrhinv * this->diffu / sqrt(uene + this->epsu);
         srcu *= (alphamax - this->alphu);
-        this->adotu = - (this->alphu - alphamin) * tauinv + srcu;
+        //this->adotu = - (this->alphu - alphamin) * tauinv + srcu;
+        this->adotu = - (this->alphu - alphaumin) * tauinv + srcu;
 #endif
     }
 
     PS::F64 calcTimeStep() {
+        using namespace CodeUnit;
         PS::F64 dthydro = tceff * 2. * this->ksr / (this->vsmx * KernelSph::ksrh);
         PS::F64 dtenerg = tceff * this->uene / fabs(this->udot);
+        dtenerg = (this->dens < 1e4 * UnitOfDensity) ? MaximumTimeStep : dtenerg;
         return std::min(dthydro, dtenerg);
     }
 
@@ -508,6 +520,7 @@ PS::F64ort SPH::cbox;
 PS::F64    SPH::cinv;
 PS::F64    SPH::tceff;
 PS::F64    SPH::alphamax, SPH::alphamin;
+PS::F64    SPH::alphaumin;
 PS::F64    SPH::eps;
 PS::F64    SPH::epsu;
 PS::F64vec SPH::omg;
@@ -618,13 +631,14 @@ void calcCenterOfMass(Tptcl & system,
 
 template <class Theader>
 void setParameterParticle(Theader & header) {
-    SPH::cbox     = header.cbox;
-    SPH::alphamax = header.alphamax;
-    SPH::alphamin = header.alphamin;
-    SPH::tceff    = header.tceff;
-    SPH::eps      = header.eps;
-    SPH::ksrmax   = header.ksrmax;
-    SPH::epsu     = header.epsu;
+    SPH::cbox      = header.cbox;
+    SPH::alphamax  = header.alphamax;
+    SPH::alphamin  = header.alphamin;
+    SPH::alphaumin = 0.;
+    SPH::tceff     = header.tceff;
+    SPH::eps       = header.eps;
+    SPH::ksrmax    = header.ksrmax;
+    SPH::epsu      = header.epsu;
     
     return;
 }
@@ -814,8 +828,7 @@ template <class Theader,
           class Tdinfo,
           class Tptcl,
           class Tmassless>
-void doThisEveryTime(PS::F64 & dtime,
-                     PS::F64 & tout,
+void doThisEveryTime(PS::F64 & tout,
                      Theader & header,
                      Tdinfo & dinfo,
                      Tptcl & system,
@@ -831,8 +844,8 @@ void doThisEveryTime(PS::F64 & dtime,
         fprintf(fplog, "# Unit of length:        %e\n", CodeUnit::UnitOfLength);
     }
 
-    PS::F64 trst = 10.;
-    //PS::F64 trst = 1.;
+    //PS::F64 trst = 10.;
+    PS::F64 trst = 1.;
     if(header.time - (PS::S64)(header.time / trst) * trst == 0.) {
         char filename[64];
         sprintf(filename, "snap/t%04d_p%06d.hexa", (PS::S32)header.time, PS::Comm::getRank());
@@ -854,13 +867,23 @@ void doThisEveryTime(PS::F64 & dtime,
     WT::reduceInterProcess();
     if(PS::Comm::getRank() == 0)     {
         using namespace CodeUnit;
-        fprintf(fplog,  "time: %.10f %+e %+e\n", header.time * UnitOfTime,
+        fprintf(fplog,  "time: %.10f %.10f %+e %+e\n", header.time * UnitOfTime, header.dtime,
                 etot * UnitOfEnergy * UnitOfMass, WT::getTimeTotal());
         fflush(fplog);
         WT::dump(header.time, fptim);
         fflush(fptim);
     }
     WT::clear();
+
+    /*
+    {
+        if(header.time > 79.019) {
+            system.writeParticleAscii("snap/hoge.dat");
+            PS::Finalize();
+            exit(0);
+        }
+    }
+    */
 
 }
 

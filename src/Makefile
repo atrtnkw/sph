@@ -1,13 +1,13 @@
 ###### AT_PLATFORM ########
-use_xc  = no
+use_xc  = yes
 ###### AT_MPI_OPENMP ######
 use_mpi = yes
 use_omp = yes
 ###########################
 ###### AT_FLAGS ##############################
 CFLAGS += -DTHERMAL_CONDUCTIVITY
+CFLAGS += -DSYMMETRIZED_GRAVITY
 #
-#CFLAGS += -DTEMPORARY
 CFLAGS += -DENABLE_SIMDX86
 #CFLAGS += -DENABLE_SIMDX86_SINGLE
 #
@@ -15,10 +15,6 @@ CFLAGS += -DWENDLANDC2
 #CFLAGS += -DWENDLANDC4
 #CFLAGS += -DCUBICSPLINE
 #
-#CFLAGS += -DUSE_AT1D
-#CFLAGS += -DUSE_AT2D
-#
-CFLAGS += -DSYMMETRIZED_GRAVITY
 CFLAGS += -DWD_DAMPING1
 #CFLAGS += -DWD_DAMPING2
 #CFLAGS += -DWD_DAMPINGB
@@ -26,7 +22,7 @@ CFLAGS += -DWD_DAMPING1
 ##############################################
 
 ifeq ($(use_xc), yes)
-FDPS_DIR = ../../fdps/src
+FDPS_DIR = ../../../fdps/src
 else
 FDPS_DIR = ../../../fdps-jenever0/src
 endif
