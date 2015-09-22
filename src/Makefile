@@ -1,5 +1,5 @@
 ###### AT_PLATFORM ########
-use_xc  = yes
+use_xc  = no
 ###### AT_MPI_OPENMP ######
 use_mpi = yes
 use_omp = yes
@@ -7,6 +7,7 @@ use_omp = yes
 ###### AT_FLAGS ##############################
 CFLAGS += -DTHERMAL_CONDUCTIVITY
 CFLAGS += -DSYMMETRIZED_GRAVITY
+CFLAGS += -DNUCLEAR_REACTION
 #
 CFLAGS += -DENABLE_SIMDX86
 #CFLAGS += -DENABLE_SIMDX86_SINGLE
@@ -15,7 +16,7 @@ CFLAGS += -DWENDLANDC2
 #CFLAGS += -DWENDLANDC4
 #CFLAGS += -DCUBICSPLINE
 #
-CFLAGS += -DWD_DAMPING1
+#CFLAGS += -DWD_DAMPING1
 #CFLAGS += -DWD_DAMPING2
 #CFLAGS += -DWD_DAMPINGB
 ##############################################
@@ -62,9 +63,10 @@ CLIBS  += -lmpi_cxx
 endif
 endif
 
-OBJ = main.o heos/eos.o
+OBJ = main.o heos/eos.o aprox13/aprox13_main.o aprox13/aprox13_input.o \
+	aprox13/aprox13.o
 HDR = hdr_sph.hpp hdr_eos.hpp hdr_kernel.hpp hdr_density.hpp hdr_hydro.hpp \
-	hdr_gravity.hpp hdr_damp.hpp hdr_time.hpp hdr_massless.hpp
+	hdr_gravity.hpp hdr_damp.hpp hdr_time.hpp hdr_massless.hpp hdr_nuc.hpp
 ETC = Makefile
 
 run: $(OBJ) $(HDR) $(ETC)
@@ -80,6 +82,15 @@ main.o: main.cpp $(HDR) $(ETC)
 heos/eos.o: heos/eos.f
 	make -C heos -f Makefile.heos FCC="$(FCC)"
 
+aprox13/aprox13_main.o: aprox13/aprox13_main.f90
+	make -C aprox13 -f Makefile.aprox13 aprox13_main.o FCC="$(FCC)"
+
+aprox13/aprox13_input.o: aprox13/aprox13_input.f90
+	make -C aprox13 -f Makefile.aprox13 aprox13_input.o FCC="$(FCC)"
+
+aprox13/aprox13.o: aprox13/aprox13.f90
+	make -C aprox13 -f Makefile.aprox13 aprox13.o FCC="$(FCC)"
+
 asm: main.cpp $(HDR) $(ETC)
 	$(CCC) $(PS_PATH) $(CFLAGS) -S main.cpp
 
@@ -89,14 +100,15 @@ clean:
 	rm -f core
 	rm -f *.s
 	make -C heos -f Makefile.heos clean
+	make -C aprox13 -f Makefile.aprox13 clean
 distclean:
 	make clean
 	rm -f *.o
-	make -C heos -f Makefile.heos distclean
+	make -C aprox13 -f Makefile.aprox13 distclean
 allclean:
 	make distclean
 	rm -f run EOS_*.dat
-	make -C heos -f Makefile.heos allclean
+	make -C aprox13 -f Makefile.aprox13 allclean
 
 change:
 	cp hdr_sph.hpp heos/hdr_sph.hpp

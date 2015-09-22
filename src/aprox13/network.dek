@@ -1,0 +1,570 @@
+! sizes of the main storage
+
+! abignet = maximum size of the network = maximum numer of isotopes
+! abigrat = maximum number of reaction rates
+! nzmax   = maximum number of zones
+! one day i will get to dynamically allocating 
+
+      integer, parameter :: abignet = 500, abigrat = 14*abignet, nzmax = 1
+
+
+! ionmax  = number of isotopes in the network
+! neqs    = number of equations
+! nrat    = number of reaction rates in the network
+! nzone   = number of spatial zones
+
+      integer ::       ionmax,neqs,nrat,nzone
+      common /netc1/   ionmax,neqs,nrat,nzone
+
+
+
+! names and limits of the isotopes
+      integer, parameter :: zmax=85
+
+! isotope names
+      character*2, parameter, dimension(zmax) :: &
+       zsymb = (/'h ','he','li','be','b ','c ','n ','o ','f ','ne', &
+                  'na','mg','al','si','p ','s ','cl','ar','k ','ca', &
+                  'sc','ti','v ','cr','mn','fe','co','ni','cu','zn', &
+                  'ga','ge','as','se','br','kr','rb','sr','y ','zr', &
+                  'nb','mo','tc','ru','rh','pd','ag','cd','in','sn', &
+                  'sb','te','i ','xe','cs','ba','la','ce','pr','nd', &
+                  'pm','sm','eu','gd','tb','dy','ho','er','tm','yb', &
+                  'lu','hf','ta','w ','re','os','ir','pt','au','hg', &
+                  'tl','pb','bi','po','at'/)
+
+
+! min and max a's for each z
+      integer, parameter, dimension(zmax) :: & 
+       aidmin =  (/  2,   3,   6,   7,   8,   9,  11,  13,  14,  16, &
+                    17,  18,  20,  22,  23,  24,  25,  27,  30,  30, &
+                    34,  34,  38,  38,  42,  42,  46,  46,  50,  51, &
+                    55,  55,  59,  59,  63,  63,  68,  68,  72,  72, &
+                    76,  77,  81,  81,  85,  86,  88,  90,  92,  94, &
+                    97,  99, 101, 103, 106, 108, 110, 113, 115, 118, &
+                   120, 123, 125, 128, 130, 133, 136, 138, 141, 143, &
+                   146, 150, 153, 154, 160, 160, 164, 165, 168, 170, &
+                   172, 174, 176, 182, 188/)
+
+      integer, parameter, dimension(zmax) :: & 
+       aidmax =  (/  3,   6,   9,  12,  14,  18,  21,  22,  26,  31, &
+                    44,  47,  51,  54,  57,  60,  63,  67,  70,  73, &
+                    76,  80,  83,  86,  89,  92,  96,  99, 102, 105, &
+                   108, 112, 115, 118, 121, 124, 128, 131, 134, 137, &
+                   140, 144, 147, 150, 153, 156, 160, 163, 166, 169, &
+                   171, 173, 175, 177, 179, 181, 183, 185, 187, 189, &
+                   191, 193, 195, 197, 199, 201, 203, 205, 207, 209, &
+                   213, 214, 219, 220, 225, 226, 231, 234, 237, 240, &
+                   245, 246, 251, 237, 239/)
+
+
+
+
+! idnet   = integer identification of network is being used
+! netname = name of the network
+      integer           :: idnet
+      character*40      :: netname
+      common /netc2/       idnet,netname
+
+      integer, parameter :: idaprox13   = 1,  idaprox19   = 2, &
+                            idachain    = 3,  idiso7      = 4, &
+                            idalfa7     = 5,  idpp123     = 6, &
+                            idcno       = 7,  idhotcno    = 8, &
+                            idwwrp      = 9,  idppcno     = 10, &
+                            idpphotcno  = 11, idtorch     = 12, &
+                            idbigbang   = 13, idiso9      = 14, &
+                            idhhe       = 15, idaprox21   = 16
+
+
+
+! logicals and storage for the type of burning
+! one_step              = true means do the integration in one time step mode
+! hydrostatic           = true means do the integration in hydrostatic mode
+! expansion             = true turns on the adiabatic mode
+! self_heat_const_rho   = true for the self_heat mode at constant density
+! self_heat_const_pres  = true for the self_heat mode at constant pressure
+! pt_hist               = true for an external pressure-temp history
+! detonation            = true turns on the znd detonation mode
+! bbang                 = true turns on the early universe mode
+! trho_hist             = true means an external temp-den history
+
+! psi         = expansion (+1.0) or a compression (-1.0) for adiabatic mode
+! den0        = initial density for the adiabatic mode
+! temp0       = initial temperature for the adiabatic mode
+! temp_stop   = final adiabatic temperature at which the run terminates
+! den_stop    = density below which a run terminates
+! iener       = pointer for the integrated energy equation
+! itemp       = pointer for the temperature equation
+! iden        = pointer for the density equation
+! ivelx       = pointer for the velocity equation
+! iposx       = pointer for the position equation
+
+
+      logical :: one_step,hydrostatic,expansion, &
+                 self_heat_const_den,self_heat_const_pres, &
+                 pt_hist,detonation,bbang,trho_hist,old_bdat_format
+      integer :: iener,itemp,iden,ivelx,iposx
+      real*8  :: psi,den0,temp0,temp_stop,den_stop
+      common /netadbt/ psi,den0,temp0,temp_stop,den_stop, &
+                       iener,itemp,iden,ivelx,iposx, &
+                       one_step,hydrostatic,expansion, &
+                       self_heat_const_den,self_heat_const_pres, &
+                       pt_hist,detonation,bbang,trho_hist,old_bdat_format
+
+
+
+! flags for turning on or off weak interactions, screening corrections,
+! evolution variables, nse analysis, and printing
+
+      integer ::       weak_on, lmp_on, screen_on, pure_network, &
+                       iprint_files, iprint_screen, & 
+                       init_screen, init_table, init_pivot, init_weak, & 
+                       write_rates, shut_down_specials, shut_down_ng, shut_down_pn, &
+                       shut_down_pg, shut_down_ap, shut_down_an, shut_down_ag, & 
+                       renorm_abundances
+
+      common /flagc1/  weak_on, lmp_on, screen_on, pure_network, &
+                       iprint_files, iprint_screen, & 
+                       init_screen, init_table, init_pivot, init_weak, & 
+                       write_rates, shut_down_specials, shut_down_ng, shut_down_pn, &
+                       shut_down_pg, shut_down_ap, shut_down_an, shut_down_ag, & 
+                       renorm_abundances
+
+
+! temperature-density history file, the root output file name
+      character(len=80) :: trho_file,hfile
+      common /dfc1/        trho_file,hfile
+
+
+
+! logicals and storage for stopping the evolution if a chosen
+! mass fraction drops below a certain value
+! name_stop = name of isotope to stop on
+! xmass_stop = mass fraction of name_stop at whick to halt
+! id_stop    = the identification number of name_stop
+
+      character*5      :: name_stop
+      integer          :: id_stop
+      real*8           :: xmass_stop
+      common /netnmst/ xmass_stop,id_stop,name_stop
+
+
+
+
+! pointers and a logical for orienting the torch network in
+! down-arrow mode which puts n,p,a at the end of the network or in
+! up-arrow mode which puts n,p,a at the beginning of the network
+! these are set in routine init_torch
+
+      logical :: downarrow
+      integer :: ionbeg,ionend
+      common /netc3/   ionbeg,ionend,downarrow
+
+
+
+
+! mass fractions, other composition variables
+! mion      = mass of isotope
+! wion      = atomic weight or molar mass of isotope
+! aion      = number of nucleons
+! zion      = number of protons
+! nion      = number of neutrons
+! bion      = binding energies
+! xmass     = mass fractions
+! ymass     = molar fractions
+! ndens     = number densities
+! wpart     = partition functions - statistical weights
+! xmass_nse = mass fractions of nse distribution
+
+      real*8       ::  mion(abignet),wion(abignet), &
+                       aion(abignet),zion(abignet), &
+                       nion(abignet),bion(abignet), &
+                       xmass(abignet),ymass(abignet), &
+                       wpart(abignet),xmass_nse(abignet)
+      common /netc6a/  mion,wion,aion,zion,nion,bion,xmass,ymass,wpart,xmass_nse
+
+
+
+
+
+! the raw reaction rates, their screening factors and the reaction rates
+! ratraw     = the unscreened reaction rates
+! dratrawdt  = derivative of ratraw with temperature
+! dratrawdd  = derivative of ratraw with density
+! scfac      = screening factors
+! dscfacdt   = derivative of scfac with temperature
+! dscfacdd   = derivative of scfac with density
+! ratdum     = the screened reaction rates
+! dratdumdt  = derivative of ratdum with temperature
+! dratdumdd  = derivative of ratdum with density
+! dratdumdy1 = derivative of ratdum with a composition variable
+! dratdumdy2 = derivative of ratdum with a composition variable
+
+
+      real*8        :: ratraw(abigrat),dratrawdt(abigrat), &
+                       dratrawdd(abigrat),scfac(abigrat), &
+                       dscfacdt(abigrat),dscfacdd(abigrat), &
+                       ratdum(abigrat),dratdumdt(abigrat), &
+                       dratdumdd(abigrat), &
+                       dratdumdy1(abigrat),dratdumdy2(abigrat)
+
+      common /scc2b2/  ratraw,dratrawdt, &
+                       dratrawdd,scfac, &
+                       dscfacdt,dscfacdd, &
+                       ratdum,dratdumdt, &
+                       dratdumdd, &
+                       dratdumdy1,dratdumdy2
+
+
+
+
+! for tabular evaluation of the raw reaction rates
+! there are 5 decades of temperature to cover, from 1e6 to 1e11
+! 250 points per decade of temperature gives abundance agreement to 1e-6
+! 1000 points per decade of temperature gives energy generation rate agreement to 1e-6
+! logical use_tables for determing if tables are to be used
+! rattab, drattabdt, and drattabdd and the largest memory users
+
+      integer            :: use_tables
+      integer, parameter :: per_decade = 500,  nrattab = 5*per_decade + 1
+      real*8             :: rattab(abigrat,nrattab), &
+                            drattabdt(abigrat,nrattab), &
+                            drattabdd(abigrat,nrattab), &
+                            ttab(nrattab),dtab(abigrat)
+      common /rcm2t/        rattab,drattabdt,drattabdd, &
+                            ttab,dtab,use_tables
+
+
+
+! names of the isotopes and reaction rates
+! ratnam  = name of the reaction rate
+! ionam   = name of the isotope in the network
+
+      character*40  :: ratnam(abigrat)
+      character*5   :: ionam(abignet)
+      common /netc4/   ratnam,ionam
+
+
+
+! nuclear energy generation communication
+! sdot      = total nuclear energy generation rate
+! dsdotdt   = dervative of sdot with temperature
+! dsdotdd   = dervative of sdot with density
+! sneut     = total neutrino energy loss rate
+! dsneutdt  = derivative of sneut with temperature
+! dsneutdd  = derivative of sneut with density
+! sneutpp   = neutrino losses from the ppchains
+! sneutcno  = neutrino losses from the cno cycles
+! spen      = neutrino losses from p=>n
+! snep      = neutrino losses from n=>p
+! snuw      = neutrino losses from weak reactions on heavy nuclei
+
+      real*8        :: sdot,dsdotdt,dsdotdd, &
+                       sneut,dsneutdt,dsneutdd, &
+                       sneutpp,sneutcno,spen,snep,snuw
+      common /netc7/   sdot,dsdotdt,dsdotdd, &
+                       sneut,dsneutdt,dsneutdd, &
+                       sneutpp,sneutcno,spen,snep,snuw
+
+
+! for scaling the equations
+! energy_scale = scale factor for energy equation integration
+! temp_scale   = scale factor for temperature equation integration
+! den_scale    = scale factor for density equation integration
+
+      real*8        :: energy_scale, temp_scale, den_scale, & 
+                       inv_energy_scale, inv_temp_scale, inv_den_scale
+      common /scales/  energy_scale, temp_scale, den_scale, & 
+                       inv_energy_scale, inv_temp_scale, inv_den_scale
+
+
+
+! for nice identification of key isotopes
+       integer ::  &
+          ih1,iprot,ineut,ihe4,ih2,ih3,ihe3,ili6,ili7,ili8, &
+          ibe7,ibe9,ib8,ib9,ib10,ib11,ic11,ic12,ic13,ic14, &
+          in12,in13,in14,in15,io14,io15,io16,io17,io18,if17, &
+          if18,if19,ine18,ine19,ine20,ine21,ine22,ine23,ina20,ina21, &
+          ina22,ina23,img22,img23,img24,img25,img26,ial25,ial26,ial27, &
+          ial28,isi26,isi27,isi28,isi29,isi30,ip28,ip29,ip30,ip31, &
+          is30,is31,is32,is33,is34,icl35,icl37,iar36,iar37,iar38, &
+          ik39,ica40,isc43,isc45,iti44,iti46,iti48,iti50,iv46,iv47, &
+          iv48,iv51,icr47,icr48,icr49,icr50,icr51,icr52,icr53,icr54, &
+          icr56,imn50,imn51,imn52,imn55,ife52,ife54,ife55,ife56,ife57, &
+          ife58,ife59,ico54,ico55,ico56,ico59,ini56,ini57,ini58,ini59, &
+          ini64,ini66,icu63,izn60,izn64
+
+      common /netc8/ &
+          ih1,iprot,ineut,ihe4,ih2,ih3,ihe3,ili6,ili7,ili8, &
+          ibe7,ibe9,ib8,ib9,ib10,ib11,ic11,ic12,ic13,ic14, &
+          in12,in13,in14,in15,io14,io15,io16,io17,io18,if17, &
+          if18,if19,ine18,ine19,ine20,ine21,ine22,ine23,ina20,ina21, &
+          ina22,ina23,img22,img23,img24,img25,img26,ial25,ial26,ial27, &
+          ial28,isi26,isi27,isi28,isi29,isi30,ip28,ip29,ip30,ip31, &
+          is30,is31,is32,is33,is34,icl35,icl37,iar36,iar37,iar38, &
+          ik39,ica40,isc43,isc45,iti44,iti46,iti48,iti50,iv46,iv47, &
+          iv48,iv51,icr47,icr48,icr49,icr50,icr51,icr52,icr53,icr54, &
+          icr56,imn50,imn51,imn52,imn55,ife52,ife54,ife55,ife56,ife57, &
+          ife58,ife59,ico54,ico55,ico56,ico59,ini56,ini57,ini58,ini59, &
+          ini64,ini66,icu63,izn60,izn64
+
+
+! for nice identification of key rates
+! for aprox13 rate identification
+      integer       :: ir3a,   irg3a,  ircag,  ir1212, ir1216, iroga,  &
+                       iroag,  irnega, irneag, irmgga, irmgag, irsiga, &
+                       irmgap, iralpa, iralpg, irsigp, irsiag, irsga,  &
+                       irsiap, irppa,  irppg,  irsgp,  irsag,  irarga, &
+                       irsap,  irclpa, irclpg, irargp, irarag, ircaga, &
+                       irarap, irkpa,  irkpg,  ircagp, ircaag, irtiga, &
+                       ircaap, irscpa, irscpg, irtigp, irtiag, ircrga, &
+                       irtiap, irvpa,  irvpg,  ircrgp, ircrag, irfega, &
+                       ircrap, irmnpa, irmnpg, irfegp, irfeag, irniga, &
+                       ir1616, iraan
+
+      common /netc12/  ir3a,   irg3a,  ircag,  ir1212, ir1216, iroga,  &
+                       iroag,  irnega, irneag, irmgga, irmgag, irsiga, &
+                       irmgap, iralpa, iralpg, irsigp, irsiag, irsga,  &
+                       irsiap, irppa,  irppg,  irsgp,  irsag,  irarga, &
+                       irsap,  irclpa, irclpg, irargp, irarag, ircaga, &
+                       irarap, irkpa,  irkpg,  ircagp, ircaag, irtiga, &
+                       ircaap, irscpa, irscpg, irtigp, irtiag, ircrga, &
+                       irtiap, irvpa,  irvpg,  ircrgp, ircrag, irfega, &
+                       ircrap, irmnpa, irmnpg, irfegp, irfeag, irniga, &
+                       ir1616, iraan
+
+
+! for aprox19 rate identification
+      integer      ::  irpp,   ir33,   ircpg,  irnpg,  iropg,   irnag,  & 
+                       irfeap, ircopa, ircopg, irnigp, irfepg,  ircogp, & 
+                       ir52ng, ir53gn, ir53ng, ir54gn, irheng,  irhegn, & 
+                       irhng,  irhegp, irpen,  irnep,  irn56ec, ifa,    & 
+                       ifg
+
+      common /netc12/  irpp,   ir33,   ircpg,  irnpg,  iropg,   irnag,  & 
+                       irfeap, ircopa, ircopg, irnigp, irfepg,  ircogp, & 
+                       ir52ng, ir53gn, ir53ng, ir54gn, irheng,  irhegn, & 
+                       irhng,  irhegp, irpen,  irnep,  irn56ec, ifa,    & 
+                       ifg
+
+
+! for aprox21 rate identification
+      integer      ::  ir54ng,      ir55gn,      ir55ng,      ir56gn,   &
+                       irfe54ap,    irco57pa,    irfe56pg,    irco57gp, &
+                       irfe56_aux1, irfe56_aux2, irfe56_aux3, irfe56_aux4
+
+      common /netc12/  ir54ng,      ir55gn,      ir55ng,      ir56gn,   &
+                       irfe54ap,    irco57pa,    irfe56pg,    irco57gp, &
+                       irfe56_aux1, irfe56_aux2, irfe56_aux3, irfe56_aux4
+
+
+
+! for pp123 rate identification
+      integer       :: irbepg, irb8ep, irbeec, irpep, irhep
+      common /netc12/  irbepg, irb8ep, irbeec, irpep, irhep
+
+
+
+! for cno rate identification
+      integer ::  &
+                     irc12pg,  irn13gp,  irn13enu, irc13pg,   irn14gp,  &
+                     irn14pg,  iro15gp,  iro15enu, irn15pa,   irc12ap,  &
+                     irn15pg,  iro16gp,  iro16pg,  irf17gp,   irf17enu, &
+                     iro17pa,  irn14ap,  iro17pg,  irf18gp,   irf18enu, &
+                     iro18pa,  irn15ap,  iro18pg,  irf19gp,   irf19pa,  &
+                     iro16ap,  irn13pg,  iro14gp,  iro14enu,  iro14ap,  &
+                     irf17pa,  irf17pg,  irne18gp, irne18enu, irf18pa,  &
+                     iro15ap,  irne18ap, iro15ag,  irne19ga,  irne19pg, &
+                     irna20gp, irsi26ap, irne19enu, irne20pg, irna21gp
+
+      common /netc12/ &
+                     irc12pg,  irn13gp,  irn13enu, irc13pg,   irn14gp,  &
+                     irn14pg,  iro15gp,  iro15enu, irn15pa,   irc12ap,  &
+                     irn15pg,  iro16gp,  iro16pg,  irf17gp,   irf17enu, &
+                     iro17pa,  irn14ap,  iro17pg,  irf18gp,   irf18enu, &
+                     iro18pa,  irn15ap,  iro18pg,  irf19gp,   irf19pa,  &
+                     iro16ap,  irn13pg,  iro14gp,  iro14enu,  iro14ap,  &
+                     irf17pa,  irf17pg,  irne18gp, irne18enu, irf18pa,  &
+                     iro15ap,  irne18ap, iro15ag,  irne19ga,  irne19pg, &
+                     irna20gp, irsi26ap, irne19enu, irne20pg, irna21gp
+
+
+! for torch and bigbang rate identification
+      integer     ::   irweakn,    irweakp,    irpng,      irdgn,     irdpn,     &
+                       ir2pnp,     irdng,      irtgn,      irddp,     irtpd,     &
+                       irdpg,      irhe3gp,    irddn,      irhe3nd,   irtpn,     &
+                       irhe3np,    irddg,      irhe4gd,    irtpg,     irhe4gp,   &
+                       irtdn,      irhe4nd,    irtt2n,     irhe42nt,  irhe3ng,   &
+                       irhe4gn,    irhe3dp,    irhe4pd,    irhe3td,   irhe4dt,   &
+                       irhe3tnp,   irhe4pnt,   ir33inv,    irhe4npg,  irli6gpn,  &
+                       irdag,      irli6ga,    irtan,      irli6na,   irli6pa,   &
+                       irhe3ap,    irtag,      irli7ga,    irli7pa,   ir2he4ga,  &
+                       irli7dn,    ir2and,     irli7t2n,   ir2a2nt,   irli7he3np,& 
+                       ir2apnhe3,  irhe3ag,    irbe7ga,    irli6pg,   irbe7gp,   &
+                       irli7pn,    irbe7np,    irbe7dp,    ir2apd,    irbe7tnp,  &
+                       ir2apnt,    irbe7he32p, ir2a2phe3,  irbe9pa,   irli6ap,   &
+                       irbe7pg,    irb8gp,     irli6ag,    irb10ga,   irli7an,   &
+                       irb10na,    irbe9pg,    irb10gp,    irb10pa,   irbe7ap,   &
+                       irli7ag,    irb11ga,    irb11pa,    ir2he4ap,  irbe7ag,   &
+                       irc11ga,    irb11pn,    irc11np,    irb8ap,    irc11pa,   & 
+                       irb10pg,    irc11gp,    irc11na,    ir3an,     irbe9an,   &
+                       irc12na,    irb11pg,    irc12gp,    irb11ap,   irc14pa,   &
+                       irli6ng,    irli7gn
+
+      common /netc12/  irweakn,    irweakp,    irpng,      irdgn,     irdpn,     &
+                       ir2pnp,     irdng,      irtgn,      irddp,     irtpd,     &
+                       irdpg,      irhe3gp,    irddn,      irhe3nd,   irtpn,     &
+                       irhe3np,    irddg,      irhe4gd,    irtpg,     irhe4gp,   &
+                       irtdn,      irhe4nd,    irtt2n,     irhe42nt,  irhe3ng,   &
+                       irhe4gn,    irhe3dp,    irhe4pd,    irhe3td,   irhe4dt,   &
+                       irhe3tnp,   irhe4pnt,   ir33inv,    irhe4npg,  irli6gpn,  &
+                       irdag,      irli6ga,    irtan,      irli6na,   irli6pa,   &
+                       irhe3ap,    irtag,      irli7ga,    irli7pa,   ir2he4ga,  &
+                       irli7dn,    ir2and,     irli7t2n,   ir2a2nt,   irli7he3np,& 
+                       ir2apnhe3,  irhe3ag,    irbe7ga,    irli6pg,   irbe7gp,   &
+                       irli7pn,    irbe7np,    irbe7dp,    ir2apd,    irbe7tnp,  &
+                       ir2apnt,    irbe7he32p, ir2a2phe3,  irbe9pa,   irli6ap,   &
+                       irbe7pg,    irb8gp,     irli6ag,    irb10ga,   irli7an,   &
+                       irb10na,    irbe9pg,    irb10gp,    irb10pa,   irbe7ap,   &
+                       irli7ag,    irb11ga,    irb11pa,    ir2he4ap,  irbe7ag,   &
+                       irc11ga,    irb11pn,    irc11np,    irb8ap,    irc11pa,   & 
+                       irb10pg,    irc11gp,    irc11na,    ir3an,     irbe9an,   &
+                       irc12na,    irb11pg,    irc12gp,    irb11ap,   irc14pa,   &
+                       irli6ng,    irli7gn
+
+
+      integer      ::  irh3em,   irc11em,  iraanbe7, irdap,    irtap,  irb10ng,  & 
+                       irbe9dn,  irb10dp,  irb8npa,  irbe9pda, ir2adp, irb11p2a, & 
+                       irc11n2a
+
+      common /netc12/  irh3em,   irc11em,  iraanbe7, irdap,    irtap,  irb10ng,  & 
+                       irbe9dn,  irb10dp,  irb8npa,  irbe9pda, ir2adp, irb11p2a, & 
+                       irc11n2a
+
+
+! for torch rate identification
+      integer :: &
+                irh3pg,   irli7pag, irgaan,   irbe9pd,  ir3ap,   ir1212p,  irna23pc, &
+                ir1212n,  irmg23nc, ir1212a,  irne20ac, ir1616n, irs31no,  ir1616p,  &
+                irp31po,  ir1616a,  irsi28ao, ir1616d,  irp30do, ir1216n,  irsi27no, &
+                ir1216p,  iral27po, ir1216a,  irmg24ao, irli7ng, irli8gn,  irbe9pn,  &
+                irb9np,   irb10an,  irn13na,  irb11an,  irn14na, irn14pa,  irc11ap,  &
+                irc11pg,  irn12gp,  irc12an,  iro15na,  irc13an, iro16na,  irc13pn,  &
+                irn13np,  irc14pg,  irn15gp,  irc14pn,  irn14np, irc14ag,  iro18ga,  &
+                iro16pa,  irn13ap,  irn14pn,  iro14np,  irn14an, irf17na,  irn14ag,  &
+                irf18ga,  irn15pn,  iro15np,  irn15an,  irf18na, irn15ag,  irf19ga,  &
+                iro14ag,  irne18ga, iro17ag,  irne21ga, iro17an, irne20na, iro18ag,  &
+                irne22ga, iro18an,  irne21na
+
+      common /netc12/ &
+                irh3pg,   irli7pag, irgaan,   irbe9pd,  ir3ap,   ir1212p,  irna23pc, &
+                ir1212n,  irmg23nc, ir1212a,  irne20ac, ir1616n, irs31no,  ir1616p,  &
+                irp31po,  ir1616a,  irsi28ao, ir1616d,  irp30do, ir1216n,  irsi27no, &
+                ir1216p,  iral27po, ir1216a,  irmg24ao, irli7ng, irli8gn,  irbe9pn,  &
+                irb9np,   irb10an,  irn13na,  irb11an,  irn14na, irn14pa,  irc11ap,  &
+                irc11pg,  irn12gp,  irc12an,  iro15na,  irc13an, iro16na,  irc13pn,  &
+                irn13np,  irc14pg,  irn15gp,  irc14pn,  irn14np, irc14ag,  iro18ga,  &
+                iro16pa,  irn13ap,  irn14pn,  iro14np,  irn14an, irf17na,  irn14ag,  &
+                irf18ga,  irn15pn,  iro15np,  irn15an,  irf18na, irn15ag,  irf19ga,  &
+                iro14ag,  irne18ga, iro17ag,  irne21ga, iro17an, irne20na, iro18ag,  &
+                irne22ga, iro18an,  irne21na
+
+      integer :: &
+                irne20pa, irf17ap,  irf18pg,  irne19gp, irf19pg,  irne20gp, irf19pn,  &
+                irne19np, irf19ap,  irne22pa, irna22na, irf19an,  irna23pa, irne20ap, & 
+                irne20ng, irne21gn, irne21pg, irna22gp, irne21ag, irmg25ga, irne21an, &
+                irmg24na, irne22pg, irna23gp, irne22ag, irmg26ga, irna22np, irne22pn, &
+                irne22an, irmg25na, irna21pg, irmg22gp, irmg24pa, irna21ap, irna22pg, &
+                irmg23gp, irna23pg, irmg24gp, irna23pn, irmg23np, irmg24pg, iral25gp, &
+                iral27pa, irmg24ap, irmg25pg, iral26gp, irmg25ap, iral28pa, irmg25ag, &
+                irsi29ga, irmg25an, irsi28na, irmg26pg, iral27gp, irmg26ag, irsi30ga, &
+                irmg26an, irsi29na, iral25pg, irsi26gp, iral26pg, irsi27gp, iral27pg, &
+                irsi28gp, iral27an, irp30na,  irsi27pg, irp28gp,  irsi28pg, irp29gp,  &
+                irsi29pg, irp30gp,  irsi30pg, irp31gp,  irr1,     irs1,     irt1,     &
+                iru1,     irv1,     irw1,     irx1,     iry1,     ir1f54,   ir2f54,   &
+                ir3f54,   ir4f54,   ir5f54,   ir6f54,   ir7f54,   ir8f54,   iralf1,   &
+                iralf2,   irsi2ni,  irni2si,  iralam1,  irdelta1, iralam2,  irdelta2, &
+                irdebug
+
+      common /netc12/ &
+                irne20pa, irf17ap,  irf18pg,  irne19gp, irf19pg,  irne20gp, irf19pn,  &
+                irne19np, irf19ap,  irne22pa, irna22na, irf19an,  irna23pa, irne20ap, & 
+                irne20ng, irne21gn, irne21pg, irna22gp, irne21ag, irmg25ga, irne21an, &
+                irmg24na, irne22pg, irna23gp, irne22ag, irmg26ga, irna22np, irne22pn, &
+                irne22an, irmg25na, irna21pg, irmg22gp, irmg24pa, irna21ap, irna22pg, &
+                irmg23gp, irna23pg, irmg24gp, irna23pn, irmg23np, irmg24pg, iral25gp, &
+                iral27pa, irmg24ap, irmg25pg, iral26gp, irmg25ap, iral28pa, irmg25ag, &
+                irsi29ga, irmg25an, irsi28na, irmg26pg, iral27gp, irmg26ag, irsi30ga, &
+                irmg26an, irsi29na, iral25pg, irsi26gp, iral26pg, irsi27gp, iral27pg, &
+                irsi28gp, iral27an, irp30na,  irsi27pg, irp28gp,  irsi28pg, irp29gp,  &
+                irsi29pg, irp30gp,  irsi30pg, irp31gp,  irr1,     irs1,     irt1,     &
+                iru1,     irv1,     irw1,     irx1,     iry1,     ir1f54,   ir2f54,   &
+                ir3f54,   ir4f54,   ir5f54,   ir6f54,   ir7f54,   ir8f54,   iralf1,   &
+                iralf2,   irsi2ni,  irni2si,  iralam1,  irdelta1, iralam2,  irdelta2, &
+                irdebug
+
+
+! for counting the number of non-zero elements in a sparse matrix
+      integer      ::  non_zero_elements
+      common /spnonz/  non_zero_elements
+
+
+
+! for bigbang cosmology
+      real*8        :: eta1,hubble,cmbtemp
+      common /netcbb/  eta1,hubble,cmbtemp
+      double precision xnnu
+      common /nufam/   xnnu
+
+
+! for thermodynamic profiles and output
+! mshell     = mass of shell or particle
+! mint       = mass interior to the shell or particle
+
+      real*8       ::  mshell,mint
+      common /netcbb/  mshell,mint
+
+
+
+! for the rates
+! sig   = strong & weak reaction rates
+! signu = neutrino reaction rates
+      integer       :: ic1(10,abignet),ic2(10,abignet),ic3(10,abignet), &
+                       nrr(7,abignet),nrrneut(7,abignet),kmax
+      common /crsc1/   ic1,ic2,ic3,nrr,nrrneut,kmax
+
+      integer, parameter :: cxdim=200000
+      real*8             :: cx(cxdim)
+      common  /strngc/      cx
+
+      real*8       ::  sigraw(14,abignet),sigrawdt(14,abignet), &
+                       sigrawdd(14,abignet),sig(14,abignet), &
+                       sigdt(14,abignet),sigdd(14,abignet)
+      common /crsc2/   sigraw,sigrawdt,sigrawdd,sig,sigdt,sigdd
+
+
+
+! for the partition functions
+      integer, parameter :: pf_zmax=85, pf_nmax=200, pf_tmax=24
+      real*8             :: pf(pf_tmax,pf_zmax,pf_nmax), pf_gspin(pf_zmax,pf_nmax), pf_t9(pf_tmax)
+      common /pfstuff/      pf, pf_gspin, pf_t9
+
+
+
+! for setting the torch network
+      integer, parameter :: max_iso_read = 4000
+      integer            :: izzz(max_iso_read),inmin(max_iso_read),inmax(max_iso_read),inetin
+      common /zetc1/        izzz,inmin,inmax,inetin
+
+
+! work arrays that get used whenever
+      integer       :: izwork1(abigrat*nzmax),izwork2(abigrat*nzmax)
+      real*8        :: zwork1(abigrat*nzmax),zwork2(abigrat*nzmax)
+      common /zwrkc1/  zwork1,zwork2,izwork1,izwork2
+
+
+
+! for bigbang mode
+      real*8            :: xa,dxadt,wien1,dwien1dx,wien2,dwien2dx, &
+                           f1,df1,f2,df2,con,dcondt,bbdenom,dbbdenom
+      real*8, parameter :: zeta3 = 1.20205690315732d0

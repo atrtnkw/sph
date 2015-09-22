@@ -1,6 +1,8 @@
 #pragma once
 
 #include "hdr_eos.hpp"
+#include "hdr_nuc.hpp"
+//static const PS::S32 ncmps = 13;
 
 static PS::U64 convertF64ToU64(PS::F64 val) {
     union converter {
@@ -215,8 +217,15 @@ public:
     PS::F64    temp;
     PS::S32    cnteos;
     PS::F64    diffu;
-    static PS::F64    abar;
-    static PS::F64    zbar;
+    PS::F64    abar;
+    PS::F64    zbar;
+    PS::F64    dnuc;
+    //PS::F64    cmps[ncmps];
+    PS::F64    cmps[NuclearReaction::NumberOfNucleon];
+    PS::F64    cmps2[NuclearReaction::NumberOfNucleon];
+    //static PS::F64    ainv[ncmps];
+    static PS::F64    ainv[NuclearReaction::NumberOfNucleon];
+    static PS::F64    zaratio;
     static PS::F64ort cbox;
     static PS::F64    cinv;
     static PS::F64    alphamax, alphamin;
@@ -227,6 +236,7 @@ public:
     static PS::F64vec omg;
     static PS::F64    ReductionTimeInv;
     static PS::F64    ksrmax;
+    static PS::F64    enuc;
 
     PS::F64vec getPos() const {
         return this->pos;
@@ -270,6 +280,10 @@ public:
                &this->vel[0], &this->vel[1], &this->vel[2],
                &this->uene,   &this->alph,   &this->alphu,
                &this->ksr);
+        //for(PS::S32 k = 0; k < ncmps; k++) {
+        for(PS::S32 k = 0; k < NuclearReaction::NumberOfNucleon; k++) {
+            fscanf(fp, "%lf", &this->cmps[k]);
+        }
 
         this->mass *= UnitOfMassInv;
         this->pos  *= UnitOfLengthInv;
@@ -294,21 +308,21 @@ public:
         PS::F64    trotv = this->rotv * UnitOfTimeInv; // rotv [s^-1]
         PS::F64    tpot  = this->pot  * UnitOfEnergy;
         
-        fprintf(fp, "%6d %2d %+e", this->id, this->istar, tmass);
-        fprintf(fp, " %+.16e %+.16e %+.16e", tpos[0], tpos[1], tpos[2]);
-        fprintf(fp, " %+.16e %+.16e %+.16e", tvel[0], tvel[1], tvel[2]);
-        fprintf(fp, " %+.16e %+.16e %+.16e", tacc[0], tacc[1], tacc[2]);
-        fprintf(fp, " %+.16e %+.16e %+.16e %+.16e", tuene, this->alph, this->alphu, tksr);
-        fprintf(fp, " %+.16e %+.16e %+.16e %+.16e", tdens, tvsnd, tpres, this->temp);
-        fprintf(fp, " %+.16e %+.16e %+.16e", tdivv, trotv, this->bswt);
-        fprintf(fp, " %+.16e %6d %+.16e", this->grdh, this->np, tpot);        
-        fprintf(fp, " %3d", this->cnteos);
+        fprintf(fp, "%6d %2d %+e", this->id, this->istar, tmass);        //  3
+        fprintf(fp, " %+.16e %+.16e %+.16e", tpos[0], tpos[1], tpos[2]); //  6
+        fprintf(fp, " %+.16e %+.16e %+.16e", tvel[0], tvel[1], tvel[2]); //  9
+        fprintf(fp, " %+.16e %+.16e %+.16e", tacc[0], tacc[1], tacc[2]); // 12
+        fprintf(fp, " %+.16e %+.16e %+.16e %+.16e", tuene, this->alph, this->alphu, tksr); // 16
+        fprintf(fp, " %+.16e %+.16e %+.16e %+.16e", tdens, tvsnd, tpres, this->temp);      // 20
+        fprintf(fp, " %+.16e %+.16e %+.16e", tdivv, trotv, this->bswt);  // 23
+        fprintf(fp, " %+.16e %6d %+.16e", this->grdh, this->np, tpot);   // 26
+        fprintf(fp, " %+.16e %+.16e", this->abar, this->zbar);           // 28
 #ifdef WD_DAMPINGB
         fprintf(fp, " %+.16e", SPH::omg[2]);
 #endif
-        //////////////
-        fprintf(fp, " %+.16e %+.16e %+.16e", this->udot*UnitOfEnergy*UnitOfTime, this->vsmx*UnitOfVelocity, this->diffu);
-        //////////////
+        for(PS::S32 k = 0; k < NuclearReaction::NumberOfNucleon; k++) {
+            fprintf(fp, " %+.3e", this->cmps[k]);
+        }
         fprintf(fp, "\n");
 
     }
@@ -347,17 +361,30 @@ public:
         PS::F64 uene = std::max(this->uene, 0.);
         srcu  = this->ksr * KernelSph::ksrhinv * this->diffu / sqrt(uene + this->epsu);
         srcu *= (alphamax - this->alphu);
-        //this->adotu = - (this->alphu - alphamin) * tauinv + srcu;
         this->adotu = - (this->alphu - alphaumin) * tauinv + srcu;
 #endif
     }
 
-    PS::F64 calcTimeStep() {
+    void calcAbarZbar() {
+        PS::F64 abarinv = 0.;
+        PS::F64 zbar    = 0.;
+        //for(PS::S32 k = 0; k < ncmps; k++) {
+        for(PS::S32 k = 0; k < NuclearReaction::NumberOfNucleon; k++) {
+            abarinv += this->ainv[k] * this->cmps[k];
+            zbar    += this->zaratio * this->cmps[k];
+        }
+        this->abar = 1. / abarinv;
+        this->zbar = this->abar * zbar;
+    }
+
+    PS::F64 calcTimeStep(PS::F64 dt) {
         using namespace CodeUnit;
         PS::F64 dthydro = tceff * 2. * this->ksr / (this->vsmx * KernelSph::ksrh);
         PS::F64 dtenerg = tceff * this->uene / fabs(this->udot);
         dtenerg = (this->dens < 1e4 * UnitOfDensity) ? MaximumTimeStep : dtenerg;
-        return std::min(dthydro, dtenerg);
+        PS::F64 dtnuc   = tceff * this->uene / fabs(this->dnuc) * dt;
+        //return std::min(dthydro, dtenerg);
+        return std::min(dthydro, std::min(dtenerg, dtnuc));
     }
 
 #ifdef WD_DAMPINGB
@@ -387,11 +414,17 @@ public:
     static inline v8sf calcVolumeInverse(const v8sf hi);
 
     void predict(PS::F64 dt) {
+#ifdef NUCLEAR_REACTION
+        this->dnuc  = CalcNRH::getGeneratedEnergy(dt, this->dens, this->temp, this->cmps);
+        this->enuc += this->mass * this->dnuc;
+#else
+        this->dnuc  = 0.;
+#endif
         this->pos    = this->pos   +       this->vel   * dt  + 0.5 * this->acc * dt * dt;
         this->vel2   = this->vel   + 0.5 * this->acc   * dt;
         this->vel    = this->vel   +       this->acc   * dt;
         this->uene2  = this->uene  + 0.5 * this->udot  * dt;
-        this->uene   = this->uene  +       this->udot  * dt;
+        this->uene   = this->uene  +       this->udot  * dt + this->dnuc;
         this->alph2  = this->alph  + 0.5 * this->adot  * dt;
         this->alph   = this->alph  +       this->adot  * dt;
         this->alphu2 = this->alphu + 0.5 * this->adotu * dt;
@@ -432,7 +465,7 @@ public:
 #else
     void correct(PS::F64 dt) {
         this->vel   = this->vel2   + 0.5 * this->acc   * dt;
-        this->uene  = this->uene2  + 0.5 * this->udot  * dt;
+        this->uene  = this->uene2  + 0.5 * this->udot  * dt + this->dnuc;
         this->alph  = this->alph2  + 0.5 * this->adot  * dt;
         this->alphu = this->alphu2 + 0.5 * this->adotu * dt;
     }
@@ -514,8 +547,11 @@ public:
     
 };
 
-PS::F64    SPH::abar = 13.7142857143d;
-PS::F64    SPH::zbar =  6.85714285714d;
+PS::F64    SPH::ainv[NuclearReaction::NumberOfNucleon] = {1/4., 1/12., 1/16., 1/20., 1/24.,
+                                                          1/28., 1/32., 1/36., 1/40.,
+                                                          1/44., 1/48., 1/52., 1/56.};
+PS::F64    SPH::zaratio = 0.5;
+PS::F64    SPH::enuc    = 0.;
 PS::F64ort SPH::cbox;
 PS::F64    SPH::cinv;
 PS::F64    SPH::tceff;
@@ -554,6 +590,13 @@ inline v4df SPH::calcVolumeInverse(const v4df hi) {return hi * hi * hi;}
 inline v8sf SPH::calcVolumeInverse(const v8sf hi) {return hi * hi * hi;}
 #endif
 #endif
+
+template <class Tpsys>
+PS::F64 calcReleasedEnergy(Tpsys & system) {
+    PS::F64 eloc = system[0].enuc;
+    PS::F64 eglb = PS::Comm::getSum(eloc);
+    return eglb;
+}
 
 template <class Theader,
           class Tdinfo,
@@ -863,27 +906,28 @@ void doThisEveryTime(PS::F64 & tout,
         tout += header.dtsp;
     }
 
+    /*
+    if(header.time == 10.) {
+        PS::Finalize();
+        exit(0);
+    }
+    */
+
     PS::F64 etot = calcEnergy(system);
+    PS::F64 enuc = calcReleasedEnergy(system);
     WT::reduceInterProcess();
     if(PS::Comm::getRank() == 0)     {
         using namespace CodeUnit;
-        fprintf(fplog,  "time: %.10f %.10f %+e %+e\n", header.time * UnitOfTime, header.dtime,
-                etot * UnitOfEnergy * UnitOfMass, WT::getTimeTotal());
+        fprintf(fplog,  "time: %.10f %.10f %+e %+e %+e %+.3e\n",
+                header.time * UnitOfTime, header.dtime,
+                (etot - enuc) * UnitOfEnergy * UnitOfMass,
+                etot * UnitOfEnergy * UnitOfMass, enuc * UnitOfEnergy * UnitOfMass,
+                WT::getTimeTotal());
         fflush(fplog);
         WT::dump(header.time, fptim);
         fflush(fptim);
     }
     WT::clear();
-
-    /*
-    {
-        if(header.time > 79.019) {
-            system.writeParticleAscii("snap/hoge.dat");
-            PS::Finalize();
-            exit(0);
-        }
-    }
-    */
 
 }
 

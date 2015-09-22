@@ -113,7 +113,7 @@ int main(int argc, char **argv)
     WT::clear();
 
     if(atoi(argv[1]) == 0) {
-        
+
         sph.readParticleAscii(argv[2], header);
 #ifdef WD_DAMPINGB
         generateMassLessParticle(msls, sph);
@@ -179,6 +179,7 @@ int main(int argc, char **argv)
 #endif
     }
 
+    
     FILE *fplog = fopen("snap/time.log", "w");
     FILE *fptim = fopen("snap/prof.log", "w");
     PS::F64 tout = header.time;
@@ -284,7 +285,8 @@ PS::F64 calcTimeStep(Tptcl & system,
     PS::S32 nloc = system.getNumberOfParticleLocal();
     PS::F64 dtc = 1e30;
     for(PS::S32 i = 0; i < nloc; i++) {
-        PS::F64 dttmp = system[i].calcTimeStep();
+        //PS::F64 dttmp = system[i].calcTimeStep();
+        PS::F64 dttmp = system[i].calcTimeStep(dt);
         if(dttmp < dtc)
             dtc = dttmp;
     }
@@ -400,6 +402,11 @@ void calcSPHKernel(Thdr & header,
         repeat = PS::Comm::synchronizeConditionalBranchOR(repeat_loc);
         cnt++;
     }
+    WT::start();
+    for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
+        sph[i].calcAbarZbar();
+    }
+    WT::accumulateOthers();
     WT::start();
     referEquationOfState(sph);
     WT::accumulateReferEquationOfState();
