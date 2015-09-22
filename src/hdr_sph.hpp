@@ -2,7 +2,6 @@
 
 #include "hdr_eos.hpp"
 #include "hdr_nuc.hpp"
-//static const PS::S32 ncmps = 13;
 
 static PS::U64 convertF64ToU64(PS::F64 val) {
     union converter {
@@ -86,6 +85,7 @@ public:
     PS::F64    epsu;
     PS::S64    nptcl;
     PS::F64    ksrmax;
+    PS::F64    enuc;
 
     Header() {
         time       = 0.0;
@@ -102,6 +102,7 @@ public:
         epsu       = 0.0;
         nptcl      = 0;
         ksrmax     = 0.0;
+        enuc       = 0.0;
     }
 
     PS::S32 readAscii(FILE *fp) {
@@ -128,10 +129,12 @@ public:
         PS::U64 ualphamax, ualphamin, utceff;
         PS::U64 ueps, uepsu;
         PS::U64 uksrmax;
+        PS::U64 uenuc;
         fscanf(fp, "%llx %llx %llx %llx %d", &utime, &udtime, &utend, &udtsp, &this->istp);
         fscanf(fp, "%llx %llx %llx", &ualphamax, &ualphamin, &utceff);
         fscanf(fp, "%llx %llx", &ueps, &uepsu);
         fscanf(fp, "%llx", &uksrmax);
+        fscanf(fp, "%llx", &uenuc);
         fscanf(fp, "%d", &this->nptcl);
         time  = cvt(utime);
         dtime = cvt(udtime);
@@ -143,6 +146,7 @@ public:
         eps  = cvt(ueps);
         epsu = cvt(uepsu);
         ksrmax = cvt(uksrmax);
+        enuc   = cvt(uenuc);
 
         PS::S32 nproc = PS::Comm::getNumberOfProc();
         for(PS::S32 i = 0; i < nproc; i++) {
@@ -167,6 +171,7 @@ public:
         fprintf(fp, "%llx %llx %llx\n", cvt(alphamax), cvt(alphamin), cvt(tceff));
         fprintf(fp, "%llx %llx\n", cvt(eps), cvt(epsu));
         fprintf(fp, "%llx\n", cvt(ksrmax));
+        fprintf(fp, "%llx\n", cvt(enuc));
         fprintf(fp, "%d\n", nptcl);
 
         PS::S32 nproc = PS::Comm::getNumberOfProc();
@@ -220,10 +225,7 @@ public:
     PS::F64    abar;
     PS::F64    zbar;
     PS::F64    dnuc;
-    //PS::F64    cmps[ncmps];
     PS::F64    cmps[NuclearReaction::NumberOfNucleon];
-    PS::F64    cmps2[NuclearReaction::NumberOfNucleon];
-    //static PS::F64    ainv[ncmps];
     static PS::F64    ainv[NuclearReaction::NumberOfNucleon];
     static PS::F64    zaratio;
     static PS::F64ort cbox;
@@ -280,7 +282,6 @@ public:
                &this->vel[0], &this->vel[1], &this->vel[2],
                &this->uene,   &this->alph,   &this->alphu,
                &this->ksr);
-        //for(PS::S32 k = 0; k < ncmps; k++) {
         for(PS::S32 k = 0; k < NuclearReaction::NumberOfNucleon; k++) {
             fscanf(fp, "%lf", &this->cmps[k]);
         }
@@ -368,7 +369,6 @@ public:
     void calcAbarZbar() {
         PS::F64 abarinv = 0.;
         PS::F64 zbar    = 0.;
-        //for(PS::S32 k = 0; k < ncmps; k++) {
         for(PS::S32 k = 0; k < NuclearReaction::NumberOfNucleon; k++) {
             abarinv += this->ainv[k] * this->cmps[k];
             zbar    += this->zaratio * this->cmps[k];
@@ -383,7 +383,6 @@ public:
         PS::F64 dtenerg = tceff * this->uene / fabs(this->udot);
         dtenerg = (this->dens < 1e4 * UnitOfDensity) ? MaximumTimeStep : dtenerg;
         PS::F64 dtnuc   = tceff * this->uene / fabs(this->dnuc) * dt;
-        //return std::min(dthydro, dtenerg);
         return std::min(dthydro, std::min(dtenerg, dtnuc));
     }
 
@@ -486,6 +485,7 @@ public:
         PS::U64 udivv, urotv, ubswt;
         PS::U64 uksr, ugrdh, uvsmx;
         PS::U64 upot;
+        PS::U64 ucmps[NuclearReaction::NumberOfNucleon];
 
         fscanf(fp, "%d %d %llx", &this->id, &this->istar, &umass);
         fscanf(fp, "%llx %llx %llx", &upos[0], &upos[1], &upos[2]);
@@ -498,6 +498,9 @@ public:
         fscanf(fp, "%llx %llx %llx", &udivv, &urotv, &ubswt);
         fscanf(fp, "%llx %llx %llx", &uksr,  &ugrdh, &uvsmx);
         fscanf(fp, "%llx", &upot);
+        for(PS::S32 k = 0; k < NuclearReaction::NumberOfNucleon; k++) {
+            fscanf(fp, "%llx", &ucmps[k]);
+        }
 
         this->mass = cvt(umass);
         this->pos[0] = cvt(upos[0]);
@@ -526,6 +529,9 @@ public:
         this->grdh  = cvt(ugrdh);
         this->vsmx  = cvt(uvsmx);
         this->pot   = cvt(upot);        
+        for(PS::S32 k = 0; k < NuclearReaction::NumberOfNucleon; k++) {
+            this->cmps[k] = cvt(ucmps[k]);
+        }
     }
 
     void writeRestartFile(FILE *fp) const {
@@ -542,6 +548,9 @@ public:
         fprintf(fp, " %llx %llx %llx", cvt(this->divv), cvt(this->rotv), cvt(this->bswt));
         fprintf(fp, " %llx %llx %llx", cvt(this->ksr), cvt(this->grdh), cvt(this->vsmx));
         fprintf(fp, " %llx", cvt(this->pot));
+        for(PS::S32 k = 0; k < NuclearReaction::NumberOfNucleon; k++) {
+            fprintf(fp, " %llx", cvt(this->cmps[k]));
+        }
         fprintf(fp, "\n");
     }
     
@@ -682,6 +691,7 @@ void setParameterParticle(Theader & header) {
     SPH::eps       = header.eps;
     SPH::ksrmax    = header.ksrmax;
     SPH::epsu      = header.epsu;
+    SPH::enuc      = header.enuc;
     
     return;
 }
@@ -887,9 +897,9 @@ void doThisEveryTime(PS::F64 & tout,
         fprintf(fplog, "# Unit of length:        %e\n", CodeUnit::UnitOfLength);
     }
 
-    //PS::F64 trst = 10.;
     PS::F64 trst = 1.;
     if(header.time - (PS::S64)(header.time / trst) * trst == 0.) {
+        header.enuc = system[0].enuc;
         char filename[64];
         sprintf(filename, "snap/t%04d_p%06d.hexa", (PS::S32)header.time, PS::Comm::getRank());
         writeRestartFile(filename, header.time, header, dinfo, system);
@@ -907,7 +917,7 @@ void doThisEveryTime(PS::F64 & tout,
     }
 
     /*
-    if(header.time == 10.) {
+    if(header.time == 2.) {
         PS::Finalize();
         exit(0);
     }
