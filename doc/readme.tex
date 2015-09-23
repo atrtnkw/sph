@@ -43,13 +43,14 @@
 
 \begin{document}
 
-\section{SPH w/ nuclear reaction}
+\section{SPH w/ artificial conductivity}
 
 Suppose we know acceleration, time derviative of energy, coefficient
 viscosity, and the next timestep at the initial time. We integrate
 each particle as follows:
 \begin{enumerate}
-\item Calculate the position, and predict the velocity and energy:
+\item Calculate the position, and predict the velocity and
+  energy: \label{item:predict}
   \begin{align}
     \bm{r}_{i} &= \bm{r}^{(0)}_i + \bm{v}^{(0)}_i \Delta t +
     \frac{1}{2} \bm{a}^{(0)}_i \Delta t^2, \\
@@ -57,8 +58,7 @@ each particle as follows:
     \bm{v}^{(1/2)}_i &= \bm{v}^{(0)}_i + \frac{1}{2} \bm{a}^{(0)}
     \Delta t, \\
     %%
-    u^{(1/2)}_i &= u^{(0)}_i + \frac{1}{2} \dot{u}^{(0)} \Delta t
-    \redtext{+ \epsilon_{{\rm nuc},i}(\Delta t/2)}, \\
+    u^{(1/2)}_i &= u^{(0)}_i + \frac{1}{2} \dot{u}^{(0)} \Delta t \\
     %%
     \alpha^{(1/2)}_i &= \alpha^{(0)}_i + \frac{1}{2}
     \dot{\alpha}^{(0)} \Delta t, \\
@@ -69,7 +69,7 @@ each particle as follows:
     \tilde{\bm{v}}_{i} &= \bm{v}^{(0)}_i + \bm{a}^{(0)}_i \Delta t, \\
     %%
     \tilde{\bm{u}}_{i} &= \bm{u}^{(0)}_i + \dot{\bm{u}}^{(0)}_i \Delta
-    t \redtext{+ \epsilon_{{\rm nuc},i}(\Delta t)}, \\
+    t + \epsilon_{{\rm nuc},i}(\Delta t), \\
     %%
     \tilde{\alpha}_i &= \alpha^{(0)}_i + \dot{\alpha}^{(0)}_i \Delta t
     \\
@@ -77,11 +77,10 @@ each particle as follows:
     \tilde{\alpha}^{\rm u}_i &= \alpha^{{\rm u},(0)}_i +
     \dot{\alpha}^{{\rm u},(0)}_i \Delta t,
   \end{align}
-  \redtext{where ($\epsilon_{{\rm nuc},i}$) is energy generated
-    through nuclear reaction. When the reaction is exothermic, the
-    density and temperature are fixed at this time. On the other hand,
-    when the reaction is endothermic, only the density is fixed at
-    this time.}
+  where ($\epsilon_{{\rm nuc},i}$) is energy generated through nuclear
+  reaction. \redtext{(When the reaction is exothermic, the density and
+    temperature are fixed at this time. On the other hand, when the
+    reaction is endothermic, only the density is fixed at this time.)}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \item Calculate the density, kernel-support length and grad-h term of
@@ -143,6 +142,17 @@ each particle as follows:
   \end{enumerate}
   
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\item Calculate ($\bar{A}_i$) and ($\bar{Z}_i$) as follows:
+  \begin{align}
+    \bar{A}_i &= \frac{1}{\sum_k X_{i,k}/A_k} \\
+%%
+    \bar{Z}_i &= \bar{A}_i \sum_k \left( \frac{Z_k}{A_k} X_{i,k}
+    \right),
+  \end{align}
+  where $A_k = (4, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56)$,
+  and \\ $Z_k = (2, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28)$.
+  
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \item Calculate the pressure ($\tilde{P}_i$) and sound speed
   ($\tilde{c}_{{\rm s},i}$) as follows:
   \begin{align}
@@ -161,7 +171,8 @@ each particle as follows:
   \end{align}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\item Calculate the gravity and its correction term:
+\item Calculate the gravity and its correction
+  term: \label{item:gravity2}
   \begin{align}
     \bm{g}_{2,i} &= - \frac{G}{2} \sum_j m_j
     \frac{\bm{r}_{ij}}{r_{ij}} \left[ \frac{\partial
@@ -188,14 +199,14 @@ each particle as follows:
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \item Calculate the hydro acceleration, the time derivative of the
-  energy, and one term of the gravity:
+  energy, and one term of the gravity: \label{item:hydro}
   \begin{align}
     \bm{a}_i &= - \frac{1}{2} \sum_j \left(
     \frac{\tilde{P}_i}{\Omega_i \rho_i^2} +
     \frac{\tilde{P}_j}{\Omega_j \rho_j^2} + f_{ij} \Pi_{ij} \right)
     \left[ m_j \left( \frac{\partial W_i}{\partial r_{ij}} +
       \frac{\partial W_j}{\partial r_{ij}} \right)
-      \frac{\bm{r}_{ij}}{r_{ij}} \right], \\
+      \frac{\bm{r}_{ij}}{r_{ij}} \right], \label{eq:momentum} \\
 %%
     \dot{u}_i &= \frac{1}{2} \sum_j \left( \frac{\tilde{P}_i}{\Omega_i
       \rho_i^2} + \frac{f_{ij} \Pi_{ij}}{2} \right)
@@ -218,10 +229,11 @@ each particle as follows:
   viscosity. The artificial viscosity is expressed as follows:
   \begin{align}
     \Pi_{ij} &= - \frac{\tilde{\alpha}_{ij}}{2} \frac{v_{ij}^{\rm sig}
-      \min\left(w_{ij},0\right)}{\rho_{ij}} \\
+      w_{ij}^0}{\rho_{ij}} \\
 %%
-    v_{ij}^{\rm sig} &= c_{{\rm s},i} + c_{{\rm s},j} - 3
-    \min(w_{ij},0) \\
+    v_{ij}^{\rm sig} &= c_{{\rm s},i} + c_{{\rm s},j} - 3w_{ij}^0 \\
+%%
+    w_{ij}^0 &= \min \left(w_{ij},0\right) \\
 %%
     w_{ij} &= \frac{\bm{r}_{ij} \cdot
       \tilde{\bm{v}}_{ij}}{|\bm{r}_{ij}|}
@@ -234,23 +246,15 @@ each particle as follows:
       W_i}{\partial r_{ij}} + \frac{\partial W_j}{\partial r_{ij}}
     \right) \nonumber \\ 
 %%
-    &\times \Biggl\{ \left( \frac{\tilde{P}_i w_{ij}}{\Omega_i
-      \rho_i^2} + \frac{f_{ij}\Pi_{ij}}{2} \right) w_{ij} \nonumber \\
-%%
-    &+ \frac{1}{\rho_{ij}} \left[ \frac{1}{4} \tilde{\alpha}_{ij}
-      v_{ij}^{\rm sig} \left( \hat{v}_i^2 - \hat{v}_j^2 \right) +
-      \tilde{\alpha}_{ij}^{\rm u} v_{ij}^{\rm u,sig} \left( u_i - u_j
-      \right) \right] \Biggr\}
+    &\times \Biggl\{ \frac{\tilde{P}_i}{\Omega_i \rho_i^2} w_{ij} -
+    \frac{1}{\rho_{ij}} \left[ \frac{1}{4} f_{ij} \tilde{\alpha}_{ij}
+      v_{ij}^{\rm sig} (w_{ij}^0)^2 - \tilde{\alpha}_{ij}^{\rm u}
+      v_{ij}^{\rm u,sig} \left( u_i - u_j \right) \right]
+    \Biggr\}, \label{eq:udot1}
   \end{align}
-  where $\tilde{\alpha}_{ij}^{\rm u}=1$ temporarily, and
+  where
   \begin{align}
-    \hat{v}_i &= \frac{\bm{v}_{i} \cdot \bm{r}_{ij}}{r_{ij}}
-    \\ 
-%%
-    \hat{v}_j &= \frac{\bm{v}_{j} \cdot \bm{r}_{ij}}{r_{ij}}
-    \\ 
-%%
-    v_{ij}^{\rm u,sig} &= \left( \frac{| \tilde{P}_i - \tilde{P}_j
+    v_{ij}^{\rm u,sig} = \left( \frac{| \tilde{P}_i - \tilde{P}_j
       |}{\rho_{ij}} \right)^{1/2}
   \end{align}
 
@@ -274,35 +278,60 @@ each particle as follows:
   \begin{align}
     \bm{v}_i &= \bm{v}^{(1/2)}_i + \frac{1}{2} \bm{a}_i \Delta t \\
     %%
-    u_i &= u^{(1/2)}_i + \frac{1}{2} \dot{u}_i \Delta t \redtext{+
-      \epsilon_{{\rm nuc},i}(\Delta t / 2)} \\
+    u_i &= u^{(1/2)}_i + \frac{1}{2} \dot{u}_i \Delta t +
+    \epsilon_{{\rm nuc},i}(\Delta t) \\
     %%
     \alpha_i &= \alpha^{(1/2)}_i + \frac{1}{2} \dot{\alpha}_i \Delta
     t, \\
     %%
     \alpha^{\rm u}_i &= \alpha^{{\rm u},(1/2)}_i + \frac{1}{2}
-    \dot{\alpha}^{\rm u}_i \Delta t.
+    \dot{\alpha}^{\rm u}_i \Delta t,
   \end{align}
-  \redtext{When the reaction is exothermic, the density and
-    temperature are fixed at this time. On the other hand, when the
-    reaction is endothermic, only the density is fixed at this time.}
+  where $\epsilon_{{\rm nuc},i}(\Delta t)$ has been already obtained
+  in step~\ref{item:predict}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \item Calculate the next timestep:
-%%  \begin{align}
-%%    \Delta t = C \min_i \left[ \min \left( \frac{2H_i}{\max_j \left(
-%%        v_{ij}^{\rm sig} \right) }, \frac{u_i}{|\dot{u}_i|} \right)
-%%      \right].
-%%  \end{align}
   \begin{align}
-    \Delta t_{\rm next} = C \min_i \left[ \frac{2H_i}{\max_j \left(
-        v_{ij}^{\rm sig} \right) }, \redtext{\Delta t \left|
-        \frac{u_i^{(0)}}{u_i-u_i^{(0)}} \right|} \right].
-  \end{align}
+    \Delta t_{\rm next} = C \min_i \left[
+      \frac{C_{H/h}^{-1}H_i}{\max_j \left( v_{ij}^{\rm sig} \right) },
+      \left| \frac{u_i^{(0)}}{\dot{u}_i^{(0)}} \right| \right].
+  \end{align}  
+  \redtext{When nuclear reaction is considered, we should see Raskin
+    et al.}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \item Return to step~1.
 \end{enumerate}
+
+\section{SPH w/ IAD}
+
+Between step~\ref{item:gravity2} and \ref{item:hydro}, we calculate a
+matrix $\mathcal{C}_i$. The size of the matrix is $D \times D$. The
+matrix is expressed as
+\begin{align}
+  \mathcal{C}_i = \left\{ c_{kl,i} \right\} = \left\{ \tau_{kl,i}
+  \right\}^{-1},
+\end{align}
+The component of the inverse matrix, $\tau_{\ij}$, is written as
+\begin{align}
+  \tau_{kl,i} = \sum_j \frac{m_j}{\rho_j} x_{k,ij} x_{l,ij} W_i,
+\end{align}
+where $\bm{r}_ij = (x_{1,ij}, x_{2,ij}, x_{3,ij})$ in 3D.
+
+Furthermore, we replace eqs~(\ref{eq:momentum}) and (\ref{eq:udot0})
+(or (\ref{eq:udot1})) with the following equations:
+\begin{align}
+  \bm{a}_i &= - \sum_j m_j \left( \frac{\tilde{P}_i}{\Omega_i
+    \rho_i^2} \bm{A}_{ij} - \frac{\tilde{P}_j}{\Omega_j \rho_j^2}
+  \bm{A}_{ji} + f_{ij} \Pi_{ij} \bar{\bm{A}}_{ij} \right) \\
+%%
+  \dot{u}_i &= \sum_j m_j \bm{v}_{ij} \cdot \left(
+  \frac{\tilde{P}_i}{\Omega_i \rho_i^2} \bm{A}_{ij} +
+  \frac{f_{ij}\Pi_{ij}}{2} \bar{\bm{A}}_{ij} \right),
+\end{align}
+where $\bm{A}_{ij}=\left( \mathcal{C}_i \bm{r}_{ij} \right) W_i$, and
+$\bar{\bm{A}}_{ij}=\left( \bm{A}_{ij} + \bm{A}_{ji} \right)/2$.
 
 \section{Helmholtz EOS}
 
@@ -406,37 +435,50 @@ $2.171239(D=2)$, and $2.207940(D=3)$.
   \begin{center}
     \includegraphics[width=10cm,bb=0 0 1020 840]{fig/shock_1d/draw.png}
   \end{center}
-  \caption{1D shock tube (cubic spline, $\gamma=1.4$, $\alpha=1.0$).}
+  \caption{1D shock tube (W2, $\gamma=1.4$, $\alpha=\alpha^{\rm
+      u}=1.0$).}
 \end{figure}
 
 \begin{figure}
   \begin{center}
     \includegraphics[width=10cm,bb=0 0 1020 840]{fig/shock_3d/draw.png}
   \end{center}
-  \caption{3D shock tube (cubic spline, $\gamma=1.4$, $\alpha=1.0$).}
+  \caption{3D shock tube (W2, $\gamma=1.4$, $\alpha=\alpha^{\rm
+      u}=1.0$).}
 \end{figure}
 
 \begin{figure}
   \begin{center}
     \includegraphics[width=10cm,bb=0 0 1020 840]{fig/strong/draw.png}
   \end{center}
-  \caption{Strong shock (cubic spline, $\gamma=1.4$, $\alpha=1.0$).}
+  \caption{Strong shock (W2, $\gamma=1.4$, $\alpha=\alpha^{\rm
+      u}=1.0$).}
 \end{figure}
 
 \begin{figure}
   \begin{center}
     \includegraphics[width=10cm,bb=0 0 1020 840]{fig/pex/draw.png}
   \end{center}
-  \caption{Point like explosion (cubic spline, $\gamma=5/3$,
-    $\alpha=3.0$).}
+  \caption{Point like explosion (W2, $\gamma=5/3$, $\alpha=\alpha^{\rm
+      u}=3.0$).}
 \end{figure}
 
 \begin{figure}
   \begin{center}
     \includegraphics[width=14cm,bb=0 0 2120 2000]{fig/evrard/draw.png}
   \end{center}
-  \caption{Evrard test (cubic spline, $\gamma=5/3$, $\alpha_{\rm
-      min}=0.1$, $\alpha_{\rm max}=3.0$).}
+  \caption{Evrard test (W2, $\gamma=5/3$, $\alpha_{\rm
+      min}=\alpha^{\rm u}_{\rm min}=0.1$, $\alpha_{\rm
+      max}=\alpha^{\rm u}_{\rm max}=3.0$).}
+\end{figure}
+
+\begin{figure}
+  \begin{center}
+    \includegraphics[width=14cm,bb=0 0 2120 2000]{fig/kh/draw.png}
+  \end{center}
+  \caption{KH test. Top: W2, $\gamma=5/3$, $\alpha=3, \alpha^{\rm
+      u}=0$. Bottom: W2, $\gamma=5/3$, $\alpha=\alpha^{\rm u}=3$. From
+    left to right, $t=0$, $t=2\tau_{\rm KH}$, $t=4\tau_{\rm KH}$.}
 \end{figure}
 
 \section{EOS tests}
