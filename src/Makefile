@@ -1,5 +1,5 @@
 ###### AT_PLATFORM ########
-use_xc  = no
+use_xc  = yes
 ###### AT_MPI_OPENMP ######
 use_mpi = yes
 use_omp = yes
@@ -7,7 +7,7 @@ use_omp = yes
 ###### AT_FLAGS ##############################
 CFLAGS += -DTHERMAL_CONDUCTIVITY
 CFLAGS += -DSYMMETRIZED_GRAVITY
-CFLAGS += -DNUCLEAR_REACTION
+#CFLAGS += -DNUCLEAR_REACTION
 #
 CFLAGS += -DENABLE_SIMDX86
 #CFLAGS += -DENABLE_SIMDX86_SINGLE
