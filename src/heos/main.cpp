@@ -16,6 +16,7 @@ static PS::F64 MaximumTimeStepInv = 1. / MaximumTimeStep;
 #include "hdr_massless.hpp"
 #include "hdr_density.hpp"
 #include "hdr_hydro.hpp"
+//#include "hdr_gradient.hpp"
 
 #include "gp5util.h"
 #include "hdr_gravity.hpp"
@@ -85,7 +86,6 @@ int main(int argc, char **argv)
 
     PS::S32 rank = PS::Comm::getRank();
     PS::S32 size = PS::Comm::getNumberOfProc();
-    PS::F64 dtime;
     Header header;
     PS::DomainInfo dinfo;
     dinfo.initialize();
@@ -114,7 +114,7 @@ int main(int argc, char **argv)
     WT::clear();
 
     if(atoi(argv[1]) == 0) {
-        
+
         sph.readParticleAscii(argv[2], header);
 #ifdef WD_DAMPINGB
         generateMassLessParticle(msls, sph);
@@ -139,7 +139,7 @@ int main(int argc, char **argv)
         WT::start();
         calcFieldVariable(sph);
         WT::accumulateOthers();
-        
+
         WT::start();
         sph.exchangeParticle(dinfo);
 #ifdef WD_DAMPINGB
@@ -149,14 +149,14 @@ int main(int argc, char **argv)
         WT::start();
         SPH::ksrmax   = calcSystemSize(sph);
         header.ksrmax = SPH::ksrmax;
+        SPH::epsu     = setEpsilonOfInternalEnergy(sph);
+        header.epsu   = SPH::epsu;
+        header.dtime  = MaximumTimeStep;
         WT::accumulateOthers();
 
 #ifdef SYMMETRIZED_GRAVITY
 #else
-        //WT::start();
         g5_set_eps_to_all(SPH::eps);
-        //calcGravityKernel(dinfo, sph, msls, gravity);
-        //WT::accumulateCalcGravity();
 #endif
 
         calcSPHKernel(header, dinfo, sph, msls,
@@ -180,6 +180,7 @@ int main(int argc, char **argv)
 #endif
     }
 
+    
     FILE *fplog = fopen("snap/time.log", "w");
     FILE *fptim = fopen("snap/prof.log", "w");
     PS::F64 tout = header.time;
@@ -207,14 +208,14 @@ int main(int argc, char **argv)
         density.clearTimeProfile();
         */
 
-        doThisEveryTime(dtime, tout, header, dinfo, sph, msls, fplog, fptim);
-
         WT::start();
-        dtime = calcTimeStep(sph, header.time, MaximumTimeStep);
+        header.dtime = calcTimeStep(sph, header.time, header.dtime);
         WT::accumulateOthers();
 
+        doThisEveryTime(tout, header, dinfo, sph, msls, fplog, fptim);
+
         WT::start();
-        predict(sph, dtime);
+        predict(sph, header.dtime);
         WT::accumulateIntegrateOrbit();
         WT::start();
         if(SPH::cbox.low_[0] != SPH::cbox.high_[0]) {
@@ -239,19 +240,11 @@ int main(int argc, char **argv)
                       density, derivative, gravity,
                       calcDensity(), calcDerivative());
 
-        /*
-#ifdef GRAVITY
         WT::start();
-        calcGravityKernel(dinfo, sph, msls, gravity);
-        WT::accumulateCalcGravity();
-#endif
-        */
-
-        WT::start();
-        correct(sph, dtime);
+        correct(sph, header.dtime);
         WT::accumulateIntegrateOrbit();
 
-        header.time += dtime;
+        header.time += header.dtime;
     }
 
     fclose(fplog);
@@ -287,16 +280,24 @@ template <class Tptcl>
 PS::F64 calcTimeStep(Tptcl & system,
                      PS::F64 t,
                      PS::F64 dt) {
+    // check
     const PS::F64 dtmin = 1e-10;
 
     PS::S32 nloc = system.getNumberOfParticleLocal();
     PS::F64 dtc = 1e30;
     for(PS::S32 i = 0; i < nloc; i++) {
-        PS::F64 dttmp = system[i].calcTimeStep();
+        //PS::F64 dttmp = system[i].calcTimeStep();
+        PS::F64 dttmp = system[i].calcTimeStep(dt);
         if(dttmp < dtc)
             dtc = dttmp;
     }
     dtc = PS::Comm::getMinValue(dtc);
+
+    if(dtc < 1e-9) {
+        system.writeParticleAscii("snap/hoge.dat");
+        PS::Finalize();
+        exit(0);
+    }
 
     assert(dtc >= 0.0);
 
@@ -305,7 +306,8 @@ PS::F64 calcTimeStep(Tptcl & system,
             dt *= 0.5;
             assert(dt > dtmin);
         }        
-    } else if(2. * dt <= dtc) {
+//    } else if(2. * dt <= dtc) {
+    } else if(2. * dt <= dtc && 2. * dt <= MaximumTimeStep) {
         PS::F64 dt2 = 2. * dt;
         if(t - (PS::S64)(t / dt2) * dt2 == 0.) {
             dt *= 2.;
@@ -401,6 +403,11 @@ void calcSPHKernel(Thdr & header,
         repeat = PS::Comm::synchronizeConditionalBranchOR(repeat_loc);
         cnt++;
     }
+    WT::start();
+    for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
+        sph[i].calcAbarZbar();
+    }
+    WT::accumulateOthers();
     WT::start();
     referEquationOfState(sph);
     WT::accumulateReferEquationOfState();

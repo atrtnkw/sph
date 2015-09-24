@@ -1,6 +1,7 @@
 #pragma once
 
 #include "hdr_eos.hpp"
+#include "hdr_nuc.hpp"
 
 static PS::U64 convertF64ToU64(PS::F64 val) {
     union converter {
@@ -41,17 +42,27 @@ public:
     }
 };
 
+//class Gradient {
+//public:
+//    PS::F64mat ctau;
+//    void clear() {
+//        ctau = 0.;
+//    }
+//};
+
 class Derivative{
 public:
     PS::F64vec acc;
     PS::F64vec accg;
     PS::F64    udot;
     PS::F64    vsmx;
+    PS::F64    diffu;
     void clear(){
-        acc  = 0.0;
-        accg = 0.0;
-        udot = 0.0;
-        vsmx = 0.0;
+        acc   = 0.0;
+        accg  = 0.0;
+        udot  = 0.0;
+        vsmx  = 0.0;
+        diffu = 0.0;
     }
 };
 
@@ -70,6 +81,7 @@ public:
 class Header {
 public:
     PS::F64    time;
+    PS::F64    dtime;
     PS::F64    tend;
     PS::F64    dtsp;
     PS::S32    istp;
@@ -78,11 +90,14 @@ public:
     PS::F64    alphamin;
     PS::F64    tceff;
     PS::F64    eps;
+    PS::F64    epsu;
     PS::S64    nptcl;
     PS::F64    ksrmax;
+    PS::F64    enuc;
 
     Header() {
         time       = 0.0;
+        dtime      = 0.0;
         tend       = 0.0;
         dtsp       = 0.0;
         istp       = 0;
@@ -92,8 +107,10 @@ public:
         alphamin   = 0.0;
         tceff      = 0.0;
         eps        = 0.0;
+        epsu       = 0.0;
         nptcl      = 0;
         ksrmax     = 0.0;
+        enuc       = 0.0;
     }
 
     PS::S32 readAscii(FILE *fp) {
@@ -116,23 +133,28 @@ public:
     void readRestartFile(FILE *fp,
                          Tdinfo & dinfo) {
         PS::F64 (*cvt)(PS::U64) = convertU64ToF64;        
-        PS::U64 utime, utend, udtsp;
+        PS::U64 utime, udtime, utend, udtsp;
         PS::U64 ualphamax, ualphamin, utceff;
-        PS::U64 ueps;
+        PS::U64 ueps, uepsu;
         PS::U64 uksrmax;
-        fscanf(fp, "%llx %llx %llx %d", &utime, &utend, &udtsp, &this->istp);
+        PS::U64 uenuc;
+        fscanf(fp, "%llx %llx %llx %llx %d", &utime, &udtime, &utend, &udtsp, &this->istp);
         fscanf(fp, "%llx %llx %llx", &ualphamax, &ualphamin, &utceff);
-        fscanf(fp, "%llx", &ueps);
+        fscanf(fp, "%llx %llx", &ueps, &uepsu);
         fscanf(fp, "%llx", &uksrmax);
+        fscanf(fp, "%llx", &uenuc);
         fscanf(fp, "%d", &this->nptcl);
-        time = cvt(utime);
-        tend = cvt(utend);
-        dtsp = cvt(udtsp);
+        time  = cvt(utime);
+        dtime = cvt(udtime);
+        tend  = cvt(utend);
+        dtsp  = cvt(udtsp);
         alphamax = cvt(ualphamax);
         alphamin = cvt(ualphamin);
         tceff    = cvt(utceff);
-        eps = cvt(ueps);
+        eps  = cvt(ueps);
+        epsu = cvt(uepsu);
         ksrmax = cvt(uksrmax);
+        enuc   = cvt(uenuc);
 
         PS::S32 nproc = PS::Comm::getNumberOfProc();
         for(PS::S32 i = 0; i < nproc; i++) {
@@ -153,10 +175,11 @@ public:
     void writeRestartFile(FILE *fp,
                           Tdinfo & dinfo) {
         PS::U64 (*cvt)(PS::F64) = convertF64ToU64;
-        fprintf(fp, "%llx %llx %llx %d\n", cvt(time), cvt(tend), cvt(dtsp), istp);
+        fprintf(fp, "%llx %llx %llx %llx %d\n", cvt(time), cvt(dtime), cvt(tend), cvt(dtsp), istp);
         fprintf(fp, "%llx %llx %llx\n", cvt(alphamax), cvt(alphamin), cvt(tceff));
-        fprintf(fp, "%llx\n", cvt(eps));
+        fprintf(fp, "%llx %llx\n", cvt(eps), cvt(epsu));
         fprintf(fp, "%llx\n", cvt(ksrmax));
+        fprintf(fp, "%llx\n", cvt(enuc));
         fprintf(fp, "%d\n", nptcl);
 
         PS::S32 nproc = PS::Comm::getNumberOfProc();
@@ -182,6 +205,9 @@ public:
     PS::F64    udot;
     PS::F64    alph;
     PS::F64    alph2;
+    PS::F64    alphu;
+    PS::F64    alphu2;
+    PS::F64    adotu;
     PS::F64    adot;
     PS::F64    dens;
     PS::F64    pres;
@@ -203,16 +229,25 @@ public:
     PS::F64    eta;
     PS::F64    temp;
     PS::S32    cnteos;
-    static PS::F64    abar;
-    static PS::F64    zbar;
+    PS::F64    diffu;
+    //PS::F64mat ctau;
+    PS::F64    abar;
+    PS::F64    zbar;
+    PS::F64    dnuc;
+    PS::F64    cmps[NuclearReaction::NumberOfNucleon];
+    static PS::F64    ainv[NuclearReaction::NumberOfNucleon];
+    static PS::F64    zaratio;
     static PS::F64ort cbox;
     static PS::F64    cinv;
     static PS::F64    alphamax, alphamin;
+    static PS::F64    alphaumin;
     static PS::F64    tceff;
     static PS::F64    eps;
+    static PS::F64    epsu;
     static PS::F64vec omg;
     static PS::F64    ReductionTimeInv;
     static PS::F64    ksrmax;
+    static PS::F64    enuc;
 
     PS::F64vec getPos() const {
         return this->pos;
@@ -231,12 +266,11 @@ public:
         this->divv  = density.divv;
     }
 
+//    void copyFromForce(const Gradient & gradient) {
+//        this->ctau = gradient.ctau;
+//    }
+
     void copyFromForce(const Gravity & gravity) {
-        /*
-        this->acc  += CodeUnit::grav * gravity.acc;
-        this->pot   = CodeUnit::grav * (gravity.pot + this->mass / this->eps);
-        this->accg  = CodeUnit::grav * gravity.acc;
-        */
         this->accg2 = CodeUnit::grav * gravity.acc;
         this->eta   = this->ksr * this->ksr * KernelSph::ksrhinv * KernelSph::ksrhinv
             * this->grdh / (KernelSph::dim * this->dens) * gravity.eta;
@@ -244,26 +278,26 @@ public:
     }
 
     void copyFromForce(const Derivative & derivative){
-/*
-        this->acc  = derivative.acc;
-        this->udot = derivative.udot;
-        this->vsmx = derivative.vsmx;
-*/
         this->acch  = derivative.acc;
         this->accg1 = CodeUnit::grav * derivative.accg;
         this->udot  = derivative.udot;
         this->vsmx  = derivative.vsmx;
         this->acc   = this->acch + this->accg1 + this->accg2;        
+        this->diffu = derivative.diffu;
     }
 
     void readAscii(FILE *fp) {        
         using namespace CodeUnit;
 
-        fscanf(fp, "%lld%lld%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf",
+        fscanf(fp, "%lld%lld%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf",
                &this->id, &this->istar, &this->mass,
                &this->pos[0], &this->pos[1], &this->pos[2],
                &this->vel[0], &this->vel[1], &this->vel[2],
-               &this->uene,   &this->alph,   &this->ksr);
+               &this->uene,   &this->alph,   &this->alphu,
+               &this->ksr);
+        for(PS::S32 k = 0; k < NuclearReaction::NumberOfNucleon; k++) {
+            fscanf(fp, "%lf", &this->cmps[k]);
+        }
 
         this->mass *= UnitOfMassInv;
         this->pos  *= UnitOfLengthInv;
@@ -287,19 +321,25 @@ public:
         PS::F64    tdivv = this->divv * UnitOfTimeInv; // divv [s^-1]
         PS::F64    trotv = this->rotv * UnitOfTimeInv; // rotv [s^-1]
         PS::F64    tpot  = this->pot  * UnitOfEnergy;
-
-        fprintf(fp, "%6d %2d %+e", this->id, this->istar, tmass);
-        fprintf(fp, " %+.16e %+.16e %+.16e", tpos[0], tpos[1], tpos[2]);
-        fprintf(fp, " %+.16e %+.16e %+.16e", tvel[0], tvel[1], tvel[2]);
-        fprintf(fp, " %+.16e %+.16e %+.16e", tacc[0], tacc[1], tacc[2]);
-        fprintf(fp, " %+.16e %+.16e %+.16e", tuene, this->alph, tksr);
-        fprintf(fp, " %+.16e %+.16e %+.16e %+.16e", tdens, tvsnd, tpres, this->temp);
-        fprintf(fp, " %+.16e %+.16e %+.16e", tdivv, trotv, this->bswt);
-        fprintf(fp, " %+.16e %6d %+.16e", this->grdh, this->np, tpot);        
-        fprintf(fp, " %3d", this->cnteos);
+        
+        fprintf(fp, "%6d %2d %+e", this->id, this->istar, tmass);        //  3
+        fprintf(fp, " %+.16e %+.16e %+.16e", tpos[0], tpos[1], tpos[2]); //  6
+        fprintf(fp, " %+.16e %+.16e %+.16e", tvel[0], tvel[1], tvel[2]); //  9
+        fprintf(fp, " %+.16e %+.16e %+.16e", tacc[0], tacc[1], tacc[2]); // 12
+        fprintf(fp, " %+.16e %+.16e %+.16e %+.16e", tuene, this->alph, this->alphu, tksr); // 16
+        fprintf(fp, " %+.16e %+.16e %+.16e %+.16e", tdens, tvsnd, tpres, this->temp);      // 20
+        fprintf(fp, " %+.16e %+.16e %+.16e", tdivv, trotv, this->bswt);  // 23
+        fprintf(fp, " %+.16e %6d %+.16e", this->grdh, this->np, tpot);   // 26
+        fprintf(fp, " %+.16e %+.16e", this->abar, this->zbar);           // 28
 #ifdef WD_DAMPINGB
         fprintf(fp, " %+.16e", SPH::omg[2]);
 #endif
+        for(PS::S32 k = 0; k < NuclearReaction::NumberOfNucleon; k++) {
+            fprintf(fp, " %+.3e", this->cmps[k]);
+        }
+        fprintf(fp, " %+e", this->vsmx * UnitOfVelocity);
+        fprintf(fp, " %+e", this->udot * UnitOfEnergy * UnitOfTimeInv);
+        fprintf(fp, " %+e", this->dnuc * UnitOfEnergy);
         fprintf(fp, "\n");
 
     }
@@ -323,36 +363,48 @@ public:
     }
 
     void calcBalsaraSwitch() {
-        /*
-        this->bswt = fabs(this->grdh * this->divv)
-            / (fabs(this->grdh * this->divv) + fabs(this->grdh * this->rotv)
-               + 1e-4 * this->vsnd * KernelSph::ksrh / this->ksr);
-        */
         this->bswt = fabs(this->divv) / (fabs(this->divv) + fabs(this->rotv)
                                          + 1e-4 * this->vsnd * KernelSph::ksrh / this->ksr);
     }
-    // Should "this->grdh * this->divv" be "this->divv" ?
 
     void calcAlphaDot() {
         PS::F64 src;
         src = - divv * (alphamax - this->alph);
         src = (src > 0.) ? src : 0.;
-        this->adot = - (this->alph - alphamin)
-            * (0.25 * this->vsnd * KernelSph::ksrh) / this->ksr + src;
+        PS::F64 tauinv = (0.25 * this->vsnd * KernelSph::ksrh) / this->ksr;
+        this->adot = - (this->alph - alphamin) * tauinv + src;
+#ifdef THERMAL_CONDUCTIVITY
+        PS::F64 srcu;
+        PS::F64 uene = std::max(this->uene, 0.);
+        srcu  = this->ksr * KernelSph::ksrhinv * this->diffu / sqrt(uene + this->epsu);
+        srcu *= (alphamax - this->alphu);
+        this->adotu = - (this->alphu - alphaumin) * tauinv + srcu;
+#endif
     }
 
-    PS::F64 calcTimeStep() {
-        return tceff * 2. * this->ksr / (this->vsmx * KernelSph::ksrh);        
+    void calcAbarZbar() {
+        PS::F64 abarinv = 0.;
+        PS::F64 zbar    = 0.;
+        for(PS::S32 k = 0; k < NuclearReaction::NumberOfNucleon; k++) {
+            abarinv += this->ainv[k] * this->cmps[k];
+            zbar    += this->zaratio * this->cmps[k];
+        }
+        this->abar = 1. / abarinv;
+        this->zbar = this->abar * zbar;
     }
 
-    /*
-    PS::F64 calcTimeStep() {
-        PS::F64 dthydro  = tceff * 2. * this->ksr / (this->vsmx * KernelSph::ksrh);
-        PS::F64 dtenergy = (this->uene > 0.0 && this->udot != 0.0) ?
-            tceff * fabs(this->uene / this->udot) : MaximumTimeStep;
-        return ((dthydro < dtenergy) ? dthydro : dtenergy);
+    PS::F64 calcTimeStep(PS::F64 dt) {
+        using namespace CodeUnit;
+        PS::F64 dthydro = tceff * 2. * this->ksr / (this->vsmx * KernelSph::ksrh);
+        PS::F64 dtenerg = tceff * this->uene / fabs(this->udot);
+        PS::F64 dtnuc   = tceff * this->uene / fabs(this->dnuc) * dt;
+        ////////////////////////////
+        dtenerg = (this->dens < 1e4 * UnitOfDensity) ? MaximumTimeStep : dtenerg;
+        dtnuc   = (this->dens < 1e4 * UnitOfDensity) ? MaximumTimeStep : dtnuc;
+        // This should be obtained from ksrmax
+        ////////////////////////////
+        return std::min(dthydro, std::min(dtenerg, dtnuc));
     }
-    */
 
 #ifdef WD_DAMPINGB
     inline void addAdditionalForce() {
@@ -381,28 +433,39 @@ public:
     static inline v8sf calcVolumeInverse(const v8sf hi);
 
     void predict(PS::F64 dt) {
-        this->pos   = this->pos  +       this->vel  * dt  + 0.5 * this->acc * dt * dt;
-        this->vel2  = this->vel  + 0.5 * this->acc  * dt;
-        this->vel   = this->vel  +       this->acc  * dt;
-        this->uene2 = this->uene + 0.5 * this->udot * dt;
-        this->uene  = this->uene +       this->udot * dt;
-        this->alph2 = this->alph + 0.5 * this->adot * dt;
-        this->alph  = this->alph +       this->adot * dt;
+#ifdef NUCLEAR_REACTION
+        this->dnuc  = CalcNRH::getGeneratedEnergy(dt, this->dens, this->temp, this->cmps);
+        this->enuc += this->mass * this->dnuc;
+#else
+        this->dnuc  = 0.;
+#endif
+        this->pos    = this->pos   +       this->vel   * dt  + 0.5 * this->acc * dt * dt;
+        this->vel2   = this->vel   + 0.5 * this->acc   * dt;
+        this->vel    = this->vel   +       this->acc   * dt;
+        this->uene2  = this->uene  + 0.5 * this->udot  * dt;
+        this->uene   = this->uene  +       this->udot  * dt + this->dnuc;
+        this->alph2  = this->alph  + 0.5 * this->adot  * dt;
+        this->alph   = this->alph  +       this->adot  * dt;
+        this->alphu2 = this->alphu + 0.5 * this->adotu * dt;
+        this->alphu  = this->alphu +       this->adotu * dt;
     }
     
 #ifdef WD_DAMPING1
     void correct(PS::F64 dt) {
-        this->acc  -= this->vel / (128.d * dt);
-        this->vel   = this->vel2  + 0.5 * this->acc  * dt;
-        this->uene  = this->uene2 + 0.5 * this->udot * dt;
-        this->alph  = this->alph2 + 0.5 * this->adot * dt;
+        //this->acc  -= this->vel / (128.d * dt);
+        this->acc  -= this->vel * 0.05;
+        this->vel   = this->vel2   + 0.5 * this->acc   * dt;
+        this->uene  = this->uene2  + 0.5 * this->udot  * dt;
+        this->alph  = this->alph2  + 0.5 * this->adot  * dt;
+        this->alphu = this->alphu2 + 0.5 * this->adotu * dt;
         this->uene  = CalcEquationOfState::getEnergy(this->dens, this->uene);
     }
 #elif defined WD_DAMPING2
     void correct(PS::F64 dt) {
-        this->vel   = this->vel2  + 0.5 * this->acc  * dt;
-        this->uene  = this->uene2 + 0.5 * this->udot * dt;
-        this->alph  = this->alph2 + 0.5 * this->adot * dt;
+        this->vel   = this->vel2   + 0.5 * this->acc   * dt;
+        this->uene  = this->uene2  + 0.5 * this->udot  * dt;
+        this->alph  = this->alph2  + 0.5 * this->adot  * dt;
+        this->alphu = this->alphu2 + 0.5 * this->adotu * dt;
 
         PS::F64 unow = this->uene;
         PS::F64 umin = CalcEquationOfState::getEnergyMin(this->dens, this->abar, this->zbar);
@@ -413,15 +476,17 @@ public:
     void correct(PS::F64 dt) {
         //this->acc  -= this->vel / (128.d * dt);
         this->acc  -= this->vel * SPH::ReductionTimeInv;
-        this->vel   = this->vel2  + 0.5 * this->acc  * dt;
-        this->uene  = this->uene2 + 0.5 * this->udot * dt;
-        this->alph  = this->alph2 + 0.5 * this->adot * dt;
+        this->vel   = this->vel2   + 0.5 * this->acc  * dt;
+        this->uene  = this->uene2  + 0.5 * this->udot * dt;
+        this->alph  = this->alph2  + 0.5 * this->adot * dt;
+        this->alphu = this->alphu2 + 0.5 * this->adotu * dt;
     }
 #else
     void correct(PS::F64 dt) {
-        this->vel   = this->vel2  + 0.5 * this->acc  * dt;
-        this->uene  = this->uene2 + 0.5 * this->udot * dt;
-        this->alph  = this->alph2 + 0.5 * this->adot * dt;
+        this->vel   = this->vel2   + 0.5 * this->acc   * dt;
+        this->uene  = this->uene2  + 0.5 * this->udot  * dt + this->dnuc;
+        this->alph  = this->alph2  + 0.5 * this->adot  * dt;
+        this->alphu = this->alphu2 + 0.5 * this->adotu * dt;
     }
 #endif
 
@@ -435,11 +500,12 @@ public:
         PS::U64 umass;
         PS::U64 upos[3], uvel[3], uacc[3];
         PS::U64 uuene, uudot;
-        PS::U64 ualph, uadot;
+        PS::U64 ualph, uadot, ualphu, uadotu;
         PS::U64 udens, upres, uvsnd, utemp;
         PS::U64 udivv, urotv, ubswt;
         PS::U64 uksr, ugrdh, uvsmx;
         PS::U64 upot;
+        PS::U64 ucmps[NuclearReaction::NumberOfNucleon];
 
         fscanf(fp, "%d %d %llx", &this->id, &this->istar, &umass);
         fscanf(fp, "%llx %llx %llx", &upos[0], &upos[1], &upos[2]);
@@ -447,10 +513,14 @@ public:
         fscanf(fp, "%llx %llx %llx", &uacc[0], &uacc[1], &uacc[2]);
         fscanf(fp, "%llx %llx", &uuene, &uudot);
         fscanf(fp, "%llx %llx", &ualph, &uadot);
+        fscanf(fp, "%llx %llx", &ualphu, &uadotu);
         fscanf(fp, "%llx %llx %llx %llx", &udens, &upres, &uvsnd, &utemp);
         fscanf(fp, "%llx %llx %llx", &udivv, &urotv, &ubswt);
         fscanf(fp, "%llx %llx %llx", &uksr,  &ugrdh, &uvsmx);
         fscanf(fp, "%llx", &upot);
+        for(PS::S32 k = 0; k < NuclearReaction::NumberOfNucleon; k++) {
+            fscanf(fp, "%llx", &ucmps[k]);
+        }
 
         this->mass = cvt(umass);
         this->pos[0] = cvt(upos[0]);
@@ -462,21 +532,26 @@ public:
         this->acc[0] = cvt(uacc[0]);
         this->acc[1] = cvt(uacc[1]);
         this->acc[2] = cvt(uacc[2]);
-        this->uene = cvt(uuene);
-        this->udot = cvt(uudot);
-        this->alph = cvt(ualph);
-        this->adot = cvt(uadot);
-        this->dens = cvt(udens);
-        this->pres = cvt(upres);
-        this->vsnd = cvt(uvsnd);
-        this->temp = cvt(utemp);
-        this->divv = cvt(udivv);
-        this->rotv = cvt(urotv);
-        this->bswt = cvt(ubswt);
-        this->ksr  = cvt(uksr);
-        this->grdh = cvt(ugrdh);
-        this->vsmx = cvt(uvsmx);
-        this->pot  = cvt(upot);        
+        this->uene  = cvt(uuene);
+        this->udot  = cvt(uudot);
+        this->alph  = cvt(ualph);
+        this->adot  = cvt(uadot);
+        this->alphu = cvt(ualphu);
+        this->adotu = cvt(uadotu);
+        this->dens  = cvt(udens);
+        this->pres  = cvt(upres);
+        this->vsnd  = cvt(uvsnd);
+        this->temp  = cvt(utemp);
+        this->divv  = cvt(udivv);
+        this->rotv  = cvt(urotv);
+        this->bswt  = cvt(ubswt);
+        this->ksr   = cvt(uksr);
+        this->grdh  = cvt(ugrdh);
+        this->vsmx  = cvt(uvsmx);
+        this->pot   = cvt(upot);        
+        for(PS::S32 k = 0; k < NuclearReaction::NumberOfNucleon; k++) {
+            this->cmps[k] = cvt(ucmps[k]);
+        }
     }
 
     void writeRestartFile(FILE *fp) const {
@@ -487,23 +562,32 @@ public:
         fprintf(fp, " %llx %llx %llx", cvt(this->acc[0]), cvt(this->acc[1]), cvt(this->acc[2]));
         fprintf(fp, " %llx %llx", cvt(this->uene), cvt(this->udot));
         fprintf(fp, " %llx %llx", cvt(this->alph), cvt(this->adot));
+        fprintf(fp, " %llx %llx", cvt(this->alphu), cvt(this->adotu));
         fprintf(fp, " %llx %llx", cvt(this->dens), cvt(this->pres));
         fprintf(fp, " %llx %llx", cvt(this->vsnd), cvt(this->temp));
         fprintf(fp, " %llx %llx %llx", cvt(this->divv), cvt(this->rotv), cvt(this->bswt));
         fprintf(fp, " %llx %llx %llx", cvt(this->ksr), cvt(this->grdh), cvt(this->vsmx));
         fprintf(fp, " %llx", cvt(this->pot));
+        for(PS::S32 k = 0; k < NuclearReaction::NumberOfNucleon; k++) {
+            fprintf(fp, " %llx", cvt(this->cmps[k]));
+        }
         fprintf(fp, "\n");
     }
     
 };
 
-PS::F64    SPH::abar = 13.7142857143d;
-PS::F64    SPH::zbar =  6.85714285714d;
+PS::F64    SPH::ainv[NuclearReaction::NumberOfNucleon] = {1/4., 1/12., 1/16., 1/20., 1/24.,
+                                                          1/28., 1/32., 1/36., 1/40.,
+                                                          1/44., 1/48., 1/52., 1/56.};
+PS::F64    SPH::zaratio = 0.5;
+PS::F64    SPH::enuc    = 0.;
 PS::F64ort SPH::cbox;
 PS::F64    SPH::cinv;
 PS::F64    SPH::tceff;
 PS::F64    SPH::alphamax, SPH::alphamin;
+PS::F64    SPH::alphaumin;
 PS::F64    SPH::eps;
+PS::F64    SPH::epsu;
 PS::F64vec SPH::omg;
 PS::F64    SPH::ReductionTimeInv;
 PS::F64    SPH::ksrmax;
@@ -535,6 +619,13 @@ inline v4df SPH::calcVolumeInverse(const v4df hi) {return hi * hi * hi;}
 inline v8sf SPH::calcVolumeInverse(const v8sf hi) {return hi * hi * hi;}
 #endif
 #endif
+
+template <class Tpsys>
+PS::F64 calcReleasedEnergy(Tpsys & system) {
+    PS::F64 eloc = system[0].enuc;
+    PS::F64 eglb = PS::Comm::getSum(eloc);
+    return eglb;
+}
 
 template <class Theader,
           class Tdinfo,
@@ -612,12 +703,15 @@ void calcCenterOfMass(Tptcl & system,
 
 template <class Theader>
 void setParameterParticle(Theader & header) {
-    SPH::cbox     = header.cbox;
-    SPH::alphamax = header.alphamax;
-    SPH::alphamin = header.alphamin;
-    SPH::tceff    = header.tceff;
-    SPH::eps      = header.eps;
-    SPH::ksrmax   = header.ksrmax;
+    SPH::cbox      = header.cbox;
+    SPH::alphamax  = header.alphamax;
+    SPH::alphamin  = header.alphamin;
+    SPH::alphaumin = 0.;
+    SPH::tceff     = header.tceff;
+    SPH::eps       = header.eps;
+    SPH::ksrmax    = header.ksrmax;
+    SPH::epsu      = header.epsu;
+    SPH::enuc      = header.enuc;
     
     return;
 }
@@ -768,6 +862,19 @@ void reduceSeparation(PS::F64 time,
 }
 
 template <class Tptcl>
+PS::F64 setEpsilonOfInternalEnergy(Tptcl & system) {
+    PS::F64 uminloc = std::numeric_limits<double>::max();
+    PS::S32 nloc    = system.getNumberOfParticleLocal();
+    for(PS::S32 i = 0; i < nloc; i++) {
+        if(system[i].uene < uminloc) {
+            uminloc = system[i].uene;
+        }
+    }
+    PS::F64 uminglb = PS::Comm::getMinValue(uminloc);
+    return 1e-4 * uminglb;
+}
+
+template <class Tptcl>
 void calcFieldVariable(Tptcl & system) {
 
 #ifdef WD_DAMPINGB
@@ -794,8 +901,7 @@ template <class Theader,
           class Tdinfo,
           class Tptcl,
           class Tmassless>
-void doThisEveryTime(PS::F64 & dtime,
-                     PS::F64 & tout,
+void doThisEveryTime(PS::F64 & tout,
                      Theader & header,
                      Tdinfo & dinfo,
                      Tptcl & system,
@@ -811,9 +917,9 @@ void doThisEveryTime(PS::F64 & dtime,
         fprintf(fplog, "# Unit of length:        %e\n", CodeUnit::UnitOfLength);
     }
 
-    PS::F64 trst = 10.;
-    //PS::F64 trst = 1.;
+    PS::F64 trst = 1.;
     if(header.time - (PS::S64)(header.time / trst) * trst == 0.) {
+        header.enuc = system[0].enuc;
         char filename[64];
         sprintf(filename, "snap/t%04d_p%06d.hexa", (PS::S32)header.time, PS::Comm::getRank());
         writeRestartFile(filename, header.time, header, dinfo, system);
@@ -830,12 +936,23 @@ void doThisEveryTime(PS::F64 & dtime,
         tout += header.dtsp;
     }
 
+    /*
+    if(header.time == 2.) {
+        PS::Finalize();
+        exit(0);
+    }
+    */
+
     PS::F64 etot = calcEnergy(system);
+    PS::F64 enuc = calcReleasedEnergy(system);
     WT::reduceInterProcess();
     if(PS::Comm::getRank() == 0)     {
         using namespace CodeUnit;
-        fprintf(fplog,  "time: %.10f %+e %+e\n", header.time * UnitOfTime,
-                etot * UnitOfEnergy * UnitOfMass, WT::getTimeTotal());
+        fprintf(fplog,  "time: %.10f %.10f %+e %+e %+e %+.3e\n",
+                header.time * UnitOfTime, header.dtime,
+                (etot - enuc) * UnitOfEnergy * UnitOfMass,
+                etot * UnitOfEnergy * UnitOfMass, enuc * UnitOfEnergy * UnitOfMass,
+                WT::getTimeTotal());
         fflush(fplog);
         WT::dump(header.time, fptim);
         fflush(fptim);
