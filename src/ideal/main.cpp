@@ -13,6 +13,8 @@
 #include "hdr_massless.hpp"
 #include "hdr_density.hpp"
 #include "hdr_hydro.hpp"
+#include "hdr_iad.hpp"
+#include "hdr_gradient.hpp"
 
 #include "gp5util.h"
 #include "hdr_gravity.hpp"
@@ -53,19 +55,23 @@ template <class Tdinfo,
           class Ttree1,
           class Ttree2,
           class Ttree3,
+          class Ttree4,
           class Tfunc1,
           class Tfunc2,
           class Tfunc3,
-          class Tfunc4>
+          class Tfunc4_1,
+          class Tfunc4_2>
 void calcSPHKernel(Tdinfo & dinfo,
                    Tpsys & sph,
                    Ttree1 & density,
                    Ttree2 & derivative,
-                   Ttree3 & gravity,
+                   Ttree3 & gradient,
+                   Ttree4 & gravity,
                    Tfunc1 calcDensity,
                    Tfunc2 calcDerivative,
-                   Tfunc3 calcGravityEPJ,
-                   Tfunc4 calcGravitySPJ);
+                   Tfunc3 calcGradient,
+                   Tfunc4_1 calcGravityEPJ,
+                   Tfunc4_2 calcGravitySPJ);
 
 int main(int argc, char **argv)
 {
@@ -77,8 +83,9 @@ int main(int argc, char **argv)
     Header header;
     PS::DomainInfo dinfo;
     PS::ParticleSystem<SPH> sph;
-    PS::TreeForForceShort<Density, DensityEPI, DensityEPJ>::Gather            density;
+    PS::TreeForForceShort<Density, DensityEPI, DensityEPJ>::Gather            density;    
     PS::TreeForForceShort<Derivative, DerivativeEPI, DerivativeEPJ>::Symmetry derivative;
+    PS::TreeForForceShort<Gradient, GradientEPI, GradientEPJ>::Gather         gradient;
 
     sph.initialize();
     sph.createParticle(nptclmax);
@@ -108,6 +115,7 @@ int main(int argc, char **argv)
 
     density.initialize(nptclmax);
     derivative.initialize(nptclmax);
+    gradient.initialize(nptclmax);
 
     WT::start();
     calcFieldVariable(sph);
@@ -130,8 +138,9 @@ int main(int argc, char **argv)
     WT::start();
     sph.exchangeParticle(dinfo);
     WT::accumulateExchangeParticle();
-    calcSPHKernel(dinfo, sph, density, derivative, gravity,
-                  calcDensity(), calcDerivative(), calcGravityEPJ(), calcGravitySPJ());
+    calcSPHKernel(dinfo, sph, density, derivative, gradient, gravity,
+                  calcDensity(), calcDerivative(), calcGradient(),
+                  calcGravityEPJ(), calcGravitySPJ());
 
     FILE *fplog = fopen("snap/time.log", "w");
     FILE *fptim = fopen("snap/prof.log", "w");
@@ -209,17 +218,15 @@ int main(int argc, char **argv)
         calcFieldVariable(sph);
         WT::accumulateOthers();
 
-        calcSPHKernel(dinfo, sph, density, derivative, gravity,
-                      calcDensity(), calcDerivative(), calcGravityEPJ(), calcGravitySPJ());
+        calcSPHKernel(dinfo, sph, density, derivative, gradient, gravity,
+                      calcDensity(), calcDerivative(), calcGradient(),
+                      calcGravityEPJ(), calcGravitySPJ());
+
 
         /*
-        if(time >= 0.01336) {
-            char filename[64];
-            sprintf(filename, "snap/hoge_%e.dat", time);
-            sph.writeParticleAscii(filename);            
-            PS::Finalize();
-            exit(0);
-        }
+        sph.writeParticleAscii("snap/hoge.dat");
+        PS::Finalize();
+        exit(0);
         */
 
         WT::start();
@@ -284,7 +291,11 @@ PS::F64 calcTimeStep(Tptcl & system,
     if(dt > dtc) {
         while(dt > dtc) {
             dt *= 0.5;
-            assert(dt > dtmin);
+            //assert(dt > dtmin);
+            if(dt <= dtmin) {
+                system.writeParticleAscii("snap/timestep_too_small.dat");
+                PS::Abort();
+            }
         }        
     } else if(2. * dt <= dtc) {
         PS::F64 dt2 = 2. * dt;
@@ -342,19 +353,23 @@ template <class Tdinfo,
           class Ttree1,
           class Ttree2,
           class Ttree3,
+          class Ttree4,
           class Tfunc1,
           class Tfunc2,
           class Tfunc3,
-          class Tfunc4>
+          class Tfunc4_1,
+          class Tfunc4_2>
 void calcSPHKernel(Tdinfo & dinfo,
                    Tpsys & sph,
                    Ttree1 & density,
                    Ttree2 & derivative,
-                   Ttree3 & gravity,
-                   Tfunc1 calcDensity,
-                   Tfunc2 calcDerivative,
-                   Tfunc3 calcGravityEPJ,
-                   Tfunc4 calcGravitySPJ)
+                   Ttree3 & gradient,
+                   Ttree4 & gravity,
+                   Tfunc1   calcDensity,
+                   Tfunc2   calcDerivative,
+                   Tfunc3   calcGradient,
+                   Tfunc4_1 calcGravityEPJ,
+                   Tfunc4_2 calcGravitySPJ)
 {
     const PS::F64 expand = 1.1;
     for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
@@ -396,6 +411,11 @@ void calcSPHKernel(Tdinfo & dinfo,
                                      sph,
                                      dinfo);
     WT::accumulateCalcGravity();    
+#endif
+#ifdef INTEGRAL_APPROACH_DERIVATIVE
+    WT::start();
+    gradient.calcForceAllAndWriteBack(calcGradient, sph, dinfo);
+    WT::accumulateCalcHydro();
 #endif
     WT::start();
     derivative.calcForceAllAndWriteBack(calcDerivative, sph, dinfo);

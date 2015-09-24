@@ -1,5 +1,5 @@
 ###### AT_PLATFORM ########
-use_xc  = yes
+use_xc  = no
 ###########################
 
 ifeq ($(use_xc), yes)
@@ -27,20 +27,20 @@ CLIBS += -L${PHANTOM_DIR} -lpg5
 ############# AT_FLAGS ##################
 #CFLAGS += -DTIMETEST
 #
+#CFLAGS += -DGRAVITY
+#CFLAGS += -DSYMMETRIZED_GRAVITY
 CFLAGS += -DTHERMAL_CONDUCTIVITY
+#CFLAGS += -DINTEGRAL_APPROACH_DERIVATIVE
 #
-#CFLAGS += -DENABLE_SIMDX86
+CFLAGS += -DENABLE_SIMDX86
 #CFLAGS += -DENABLE_SIMDX86_SINGLE
 #
 CFLAGS += -DWENDLANDC2
 #CFLAGS += -DWENDLANDC4
 #CFLAGS += -DCUBICSPLINE
 #
-CFLAGS += -DUSE_AT1D
-#CFLAGS += -DUSE_AT2D
-#
-#CFLAGS += -DGRAVITY
-#CFLAGS += -DSYMMETRIZED_GRAVITY
+#CFLAGS += -DUSE_AT1D
+CFLAGS += -DUSE_AT2D
 #
 #CFLAGS += -DDAMPING
 #########################################
@@ -49,7 +49,7 @@ CFLAGS += -DUSE_AT1D
 OBJ = main.o
 HDR = hdr_sph.hpp hdr_kernel.hpp hdr_density.hpp hdr_hydro.hpp \
 	hdr_gravity.hpp hdr_damp.hpp hdr_time.hpp vector_x86.hpp \
-	hdr_vgravity.hpp
+	hdr_vgravity.hpp hdr_gradient.hpp hdr_iad.hpp
 ETC = Makefile
 
 run: $(OBJ) $(HDR) $(ETC)

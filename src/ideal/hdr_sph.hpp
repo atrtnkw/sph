@@ -6,6 +6,15 @@ namespace CodeUnit {
     PS::F64 UnitOfEnergy = 1.;
 }
 
+class CalcEquationOfState {
+public:
+    static PS::F64 getEnergyMin(PS::F64 dens,
+                         PS::F64 abar,
+                         PS::F64 zbar) {
+        return 0.;
+    }
+};
+
 class Density{
 public:
     PS::F64 dens;
@@ -23,6 +32,14 @@ public:
         divv = 0.0;
         np   = 0;
         itr  = false;
+    }
+};
+
+class Gradient {
+public:
+    PS::F64mat ctau;
+    void clear() {
+        ctau = 0.;
     }
 };
 
@@ -129,6 +146,8 @@ public:
     PS::F64vec accg2;
     PS::F64    eta;
     PS::F64    diffu;
+    PS::F64    abar, zbar;
+    PS::F64mat ctau;
     static PS::F64ort cbox;
     static PS::F64    cinv;
     static PS::F64    alphamax, alphamin;
@@ -153,6 +172,10 @@ public:
         this->ksr  = density.ksr;
         this->rotv = density.rotv;
         this->divv = density.divv;
+    }
+
+    void copyFromForce(const Gradient & gradient) {
+        this->ctau = gradient.ctau;
     }
 
     void copyFromForce(const Gravity & gravity) {
@@ -192,6 +215,8 @@ public:
         fprintf(fp, " %+e", this->eta);
         /////////////////////
         fprintf(fp, " %+e %+e %+e", this->adotu, this->diffu, this->udot);
+        fprintf(fp, " %+e %+e %+e", this->ctau.xx, this->ctau.yy, this->ctau.zz);
+        fprintf(fp, " %+e %+e %+e", this->ctau.xy, this->ctau.xz, this->ctau.yz);
         /////////////////////
         fprintf(fp, "\n");
     }
