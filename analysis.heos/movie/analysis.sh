@@ -1,16 +1,22 @@
-if test $# -ne 3
+if test $# -ne 5
 then
-    echo "sh $0 <nproc> <ifile> <ofile>"
+    echo "sh $0 <nthread> <m> <n/1k> <ifile> <ofile>"
     exit
 fi
 
-nproc=$1
-ifile=$2
-ofile=$3
+nthrd=$1
+tmass=$2
+nreso=$3
+ifile=$4
+ofile=$5
+nproc=1
 
-echo "Input file is being made..."
-wc -l $ifile | awk '{print $1}' > tmp.dat
-cat $ifile >> tmp.dat
+nptcl=`echo "$tmass * 10 * $nreso * 1024" | bc`
 
-echo "The program starts..."
-mpirun -np $nproc ./run tmp.dat $ofile
+export OMP_NUM_THREADS=$1
+
+echo "Nproc: $nproc"
+echo "Nthrd: $OMP_NUM_THREADS"
+echo "Nptcl: $nptcl"
+
+mpirun -np $nproc ./run $nptcl $ifile $ofile

@@ -7,6 +7,7 @@ public:
     PS::F64    dens;
     PS::F64    temp;
     PS::F64    abar;
+    PS::F64    shck;
     static PS::S64 nx;
     static PS::F64 xmin;
     static PS::F64 xmax;
@@ -23,11 +24,12 @@ public:
         this->dens = quantity.dens;
         this->temp = quantity.temp;
         this->abar = quantity.abar;
+        this->shck = quantity.shck;
     }
 
     void writeAscii(FILE *fp) const {
         fprintf(fp, " %+e %+e", this->pos[0], this->pos[1]);
-        fprintf(fp, " %+e %+e %+e", this->dens, this->temp, this->abar);
+        fprintf(fp, " %+e %+e %+e %+e", this->dens, this->temp, this->abar, this->shck);
         fprintf(fp, "\n");
     }
 };

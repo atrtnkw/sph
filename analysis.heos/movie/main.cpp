@@ -3,6 +3,8 @@
 #include <cassert>
 #include <cstdio>
 #include <cstring>
+#include <sys/stat.h>
+#include <sys/time.h>
 
 #include "particle_simulator.hpp"
 
@@ -13,6 +15,64 @@
 #include "hdr_quantity.hpp"
 
 static PS::S32 nptclmax = 65536;
+
+class WallclockTime {
+    PS::F64 TimeStart;
+    PS::F64 TimeFileInput;
+    PS::F64 TimeFileOutput;
+    PS::F64 TimeFDPS;
+    PS::F64 TimeOther;
+
+    WallclockTime() {}
+    ~WallclockTime() {}
+    WallclockTime(const WallclockTime & c);
+    WallclockTime & operator = (const WallclockTime & c);
+    static WallclockTime & getInstance() {
+        static WallclockTime inst;
+        return inst;
+    }
+
+    PS::F64 getWallclockTime() {
+        struct timeval tv;
+        gettimeofday(& tv, NULL);
+        return ((double)(tv.tv_sec) + (double)(tv.tv_usec) * 1e-6);
+    }
+public:
+
+    static void start() {
+        getInstance().TimeStart = getInstance().getWallclockTime();
+    }
+
+    static void accumulateTimeFileInput() {
+        WallclockTime & p = getInstance();
+        p.TimeFileInput += p.getWallclockTime() - p.TimeStart;
+    }
+    
+    static void accumulateTimeFileOutput() {
+        WallclockTime & p = getInstance();
+        p.TimeFileOutput += p.getWallclockTime() - p.TimeStart;
+    }
+
+    static void accumulateTimeFDPS() {
+        WallclockTime & p = getInstance();
+        p.TimeFDPS += p.getWallclockTime() - p.TimeStart;
+    }
+
+    static void accumulateTimeOther() {
+        WallclockTime & p = getInstance();
+        p.TimeOther += p.getWallclockTime() - p.TimeStart;
+    }
+
+    static void outputTimeProfile() {
+        WallclockTime & p = getInstance();
+        printf("TimeFileInput:  %e\n", p.TimeFileInput);
+        printf("TimeFileOutput: %e\n", p.TimeFileOutput);
+        printf("TimeFDPS:       %e\n", p.TimeFDPS);
+        printf("TimeOther:      %e\n", p.TimeOther);
+    }
+};
+
+typedef WallclockTime WT;
 
 int main(int argc, char **argv)
 {
@@ -33,11 +93,18 @@ int main(int argc, char **argv)
     PS::TreeForForceShort<Quantity, QuantityEPI, QuantityEPJ>::Scatter quantity;
     quantity.initialize(nptclmax);
 
-    sph.readParticleAscii(argv[1], header);
+    WT::start();
+    header.nptcl = atoi(argv[1]);
+    sph.readParticleAscii(argv[2], header);
+    WT::accumulateTimeFileInput();
+
+    WT::start();
     if(rank == 0) {
         generateMassLessParticle(msls);    
     }
+    WT::accumulateTimeOther();
 
+    WT::start();
     dinfo.decomposeDomainAll(sph);
     sph.exchangeParticle(dinfo);
     msls.exchangeParticle(dinfo);
@@ -50,8 +117,13 @@ int main(int argc, char **argv)
     for(PS::S32 i = 0; i < nmsls; i++) {
         msls[i].copyFromForce(quantity.getForce(i+nsph));
     }
+    WT::accumulateTimeFDPS();
 
-    msls.writeParticleAscii(argv[2]);
+    WT::start();
+    msls.writeParticleAscii(argv[3]);
+    WT::accumulateTimeFileOutput();
+
+    WT::outputTimeProfile();
 
     PS::Finalize();
 

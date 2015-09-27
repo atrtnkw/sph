@@ -7,10 +7,12 @@ public:
     PS::F64 dens;
     PS::F64 temp;
     PS::F64 abar;
+    PS::F64 shck;
     void clear(){
         dens = 0.0;
         temp = 0.0;
         abar = 0.0;
+        shck = 0.0;
     }
 };
 
@@ -21,7 +23,6 @@ public:
         nptcl = 0;
     }
     PS::S32 readAscii(FILE *fp) {
-        fscanf(fp, "%d", &this->nptcl);
         return this->nptcl;
     }
 };
@@ -79,10 +80,6 @@ public:
         fscanf(fp, "%lf", &this->vsmx);
         fscanf(fp, "%lf", &this->udot);
         fscanf(fp, "%lf", &this->dnuc);
-    }
-
-    void writeAscii(FILE *fp) {
-        fprintf(fp, "%+e %+e %+e\n", this->pos[0], this->pos[1], this->pos[2]);
     }
 
     static inline PS::F64 calcVolumeInverse(const PS::F64 hi);

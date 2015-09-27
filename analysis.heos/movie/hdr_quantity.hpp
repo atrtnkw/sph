@@ -35,6 +35,7 @@ public:
     PS::F64    abar;
     PS::F64    ksr;
     PS::F64    hinv;
+    PS::F64    shck;
 
     void copyFromFP(const SPH & sph){ 
         id   = sph.id;
@@ -45,6 +46,7 @@ public:
         abar = sph.abar;
         hinv = 1. / sph.ksr;
         ksr  = sph.ksr;
+        shck = sph.bswt * sph.ksr * sph.divv / sph.vsnd;
     }
 
     void copyFromFP(const MassLess & msls){ 
@@ -56,6 +58,7 @@ public:
         abar = 0.;
         hinv = 0.;
         ksr  = 0.;
+        shck = 0.;
     }
 
     PS::F64vec getPos() const {
@@ -92,6 +95,7 @@ struct calcQuantity {
             v4df dens_i(0.d);
             v4df temp_i(0.d);
             v4df abar_i(0.d);
+            v4df shck_i(0.d);
 
             for(PS::S32 j = 0; j < njp; j++) {
                 v4df dpx_ij = px_i - v4df(epj[j].pos[0]);
@@ -110,21 +114,25 @@ struct calcQuantity {
                 dens_i += m_j * w_j;
                 temp_i += m_j * v4df(epj[j].rhi) * v4df(epj[j].temp) * w_j;
                 abar_i += m_j * v4df(epj[j].rhi) * v4df(epj[j].abar) * w_j;
+                shck_i += m_j * v4df(epj[j].rhi) * v4df(epj[j].shck) * w_j;
 
             }
 
             PS::F64 buf_dens[nvector];
             PS::F64 buf_temp[nvector];
             PS::F64 buf_abar[nvector];
+            PS::F64 buf_shck[nvector];
             dens_i.store(buf_dens);
             temp_i.store(buf_temp);
             abar_i.store(buf_abar);
+            shck_i.store(buf_shck);
 
             PS::S32 nii = ((nip - i) < nvector) ? (nip - i) : nvector;
             for(PS::S32 ii = 0; ii < nii; ii++) {
-                quantity[i+ii].dens  = buf_dens[ii];
-                quantity[i+ii].temp  = buf_temp[ii];
-                quantity[i+ii].abar  = buf_abar[ii];
+                quantity[i+ii].dens = buf_dens[ii];
+                quantity[i+ii].temp = buf_temp[ii];
+                quantity[i+ii].abar = buf_abar[ii];
+                quantity[i+ii].shck = buf_shck[ii];
             }
 
         }
