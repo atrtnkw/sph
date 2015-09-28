@@ -194,10 +194,25 @@ struct calcSymmetrizedGravityX86 {
         PS::S32 nvector = v4df::getVectorLength();
 
         for(PS::S32 i = 0; i < nip; i += nvector) {
-            v4df px_i(epi[i].pos[0], epi[i+1].pos[0], epi[i+2].pos[0], epi[i+3].pos[0]);
-            v4df py_i(epi[i].pos[1], epi[i+1].pos[1], epi[i+2].pos[1], epi[i+3].pos[1]);
-            v4df pz_i(epi[i].pos[2], epi[i+1].pos[2], epi[i+2].pos[2], epi[i+3].pos[2]);
-            v4df e2_i(epi[i].eps2,   epi[i+1].eps2,   epi[i+2].eps2,   epi[i+3].eps2);
+            PS::F64 buf_px[nvector];
+            PS::F64 buf_py[nvector];
+            PS::F64 buf_pz[nvector];
+            PS::F64 buf_e2[nvector];
+            const PS::S32 nii = ((nip - i) < nvector) ? (nip - i) : nvector;            
+            for(PS::S32 ii = 0; ii < nii; ii++) {
+                buf_px[ii] = epi[i+ii].pos[0];
+                buf_py[ii] = epi[i+ii].pos[1];
+                buf_pz[ii] = epi[i+ii].pos[2];
+                buf_e2[ii] = epi[i+ii].eps2;
+            }
+            v4df px_i;
+            v4df py_i;
+            v4df pz_i;
+            v4df e2_i;
+            px_i.load(buf_px);
+            py_i.load(buf_py);
+            pz_i.load(buf_pz);
+            e2_i.load(buf_e2);
             v4df ax_i(0.0);
             v4df ay_i(0.0);
             v4df az_i(0.0);
@@ -243,7 +258,7 @@ struct calcSymmetrizedGravityX86 {
             pt_i.store(buf_pt);
             et_i.store(buf_et);
 
-            PS::S32 nii = ((nip - i) < nvector) ? (nip - i) : nvector;
+            //PS::S32 nii = ((nip - i) < nvector) ? (nip - i) : nvector;
             for(PS::S32 ii = 0; ii < nii; ii++) {
                 gravity[i+ii].acc[0] += buf_ax[ii];
                 gravity[i+ii].acc[1] += buf_ay[ii];

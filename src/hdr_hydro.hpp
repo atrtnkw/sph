@@ -208,24 +208,68 @@ struct calcDerivativeStandardX86 {
         PS::S32 nvector = v4df::getVectorLength();
 
         for(PS::S32 i = 0; i < nip; i += nvector) {
-            v4df id_i(epi[i].id, epi[i+1].id, epi[i+2].id, epi[i+3].id);
-            v4df px_i(epi[i].pos[0], epi[i+1].pos[0], epi[i+2].pos[0], epi[i+3].pos[0]);
-            v4df py_i(epi[i].pos[1], epi[i+1].pos[1], epi[i+2].pos[1], epi[i+3].pos[1]);
-            v4df pz_i(epi[i].pos[2], epi[i+1].pos[2], epi[i+2].pos[2], epi[i+3].pos[2]);
-            v4df vx_i(epi[i].vel[0], epi[i+1].vel[0], epi[i+2].vel[0], epi[i+3].vel[0]);
-            v4df vy_i(epi[i].vel[1], epi[i+1].vel[1], epi[i+2].vel[1], epi[i+3].vel[1]);
-            v4df vz_i(epi[i].vel[2], epi[i+1].vel[2], epi[i+2].vel[2], epi[i+3].vel[2]);
-            v4df u_i(epi[i].uene, epi[i+1].uene, epi[i+2].uene, epi[i+3].uene);
-            v4df hi_i(epi[i].hinv, epi[i+1].hinv, epi[i+2].hinv, epi[i+3].hinv);
-            v4df rh_i(epi[i].rho, epi[i+1].rho, epi[i+2].rho, epi[i+3].rho);
-            v4df pres_i(epi[i].pres0, epi[i+1].pres0, epi[i+2].pres0, epi[i+3].pres0);
-            v4df prhi2_i(epi[i].pres, epi[i+1].pres, epi[i+2].pres, epi[i+3].pres);
-            v4df bswt_i(epi[i].bswt, epi[i+1].bswt, epi[i+2].bswt, epi[i+3].bswt);
-            v4df cs_i(epi[i].vsnd, epi[i+1].vsnd, epi[i+2].vsnd, epi[i+3].vsnd);
-            v4df alph_i(epi[i].alph, epi[i+1].alph, epi[i+2].alph, epi[i+3].alph);
-            v4df alphu_i(epi[i].alphu, epi[i+1].alphu, epi[i+2].alphu, epi[i+3].alphu);
+            PS::F64 buf_id[nvector];
+            PS::F64 buf_px[nvector];
+            PS::F64 buf_py[nvector];
+            PS::F64 buf_pz[nvector];
+            PS::F64 buf_vx[nvector];
+            PS::F64 buf_vy[nvector];
+            PS::F64 buf_vz[nvector];
+            PS::F64 buf_u[nvector];
+            PS::F64 buf_hi[nvector];
+            PS::F64 buf_rh[nvector];
+            PS::F64 buf_pres[nvector];
+            PS::F64 buf_prhi2[nvector];
+            PS::F64 buf_bswt[nvector];
+            PS::F64 buf_cs[nvector];
+            PS::F64 buf_alph[nvector];
+            PS::F64 buf_alphu[nvector];
+            PS::F64 buf_eta[nvector];
+            PS::S32 nii = std::min(nip - i, nvector);
+            for(PS::S32 ii = 0; ii < nii; ii++) {
+                buf_id[ii]    = epi[i+ii].id;
+                buf_px[ii]    = epi[i+ii].pos[0];
+                buf_py[ii]    = epi[i+ii].pos[1];
+                buf_pz[ii]    = epi[i+ii].pos[2];
+                buf_vx[ii]    = epi[i+ii].vel[0];
+                buf_vy[ii]    = epi[i+ii].vel[1];
+                buf_vz[ii]    = epi[i+ii].vel[2];
+                buf_u[ii]     = epi[i+ii].uene;
+                buf_hi[ii]    = epi[i+ii].hinv;
+                buf_rh[ii]    = epi[i+ii].rho;
+                buf_pres[ii]  = epi[i+ii].pres0;
+                buf_prhi2[ii] = epi[i+ii].pres;
+                buf_bswt[ii]  = epi[i+ii].bswt;
+                buf_cs[ii]    = epi[i+ii].vsnd;
+                buf_alph[ii]  = epi[i+ii].alph;
+                buf_alphu[ii] = epi[i+ii].alphu;
+                buf_eta[ii]   = epi[i+ii].eta;
+            }
+            v4df id_i;
+            v4df px_i, py_i, pz_i;
+            v4df vx_i, vy_i, vz_i;
+            v4df u_i,  hi_i, rh_i;
+            v4df pres_i, prhi2_i, bswt_i;
+            v4df cs_i, alph_i, alphu_i;
+            v4df eta_i;
+            id_i.load(buf_id);
+            px_i.load(buf_px);
+            py_i.load(buf_py);
+            pz_i.load(buf_pz);
+            vx_i.load(buf_vx);
+            vy_i.load(buf_vy);
+            vz_i.load(buf_vz);
+            u_i.load(buf_u);
+            hi_i.load(buf_hi);
+            rh_i.load(buf_rh);
+            pres_i.load(buf_pres);
+            prhi2_i.load(buf_prhi2);
+            bswt_i.load(buf_bswt);
+            cs_i.load(buf_cs);
+            alph_i.load(buf_alph);
+            alphu_i.load(buf_alphu);
+            eta_i.load(buf_eta);
             v4df hi4_i = hi_i * SPH::calcVolumeInverse(hi_i);
-            v4df eta_i(epi[i].eta, epi[i+1].eta, epi[i+2].eta, epi[i+3].eta);
             v4df accx_i(0.d);
             v4df accy_i(0.d);
             v4df accz_i(0.d);
@@ -235,7 +279,6 @@ struct calcDerivativeStandardX86 {
             v4df g1y_i(0.d);
             v4df g1z_i(0.d);
             v4df diffu_i(0.);
-
             for(PS::S32 j = 0; j < njp; j++) {
                 v4df dpx_ij = px_i - v4df(epj[j].pos[0]);
                 v4df dpy_ij = py_i - v4df(epj[j].pos[1]);
@@ -299,7 +342,6 @@ struct calcDerivativeStandardX86 {
                 g1z_i += dg_ij * dpz_ij;
 #endif
             }
-
             accx_i  *= v4df(0.5);
             accy_i  *= v4df(0.5);
             accz_i  *= v4df(0.5);
@@ -329,7 +371,7 @@ struct calcDerivativeStandardX86 {
             g1z_i.store(buf_g1z);
             diffu_i.store(buf_diffu);
 
-            PS::S32 nii = ((nip - i) < nvector) ? (nip - i) : nvector;
+            //PS::S32 nii = ((nip - i) < nvector) ? (nip - i) : nvector;
             for(PS::S32 ii = 0; ii < nii; ii++) {
                 derivative[i+ii].acc[0]  = buf_ax[ii];
                 derivative[i+ii].acc[1]  = buf_ay[ii];
@@ -341,7 +383,6 @@ struct calcDerivativeStandardX86 {
                 derivative[i+ii].accg[2] = buf_g1z[ii];
                 derivative[i+ii].diffu   = buf_diffu[ii];
             }
-
         }
 
     }

@@ -1,12 +1,12 @@
-#PBS -N rb0081110
-#PBS -l mppwidth=288
+#PBS -N 064111000
+#PBS -l mppwidth=648
 #PBS -j oe
 #PBS -q large-b
 ##PBS -q bulk-b
 ##PBS -q short-b
 ##PBS -q debug
 
-NPARALLEL=288
+NPARALLEL=648
 NPROCESS=$NPARALLEL
 odir=t00
 ifile=../r008k/rlxb_b1.10-1.00/b1.10-1.00.init

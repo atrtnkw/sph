@@ -160,14 +160,40 @@ struct calcDensityX86 {
 
             const PS::S32 nii = ((nip - i) < nvector) ? (nip - i) : nvector;
 
-            v4df id_i(epi[i].id,     epi[i+1].id,     epi[i+2].id,     epi[i+3].id);
-            v4df px_i(epi[i].pos[0], epi[i+1].pos[0], epi[i+2].pos[0], epi[i+3].pos[0]);
-            v4df py_i(epi[i].pos[1], epi[i+1].pos[1], epi[i+2].pos[1], epi[i+3].pos[1]);
-            v4df pz_i(epi[i].pos[2], epi[i+1].pos[2], epi[i+2].pos[2], epi[i+3].pos[2]);
-            v4df vx_i(epi[i].vel[0], epi[i+1].vel[0], epi[i+2].vel[0], epi[i+3].vel[0]);
-            v4df vy_i(epi[i].vel[1], epi[i+1].vel[1], epi[i+2].vel[1], epi[i+3].vel[1]);
-            v4df vz_i(epi[i].vel[2], epi[i+1].vel[2], epi[i+2].vel[2], epi[i+3].vel[2]);
-            v4df h_i(epi[i].ksr, epi[i+1].ksr, epi[i+2].ksr, epi[i+3].ksr);
+            PS::F64 buf_id[nvector];
+            PS::F64 buf_px[nvector];
+            PS::F64 buf_py[nvector];
+            PS::F64 buf_pz[nvector];
+            PS::F64 buf_vx[nvector];
+            PS::F64 buf_vy[nvector];
+            PS::F64 buf_vz[nvector];
+            PS::F64 buf_h[nvector];
+            for(PS::S32 ii = 0; ii < nii; ii++) {
+                buf_id[ii] = epi[i+ii].id;
+                buf_px[ii] = epi[i+ii].pos[0];
+                buf_py[ii] = epi[i+ii].pos[1];
+                buf_pz[ii] = epi[i+ii].pos[2];
+                buf_vx[ii] = epi[i+ii].vel[0];
+                buf_vy[ii] = epi[i+ii].vel[1];
+                buf_vz[ii] = epi[i+ii].vel[2];
+                buf_h[ii]  = epi[i+ii].ksr;
+            }
+            v4df id_i;
+            v4df px_i;
+            v4df py_i;
+            v4df pz_i;
+            v4df vx_i;
+            v4df vy_i;
+            v4df vz_i;
+            v4df h_i;
+            id_i.load(buf_id);
+            px_i.load(buf_px);
+            py_i.load(buf_py);
+            pz_i.load(buf_pz);
+            vx_i.load(buf_vx);
+            vy_i.load(buf_vy);
+            vz_i.load(buf_vz);
+            h_i.load(buf_h);
 
             for(PS::S32 repeat = 0; repeat < 3; repeat++) {
                 v4df hi_i  = rcp(h_i);

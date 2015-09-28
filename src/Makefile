@@ -1,5 +1,5 @@
 ###### AT_PLATFORM ########
-use_xc  = no
+use_xc  = yes
 ###### AT_MPI_OPENMP ######
 use_mpi = yes
 use_omp = yes
@@ -23,7 +23,7 @@ CFLAGS += -DWENDLANDC2
 ##############################################
 
 ifeq ($(use_xc), yes)
-FDPS_DIR = ../../../fdps/src
+FDPS_DIR = ../../fdps/src
 else
 FDPS_DIR = ../../../fdps-jenever0/src
 endif
