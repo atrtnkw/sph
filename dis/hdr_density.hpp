@@ -7,8 +7,8 @@ public:
     PS::S64 np;
     bool    itr;
     void clear() {
-        dens = 0.0;
-        ksr  = 0.0;
+        dens = 0.;
+        ksr  = 0.;
         np   = 0;
         itr  = false;
     }
@@ -63,7 +63,7 @@ public:
     }
 };
 
-struct calcDensity {
+struct calcDensityFirst {
 
     void operator () (const DensityEPI *epi,
                       const PS::S32 nip,
@@ -161,7 +161,7 @@ void calcDensityKernel(Tdinfo & dinfo,
         WT::start();
         bool repeat_loc = false;
         repeat = false;
-        density.calcForceAll(calcDensity(), sph, dinfo);
+        density.calcForceAll(calcDensityFirst(), sph, dinfo);
         for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
             if(sph[i].rs != 0.0) {
                 if(density.getForce(i).itr == true) {

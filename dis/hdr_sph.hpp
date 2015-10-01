@@ -4,6 +4,7 @@ class Density;
 class DensityEPI;
 class DensityEPJ;
 class Volume;
+class Pressure;
 class Auxiliary;
 class Hydro;
 
@@ -18,6 +19,9 @@ public:
     PS::F64    uene;
     PS::F64    uene2;
     PS::F64    udot;
+    PS::F64    vary;
+    PS::F64    vary2;
+    PS::F64    ydot;
     PS::F64    alph;
     PS::F64    alph2;
     PS::F64    adot;
@@ -27,6 +31,8 @@ public:
     PS::F64    dens;
     PS::F64    pres;
     PS::F64    vsnd;
+    PS::F64    dpdr;
+    PS::F64    dpdu;
     PS::F64    divv;
     PS::F64    rotv;
     PS::F64    bswt;
@@ -53,32 +59,55 @@ public:
 
     void copyFromForce(const Density & density);
     void copyFromForce(const Volume & volume);
+    void copyFromForce(const Pressure & pressure);
     void copyFromForce(const Auxiliary & auxiliary);
     void copyFromForce(const Hydro & hydro);
 
     virtual void readAscii(FILE * fp) {};
     virtual void writeAscii(FILE *fp) const {};
     virtual void referEquationOfState() {};
+    virtual PS::F64 calcTimeStep() {};
+    virtual PS::F64 calcEnergy() {};
+    virtual void predict(PS::F64 dt) {};
+    virtual void correct(PS::F64 dt) {};
+
+    void calcVariableY() {
+        this->vary = this->mass * this->pres / this->dens;
+    }
+
+    void calcDensity() {
+        this->dens = this->mass * this->pres / this->vary;
+    }
 
     void calcBalsaraSwitch() {
         this->bswt = fabs(this->divv)
             / (fabs(this->divv) + fabs(this->rotv) + 1e-4 * this->vsnd * SK::ksrh / this->ksr);
     }
 
-    //void calcAlphaDot();
-    //PS::F64 calcTimeStep();
-    //PS::F64 calcEnergy();
-    //void predict(PS::F64 dt) {};
-    //void correct(PS::F64 dt) {};
+    void calcAlphaDot() {
+        PS::F64 src    = std::max((- divv * (RP::AlphaMaximum - this->alph)), 0.);
+        PS::F64 tauinv = (0.25 * SK::ksrh * this->vsnd) / this->ksr;
+        this->adot = - (this->alph - RP::AlphaMinimum) * tauinv + src;
+    }
+
     //void calcAbarZbar();
     //inline void addAdditionalForce();
     //void readHexa(FILE *fp);
     //void writeHexa(FILE *fp) const;
 
-    //static inline PS::F64 calcVolumeInverse(const PS::F64 hi);
-    //static inline PS::F64 calcPowerOfDimInverse(PS::F64 mass,
-    //PS::F64 dens);
-    //static inline v4df calcVolumeInverse(const v4df hi);
-    //static inline v8sf calcVolumeInverse(const v8sf hi);
-
 };
+
+template <class Tsph>
+void referEquationOfState(Tsph & sph);
+template <class Tsph>
+void calcVariableY(Tsph & sph);
+template <class Tsph>
+void calcDensity(Tsph & sph);
+template <class Tsph>
+void calcBalsaraSwitch(Tsph & sph);
+template <class Tsph>
+void calcAlphaDot(Tsph & sph);
+template <class Tsph>
+PS::F64 calcEnergy(Tsph & sph);
+template <class Tsph>
+PS::F64vec calcMomentum(Tsph & sph);

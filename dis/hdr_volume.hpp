@@ -2,38 +2,33 @@
 
 class Volume {
 public:
-    PS::F64 vol;
+    PS::F64 pres;
     PS::F64 ksr;
-    PS::F64 dens;
     PS::S64 np;
     void clear() {
-        this->vol  = 0.0;
-        this->ksr  = 0.0;
-        this->dens = 0.0;
+        this->pres = 0.;
+        this->ksr  = 0.;
         this->np   = 0;
     }
 };
 
 void SPH::copyFromForce(const Volume & volume) {
-    this->vol  = volume.vol;
+    this->pres = volume.pres;
     this->ksr  = volume.ksr;
-    this->dens = volume.dens;
     this->np   = volume.np;
 };
 
 class VolumeEPI {
 public:
     PS::S32    id;
-    PS::F64    mass;
+    PS::F64    vary;
     PS::F64vec pos;
     PS::F64    ksr;
-    PS::F64    pres;
     void copyFromFP(const SPH & sph){ 
         this->id   = sph.id;
-        this->mass = sph.mass;
+        this->vary = sph.vary;
         this->pos  = sph.pos;
         this->ksr  = sph.ksr;
-        this->pres = pow(sph.pres, 0.05);
     }
     PS::F64vec getPos() const {
         return this->pos;
@@ -50,13 +45,11 @@ class VolumeEPJ {
 public:
     PS::S32    id;
     PS::F64vec pos;
-    PS::F64    ksr;
-    PS::F64    pres;
+    PS::F64    vary;
     void copyFromFP(const SPH & sph){ 
         this->id   = sph.id;
         this->pos  = sph.pos;
-        this->ksr  = sph.ksr;
-        this->pres = pow(sph.pres, 0.05);
+        this->vary = sph.vary;
     }
     PS::F64vec getPos() const {
         return this->pos;
@@ -87,31 +80,27 @@ struct calcVolume {
             PS::F64 buf_py[nvector];
             PS::F64 buf_pz[nvector];
             PS::F64 buf_hs[nvector];
-            PS::F64 buf_ps[nvector];
             for(PS::S32 ii = 0; ii < nii; ii++) {
                 buf_id[ii] = epi[i+ii].id;
                 buf_px[ii] = epi[i+ii].pos[0];
                 buf_py[ii] = epi[i+ii].pos[1];
                 buf_pz[ii] = epi[i+ii].pos[2];
                 buf_hs[ii] = epi[i+ii].ksr;
-                buf_ps[ii] = epi[i+ii].pres;
             }
             v4df id_i;
             v4df px_i;
             v4df py_i;
             v4df pz_i;
             v4df hs_i;
-            v4df ps_i;
             id_i.load(buf_id);
             px_i.load(buf_px);
             py_i.load(buf_py);
             pz_i.load(buf_pz);
             hs_i.load(buf_hs);
-            ps_i.load(buf_ps);
 
             v4df hi_i  = rcp(hs_i);
             v4df hi3_i = ND::calcVolumeInverse(hi_i);
-            v4df vl_i(0.);
+            v4df ps_i(0.);
             v4df nj_i(0.);
 
             for(PS::S32 j = 0; j < njp; j++) {
@@ -124,19 +113,17 @@ struct calcVolume {
                 v4df q_i   = r1_ij * hi_i;                
                 v4df w0_i  = hi3_i * SK::kernel0th(q_i);
                 
-                vl_i += v4df(epj[j].pres) * w0_i;
+                ps_i += v4df(epj[j].vary) * w0_i;
                 nj_i += ((q_i < 1.) & v4df(1.));                    
             }
 
-            vl_i = ps_i * rcp(vl_i);
-
-            PS::F64 buf_vl[nvector], buf_nj[nvector];
-            vl_i.store(buf_vl);
+            PS::F64 buf_ps[nvector], buf_nj[nvector];
+            ps_i.store(buf_ps);
             nj_i.store(buf_nj);
             for(PS::S32 ii = 0; ii < nii; ii++) {
-                volume[i+ii].vol  = buf_vl[ii];
-                volume[i+ii].ksr  = SK::ksrh * SK::eta * ND::calcPowerOfDimInverse(buf_vl[ii], 1.);
-                volume[i+ii].dens = epi[i+ii].mass / buf_vl[ii];
+                volume[i+ii].pres = buf_ps[ii];
+                volume[i+ii].ksr  = SK::ksrh * SK::eta
+                    * ND::calcPowerOfDimInverse(epi[i+ii].vary, buf_ps[ii]);
                 volume[i+ii].np   = buf_nj[ii];
             }
 
@@ -151,8 +138,11 @@ void calcVolumeKernel(Tdinfo & dinfo,
                       Tsph & sph,
                       Tvolume & volume) {
     for(PS::S32 irepeat = 0; irepeat < 2; irepeat++) {
-        volume.calcForceAllAndWriteBack(calcVolume(), sph, dinfo);        
+        calcDensity(sph);
         referEquationOfState(sph);
+        calcVariableY(sph);
+        volume.calcForceAllAndWriteBack(calcVolume(), sph, dinfo);        
     }
+    calcDensity(sph);
 }
 

@@ -11,27 +11,64 @@ public:
     }
 
     void writeAscii(FILE *fp) const {
-        fprintf(fp, "%6d %+e", this->id, this->mass);
-        fprintf(fp, " %+e %+e %+e", this->pos[0], this->pos[1], this->pos[2]);
-        fprintf(fp, " %+e %+e %+e", this->vel[0], this->vel[1], this->vel[2]);
-        fprintf(fp, " %+e %+e %+e", this->acc[0], this->acc[1], this->acc[2]);
-        fprintf(fp, " %+e %+e %+e", this->uene, this->alph, this->ksr);
-        fprintf(fp, " %+e %+e %+e", this->dens, this->vsnd, this->pres);
-        fprintf(fp, " %+e %+e %+e", this->divv, this->rotv, this->bswt);
-        fprintf(fp, " %+e %6d %+e", this->grdh, this->np, this->pot);
-        fprintf(fp, " %+e", this->eta);
-        ///////////////////
-        fprintf(fp, " %+e %+e %+e", this->ctau.xx, this->ctau.yy, this->ctau.zz);
-        fprintf(fp, " %+e %+e %+e", this->ctau.xy, this->ctau.xz, this->ctau.yz);
-        ///////////////////
+        fprintf(fp, "%6d %+e", this->id, this->mass); // 2
+        fprintf(fp, " %+e %+e %+e", this->pos[0], this->pos[1], this->pos[2]); // 5
+        fprintf(fp, " %+e %+e %+e", this->vel[0], this->vel[1], this->vel[2]); // 8
+        fprintf(fp, " %+e %+e %+e", this->acc[0], this->acc[1], this->acc[2]); // 11
+        fprintf(fp, " %+e %+e %+e", this->uene, this->vary, this->alph); // 14
+        fprintf(fp, " %+e %+e %+e", this->dens, this->vsnd, this->pres); // 17
+        fprintf(fp, " %+e %+e %+e", this->divv, this->rotv, this->bswt); // 20
+        fprintf(fp, " %+e %+e %+e", this->grdh, this->ksr,  this->pot); // 23
+        fprintf(fp, " %6d", this->np); // 24
+        //fprintf(fp, " %+e %+e %+e", this->ctau.xx, this->ctau.yy, this->ctau.zz);
+        //fprintf(fp, " %+e %+e %+e", this->ctau.xy, this->ctau.xz, this->ctau.yz);
         fprintf(fp, "\n");
     }
 
     void referEquationOfState() {
-        this->pres = (RP::AdiabaticIndex - 1.)  * this->dens * this->uene;
+        this->pres = (RP::AdiabaticIndex - 1.) * this->dens * this->uene;
         this->vsnd = sqrt(RP::AdiabaticIndex * this->pres / this->dens);
+        this->dpdr = (RP::AdiabaticIndex - 1.) * this->uene;
+        this->dpdu = (RP::AdiabaticIndex - 1.) * this->dens;
     }
 
+    PS::F64 calcTimeStep() {
+        PS::F64 tceff   = RP::CoefficientOfTimestep;
+        PS::F64 dthydro = tceff * this->ksr / (this->vsmx * SK::ksrh);
+        PS::F64 dtenerg = tceff * fabs(this->uene / this->udot);
+        return std::min(dthydro, dtenerg);
+    }
+
+    PS::F64 calcEnergy() {
+        return this->mass * (0.5 * this->vel * this->vel + this->uene + 0.5 * this->pot);
+    }
+
+    PS::F64vec calcMomentum() {
+        return this->mass * this->vel;
+    }
+
+    void predict(PS::F64 dt) {
+        PS::F64 pdot = - this->dpdr * this->dens * this->divv + this->dpdu * this->udot;
+        PS::F64 hdot =   this->ksr  * this->divv / RP::NumberOfDimension;
+        this->pos    = this->pos   +       this->vel   * dt  + 0.5 * this->acc * dt * dt;
+        this->vel2   = this->vel   + 0.5 * this->acc   * dt;
+        this->vel    = this->vel   +       this->acc   * dt;
+        this->uene2  = this->uene  + 0.5 * this->udot  * dt;
+        this->uene   = this->uene  +       this->udot  * dt;
+        this->vary2  = this->vary  + 0.5 * this->ydot  * dt;
+        this->vary   = this->vary  +       this->ydot  * dt;
+        this->alph2  = this->alph  + 0.5 * this->adot  * dt;
+        this->alph   = this->alph  +       this->adot  * dt;
+        this->pres   = this->pres  +             pdot  * dt;
+        this->ksr    = this->ksr   +             hdot  * dt;
+    }
+
+    void correct(PS::F64 dt) {
+        this->vel   = this->vel2   + 0.5 * this->acc   * dt;
+        this->uene  = this->uene2  + 0.5 * this->udot  * dt;
+        this->vary  = this->vary2  + 0.5 * this->ydot  * dt;
+        this->alph  = this->alph2  + 0.5 * this->adot  * dt;
+    }
 };
 
 namespace RunParameter {
@@ -47,15 +84,62 @@ namespace RunParameter {
     }
 }
 
+template <class Tsph>
+void outputData(Tsph & sph) {
+    if(RP::Time >= RP::TimeAscii) {
+        char filename[64];
+        sprintf(filename, "snap/sph_t%04d.dat", RP::NumberOfAscii);
+        sph.writeParticleAscii(filename);
+        RP::TimeAscii += RP::TimestepAscii;
+        RP::NumberOfAscii++;        
+    }
+    PS::F64 etot = calcEnergy(sph);
+    if(PS::Comm::getRank() == 0) {
+        fprintf(RP::FilePointerForLog, "time: %.10f %+e %+e %+e\n",
+                RP::Time, RP::Timestep, etot, WT::getTimeTotal());
+        WT::dump(RP::Time, RP::FilePointerForTime);
+    }
+}
+
+template <class Tsph>
+void predict(Tsph & sph) {
+    for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
+        sph[i].predict(RP::Timestep);
+    }
+}
+
+template <class Tsph>
+void correct(Tsph & sph) {
+    for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
+        sph[i].correct(RP::Timestep);
+    }
+}
+
+void initializeSimulation() {
+    RP::MaximumTimestep = 1. / 64.;
+    RP::MinimumTimestep = 1e-10;
+    RP::TimeAscii       = 0.;
+    RP::NumberOfStep    = 0;
+    RP::NumberOfAscii   = 0;
+    RP::NumberOfHexa    = 0;
+    //RP::KernelSupportRadiusMaximum;
+    //RP::NuclearEnergyTotal;
+    RP::Timestep        = RP::MaximumTimestep;
+    RP::FilePointerForLog  = fopen("snap/time.log", "w");
+    RP::FilePointerForTime = fopen("snap/prof.log", "w");
+}
+
 template <class Tdinfo,
           class Tsph,
           class Tvolume,
-          class Tauxiliary>
+          class Tauxiliary,
+          class Thydro>
 void startSimulation(char **argv,
                      Tdinfo & dinfo,
                      Tsph & sph,
                      Tvolume & volume,
-                     Tauxiliary & auxiliary) {
+                     Tauxiliary & auxiliary,
+                     Thydro & hydro) {
     RP::readAscii(argv[2]);
     RP::KernelSupportRadiusMaximum = std::numeric_limits<PS::F64>::max();
     sph.readParticleAscii(argv[3]);    
@@ -65,22 +149,17 @@ void startSimulation(char **argv,
     }
     ND::setDimension(RP::NumberOfDimension);
     SK::setKernel(RP::KernelType, RP::NumberOfDimension);
-    WT::start();
     sph.adjustPositionIntoRootDomain(dinfo);
-    WT::accumulateOthers();
-    WT::start();
     PS::MT::init_genrand(0);
     dinfo.decomposeDomainAll(sph);
-    WT::accumulateDecomposeDomain();
-    WT::start();
     sph.exchangeParticle(dinfo);
-    WT::accumulateExchangeParticle();
 
     PS::TreeForForceShort<Density, DensityEPI, DensityEPJ>::Gather density;
     density.initialize(0);
     calcDensityKernel(dinfo, sph, density);
     referEquationOfState(sph);
-    calcSPHKernel(dinfo, sph, volume, auxiliary);
+    calcVariableY(sph);
+    calcSPHKernel(dinfo, sph, volume, auxiliary, hydro);
 }
 
 template <class Tdinfo,
@@ -89,6 +168,58 @@ void restartSimulation(char **argv,
                        Tdinfo & dinfo,
                        Tsph & sph) {
     return;
+}
+
+template <class Tdinfo,
+          class Tsph,
+          class Tvolume,
+          class Tauxiliary,
+          class Thydro>
+void loopSimulation(Tdinfo & dinfo,
+                    Tsph & sph,
+                    Tvolume & volume,
+                    Tauxiliary & auxiliary,
+                    Thydro & hydro) {
+
+    WT::clear();
+    while(RP::Time < RP::TimeEnd) {
+        RP::NumberOfStep++;
+        RP::Timestep = calcTimeStep(sph);
+        WT::reduceInterProcess();
+        outputData(sph);
+        WT::clear();
+        PS::Finalize();
+        exit(0);
+        WT::start();
+        predict(sph);
+        if(RP::ComputationalBox.low_[0] != RP::ComputationalBox.high_[0]) {
+            sph.adjustPositionIntoRootDomain(dinfo);
+        }
+        WT::accumulateOthers();
+        WT::start();
+        if(RP::NumberOfStep % 4 == 0) {
+            PS::MT::init_genrand(0);
+            dinfo.decomposeDomainAll(sph);
+        }
+        WT::accumulateDecomposeDomain();
+        WT::start();
+        sph.exchangeParticle(dinfo);
+        WT::accumulateExchangeParticle();
+        WT::start();
+        calcSPHKernel(dinfo, sph, volume, auxiliary, hydro);
+        WT::accumulateCalcHydro();
+        WT::start();
+        correct(sph);
+        WT::accumulateOthers();
+        RP::Time += RP::Timestep;
+    }
+}
+
+template <class Tsph>
+void finalizeSimulation(Tsph & sph) {
+    outputData(sph);
+    fclose(RP::FilePointerForLog);
+    fclose(RP::FilePointerForTime);
 }
 
 typedef IdealGas GeneralSPH;
