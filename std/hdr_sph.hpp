@@ -7,6 +7,7 @@ class Volume;
 class Pressure;
 class Auxiliary;
 class Hydro;
+class Gravity;
 
 class SPH {
 public:
@@ -22,6 +23,10 @@ public:
     PS::F64    alph;
     PS::F64    alph2;
     PS::F64    adot;
+    PS::F64    alphu;
+    PS::F64    alphu2;    
+    PS::F64    adotu;
+    PS::F64    diffu;
     PS::F64    vol;
     PS::F64    ksr;
     PS::F64    rs;
@@ -56,6 +61,7 @@ public:
     void copyFromForce(const Pressure & pressure);
     void copyFromForce(const Auxiliary & auxiliary);
     void copyFromForce(const Hydro & hydro);
+    void copyFromForce(const Gravity & gravity);
 
     virtual void readAscii(FILE * fp) {};
     virtual void writeAscii(FILE *fp) const {};
@@ -64,19 +70,22 @@ public:
     virtual PS::F64 calcEnergy() {};
     virtual void predict(PS::F64 dt) {};
     virtual void correct(PS::F64 dt) {};
+    virtual void calcAlphaDot() {};
+
 
     void calcBalsaraSwitch() {
         this->bswt = fabs(this->divv)
             / (fabs(this->divv) + fabs(this->rotv) + 1e-4 * this->vsnd * SK::ksrh / this->ksr);
     }
 
-    void calcAlphaDot() {
-        PS::F64 src    = std::max((- divv * (RP::AlphaMaximum - this->alph)), 0.);
-        PS::F64 tauinv = (0.25 * SK::ksrh * this->vsnd) / this->ksr;
-        this->adot = - (this->alph - RP::AlphaMinimum) * tauinv + src;
+    void copyAcceleration() {
+        this->acc = this->acch;
     }
 
-    //void calcAbarZbar();
+    void sumAcceleration() {
+        this->acc = this->acch + this->accg1 + this->accg2;
+    }
+
     //inline void addAdditionalForce();
     //void readHexa(FILE *fp);
     //void writeHexa(FILE *fp) const;

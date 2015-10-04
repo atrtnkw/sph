@@ -5,6 +5,7 @@
 #include <limits>
 
 enum KernelType {CubicSpline = 0, WendlandC2 = 1, WendlandC4 = 2};
+inline void debugFunction(const char * const literal);
 
 #include "particle_simulator.hpp"
 #include "hdr_time.hpp"
@@ -13,14 +14,44 @@ enum KernelType {CubicSpline = 0, WendlandC2 = 1, WendlandC4 = 2};
 #include "hdr_dimension.hpp"
 #include "hdr_kernel.hpp"
 #include "hdr_sph.hpp"
+#ifdef USE_IDEAL
 #include "hdr_igas.hpp"
+#elif defined USE_HELMHOLTZ
+#include "hdr_hgas.hpp"
+#else
+#error Use what eos is ?
+#endif
 #include "hdr_density.hpp"
 #include "hdr_hydro.hpp"
+#include "hdr_gravity.hpp"
+
+inline void debugFunction(const char * const literal) {
+    if(PS::Comm::getRank() == 0) {
+        printf("hogehogehoge %s\n", literal);
+        fflush(stdout);
+    }
+}
+
+template <class Tsph>
+void calcAbarZbar(Tsph & sph) {
+    for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
+        sph[i].calcAbarZbar();
+    }
+}
 
 template <class Tsph>
 void referEquationOfState(Tsph & sph) {
-    for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
-        sph[i].referEquationOfState();
+    if(RP::FlagDamping == 0) {
+        for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
+            sph[i].referEquationOfState();
+        }
+    } else if(RP::FlagDamping == 1) {
+        for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
+            sph[i].referEquationOfStateDamping1();
+        }
+    } else {
+        fprintf(stderr, "Not supported damping mode!\n");
+        PS::Abort();
     }
 }
 
@@ -35,6 +66,19 @@ template <class Tsph>
 void calcAlphaDot(Tsph & sph) {
     for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
         sph[i].calcAlphaDot();
+    }
+}
+
+template <class Tsph>
+void sumAcceleration(Tsph & sph) {
+    if(RP::FlagGravity == 0) {
+        for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
+            sph[i].copyAcceleration();
+        }
+    } else {
+        for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
+            sph[i].sumAcceleration();
+        }
     }
 }
 
@@ -92,16 +136,33 @@ PS::F64 calcTimeStep(Tsph & sph) {
 
 template <class Tdinfo,
           class Tsph,
+          class Tgravity>
+void calcGravityKernel(Tdinfo & dinfo,
+                       Tsph & sph,
+                       Tgravity & gravity) {
+    if(RP::FlagGravity == 1) {
+        gravity.calcForceAllAndWriteBack(calcGravity<GravityEPJ>(), calcGravity<PS::GravitySPJ>(),
+                                         sph, dinfo);
+    }
+}
+
+template <class Tdinfo,
+          class Tsph,
           class Tdensity,
-          class Thydro>
+          class Thydro,
+          class Tgravity>
 void calcSPHKernel(Tdinfo & dinfo,
                    Tsph & sph,
                    Tdensity & density,
-                   Thydro & hydro) {
+                   Thydro & hydro,
+                   Tgravity & gravity) {
     calcDensityKernel(dinfo, sph, density);
+    calcAbarZbar(sph);
     referEquationOfState(sph);
     calcBalsaraSwitch(sph);
+    calcGravityKernel(dinfo, sph, gravity);
     hydro.calcForceAllAndWriteBack(calcHydro(), sph, dinfo);
+    sumAcceleration(sph);
     calcAlphaDot(sph);
 }
 
@@ -119,16 +180,19 @@ int main(int argc, char **argv)
     density.initialize(0);
     PS::TreeForForceShort<Hydro, HydroEPI, HydroEPJ>::Symmetry hydro;
     hydro.initialize(0);
+    PS::TreeForForce<PS::SEARCH_MODE_LONG, Gravity, GravityEPI, GravityEPJ,
+                     PS::GravityMonopole, PS::GravityMonopole, PS::GravitySPJ> gravity;
+    gravity.initialize(0, 0.5);
 
     initializeSimulation();
 
     if(atoi(argv[1]) == 0) {
-        startSimulation(argv, dinfo, sph, density, hydro);
+        startSimulation(argv, dinfo, sph, density, hydro, gravity);
     } else {
         restartSimulation(argv, dinfo, sph);
     }
 
-    loopSimulation(dinfo, sph, density, hydro);
+    loopSimulation(dinfo, sph, density, hydro, gravity);
 
     finalizeSimulation(sph);
 

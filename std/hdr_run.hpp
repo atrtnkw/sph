@@ -8,6 +8,7 @@ namespace RunParameter {
     PS::F64    MinimumTimestep;
     PS::F64    TimeAscii;
     PS::F64    TimestepAscii;
+    PS::F64    TimeHexa;
     PS::F64    TimestepHexa;
     PS::S64    NumberOfStep;
     PS::S64    NumberOfAscii;
@@ -18,16 +19,19 @@ namespace RunParameter {
 
     PS::F64    CoefficientOfTimestep;
     PS::F64    GravitationalSoftening;
-    PS::F64    AlphaMaximum, AlphaMinimum;
+    PS::F64    AlphaMaximum, AlphaMinimum, AlphaInit;
+    PS::F64    AlphuMaximum, AlphuMinimum, AlphuInit;
     PS::F64    KernelSupportRadiusMaximum; // ksrmax    
-    PS::F64    PowerForWeightInv = 1.;
-    //PS::F64    PowerForWeightInv = 20.;
-    PS::F64    PowerForWeight    = 1. / PowerForWeightInv;
+    PS::F64    EpsilonOfInternalEnergy;    // epsu
     
     PS::S64    NumberOfParticle;
     PS::F64    AdiabaticIndex;     // gamma
     PS::F64vec RotationalVelocity; // omega
     PS::F64    NuclearEnergyTotal; // enuc
+
+    PS::S64    FlagGravity; // 0: off, 1: on
+    PS::S64    FlagDamping; // 0: normal, 1: single, 2: binary
+    PS::S64    FlagNuclear; // 0: off, 1: on
 
     FILE * FilePointerForLog;
     FILE * FilePointerForTime;
