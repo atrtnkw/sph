@@ -1,4 +1,6 @@
 namespace NthDimension {
+#ifdef USE_IDEAL
+
     v4df (*calcVolumeInverse)(const v4df hi);
     PS::F64 (*calcPowerOfDimInverse)(const PS::F64 mass,
                                      const PS::F64 dens);
@@ -80,6 +82,42 @@ namespace NthDimension {
             }
         }
     }
+#elif defined USE_HELMHOLTZ
+
+    inline v4df calcVolumeInverse(const v4df hi) {
+        return hi * hi * hi;
+    }
+
+    inline PS::F64 calcPowerOfDimInverse(const PS::F64 mass,
+                                         const PS::F64 dens) {
+        return pow(mass / dens, 1. / 3.);
+    }
+
+    inline PS::F64mat invertMatrix(const PS::F64mat & tau) {
+        PS::F64mat c = 0.;
+        PS::F64 detinv = 1. / (tau.xx * tau.yy * tau.zz
+                               + tau.xy * tau.xz * tau.yz * 2.
+                               - tau.xx * tau.yz * tau.yz
+                               - tau.yy * tau.xz * tau.xz
+                               - tau.zz * tau.xy * tau.xy);
+        c.xx = (tau.yy * tau.zz - tau.yz * tau.yz) * detinv;
+        c.yy = (tau.xx * tau.zz - tau.xz * tau.xz) * detinv;
+        c.zz = (tau.xx * tau.yy - tau.xy * tau.xy) * detinv;
+        c.xy = (tau.xz * tau.yz - tau.xy * tau.zz) * detinv;
+        c.xz = (tau.xy * tau.yz - tau.xz * tau.yy) * detinv;
+        c.yz = (tau.xz * tau.xy - tau.xx * tau.yz) * detinv;
+        return c;
+    }
+
+    void setDimension(const PS::F64 ndim) {
+        if(PS::Comm::getRank() == 0) {
+            fprintf(stderr, "set 3D!\n");
+        }
+    }
+
+#else
+#error We have only two options: USE_IDEAL and USE_HELMHOLTZ.
+#endif
     
 }
 

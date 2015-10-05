@@ -68,10 +68,12 @@ public:
     virtual void referEquationOfState() {};
     virtual PS::F64 calcTimeStep() {};
     virtual PS::F64 calcEnergy() {};
+    virtual PS::F64 calcEnergyDamping2() {};
     virtual void predict(PS::F64 dt) {};
     virtual void correct(PS::F64 dt) {};
     virtual void calcAlphaDot() {};
-
+    virtual void addAdditionalForce() {};
+    virtual void addAdditionalForceDamping2() {};
 
     void calcBalsaraSwitch() {
         this->bswt = fabs(this->divv)
@@ -86,7 +88,6 @@ public:
         this->acc = this->acch + this->accg1 + this->accg2;
     }
 
-    //inline void addAdditionalForce();
     //void readHexa(FILE *fp);
     //void writeHexa(FILE *fp) const;
 

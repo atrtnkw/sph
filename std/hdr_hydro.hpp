@@ -23,7 +23,6 @@ void SPH::copyFromForce(const Hydro & hydro) {
     this->udot  = hydro.udot;
     this->vsmx  = hydro.vsmx;
     this->diffu = hydro.diffu;
-    //this->acc   = this->acch + this->accg1 + this->accg2;
 }
 
 class HydroEPI {

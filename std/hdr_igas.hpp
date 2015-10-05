@@ -1,10 +1,12 @@
 #pragma once
 
 namespace CodeUnit {
-    PS::F64 UnitOfLength    = 1.;
-    PS::F64 UnitOfMass      = 1.;
-    PS::F64 UnitOfTime      = 1.;
-    PS::F64 GravityConstant = 1.;
+    PS::F64 UnitOfLength  = 1.;
+    PS::F64 UnitOfMass    = 1.;
+    PS::F64 UnitOfTime    = 1.;
+    PS::F64 UnitOfTimeInv = 1. / UnitOfTime;
+    PS::F64 UnitOfEnergy  = 1.;
+    PS::F64 GravityConstantInThisUnit = 1.;
 }
 
 class CalcEquationOfState {
@@ -57,6 +59,9 @@ public:
         this->vsnd  = sqrt(RP::AdiabaticIndex * this->pres / this->dens);
     }
 
+    void referEquationOfStateDamping1() {
+    }
+
     PS::F64 calcTimeStep() {
         PS::F64 tceff   = RP::CoefficientOfTimestep;
         PS::F64 dth = tceff * this->ksr / (this->vsmx * SK::ksrh);
@@ -101,6 +106,9 @@ public:
             / sqrt(uene + RP::EpsilonOfInternalEnergy)
             * std::max(RP::AlphuMaximum - this->alphu, 0.);
         this->adotu    = - (this->alphu - RP::AlphuMinimum) * tauinv + src;
+    }
+
+    void calcAbarZbar() {
     }
 };
 
@@ -199,12 +207,14 @@ void initializeSimulation() {
 
 template <class Tdinfo,
           class Tsph,
+          class Tmsls,
           class Tdensity,
           class Thydro,
           class Tgravity>
 void startSimulation(char **argv,
                      Tdinfo & dinfo,
                      Tsph & sph,
+                     Tmsls & msls,
                      Tdensity & density,
                      Thydro & hydro,
                      Tgravity & gravity) {
@@ -223,7 +233,7 @@ void startSimulation(char **argv,
     PS::MT::init_genrand(0);
     dinfo.decomposeDomainAll(sph);
     sph.exchangeParticle(dinfo);
-    calcSPHKernel(dinfo, sph, density, hydro, gravity);
+    calcSPHKernel(dinfo, sph, msls, density, hydro, gravity);
 }
 
 template <class Tdinfo,
@@ -236,11 +246,13 @@ void restartSimulation(char **argv,
 
 template <class Tdinfo,
           class Tsph,
+          class Tmsls,
           class Tdensity,
           class Thydro,
           class Tgravity>
 void loopSimulation(Tdinfo & dinfo,
                     Tsph & sph,
+                    Tmsls & msls,
                     Tdensity & density,
                     Thydro & hydro,
                     Tgravity & gravity) {
@@ -270,7 +282,7 @@ void loopSimulation(Tdinfo & dinfo,
         sph.exchangeParticle(dinfo);
         WT::accumulateExchangeParticle();
         WT::start();
-        calcSPHKernel(dinfo, sph, density, hydro, gravity);
+        calcSPHKernel(dinfo, sph, msls, density, hydro, gravity);
         WT::accumulateCalcHydro();
         WT::start();
         correct(sph);
@@ -279,8 +291,10 @@ void loopSimulation(Tdinfo & dinfo,
     }
 }
 
-template <class Tsph>
-void finalizeSimulation(Tsph & sph) {
+template <class Tsph,
+          class Tmsls>
+void finalizeSimulation(Tsph & sph,
+                        Tmsls & msls) {
     outputData(sph);
     fclose(RP::FilePointerForLog);
     fclose(RP::FilePointerForTime);

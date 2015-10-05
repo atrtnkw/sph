@@ -49,13 +49,15 @@ CLIBS  += -lmpi_cxx
 endif
 endif
 
+HDR = hdr_run.hpp hdr_time.hpp vector_x86.hpp hdr_dimension.hpp hdr_kernel.hpp \
+	hdr_sph.hpp hdr_msls.hpp hdr_density.hpp hdr_hydro.hpp hdr_gravity.hpp
+
 ifeq ($(use_ideal), yes)
 
 CFLAGS += -DUSE_IDEAL
-OBJ = main.o
-HDR = hdr_run.hpp hdr_time.hpp vector_x86.hpp hdr_dimension.hpp hdr_kernel.hpp \
-	hdr_sph.hpp hdr_igas.hpp hdr_density.hpp hdr_hydro.hpp hdr_gravity.hpp
-ETC = Makefile
+OBJ  = main.o
+HDR += hdr_igas.hpp
+ETC  = Makefile
 
 run: $(OBJ) $(HDR) $(ETC)
 	$(CCC) $(PS_PATH) $(CFLAGS) $(FFLAGS) -o run $(OBJ) $(CLIBS)
@@ -79,12 +81,10 @@ else
 
 FFLAGS += -I. -I./heos
 CFLAGS += -DUSE_HELMHOLTZ
-OBJ = main.o heos/eos.o aprox13/aprox13_main.o aprox13/aprox13_input.o \
+OBJ  = main.o heos/eos.o aprox13/aprox13_main.o aprox13/aprox13_input.o \
 	aprox13/aprox13.o
-HDR = hdr_run.hpp hdr_time.hpp vector_x86.hpp hdr_dimension.hpp hdr_kernel.hpp \
-	hdr_sph.hpp hdr_hgas.hpp hdr_heos.hpp hdr_nuc.hpp hdr_util.hpp \
-	hdr_density.hpp hdr_hydro.hpp hdr_gravity.hpp
-ETC = Makefile
+HDR += hdr_hgas.hpp hdr_heos.hpp hdr_nuc.hpp hdr_util.hpp
+ETC  = Makefile
 
 run: $(OBJ) $(HDR) $(ETC)
 ifeq ($(use_xc), yes)
@@ -107,6 +107,9 @@ aprox13/aprox13_input.o: aprox13/aprox13_input.f90
 
 aprox13/aprox13.o: aprox13/aprox13.f90
 	make -C aprox13 -f Makefile.aprox13 aprox13.o FCC="$(FCC)"
+
+asm: main.cpp $(HDR) $(ETC)
+	$(CCC) $(PS_PATH) $(CFLAGS) -S main.cpp
 
 clean:
 	rm -f *~

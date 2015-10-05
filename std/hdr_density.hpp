@@ -249,7 +249,6 @@ void calcDensityKernel(Tdinfo & dinfo,
 
     PS::S32 cnt = 0;
     for(bool repeat = true; repeat == true;) {
-        WT::start();
         bool repeat_loc = false;
         repeat = false;
         density.calcForceAll(calcDensity(), sph, dinfo);
@@ -264,7 +263,6 @@ void calcDensityKernel(Tdinfo & dinfo,
                 }
             }
         }
-        WT::accumulateCalcDensity();
         repeat = PS::Comm::synchronizeConditionalBranchOR(repeat_loc);
         cnt++;
     }

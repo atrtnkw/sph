@@ -23,6 +23,8 @@ namespace RunParameter {
     PS::F64    AlphuMaximum, AlphuMinimum, AlphuInit;
     PS::F64    KernelSupportRadiusMaximum; // ksrmax    
     PS::F64    EpsilonOfInternalEnergy;    // epsu
+    PS::F64    ReductionTime;
+    PS::F64    ReductionTimeInv;
     
     PS::S64    NumberOfParticle;
     PS::F64    AdiabaticIndex;     // gamma
