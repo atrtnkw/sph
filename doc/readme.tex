@@ -347,6 +347,257 @@ following way.
   \begin{enumerate}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   \item \label{item:initial} We calculate a tentative density
+    $\rho_i$, such that
+    \begin{align}
+      \tilde{\rho}_i = \sum_j m_j W_i.
+    \end{align}
+    Then, we obtain $\tilde{P}_i$ from $\rho_i$ and $u_i$, and
+    $\tilde{Y}_i=m_i\tilde{P}_i^k/\rho_i$, where $k=0.05$.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  \item \label{item:predict_disph} We predict physical quantities at
+    the next time:
+    \begin{align}
+      \bm{r}_{i} &= \bm{r}^{(0)}_i + \bm{v}^{(0)}_i \Delta t +
+      \frac{1}{2} \bm{a}^{(0)}_i \Delta t^2, \\
+%%
+      \bm{v}^{(1/2)}_i &= \bm{v}^{(0)}_i + \frac{1}{2} \bm{a}^{(0)}
+      \Delta t, \\
+%%
+      u^{(1/2)}_i &= u^{(0)}_i + \frac{1}{2} \dot{u}^{(0)} \Delta t, \\
+%%
+      Y^{(1/2)}_i &= Y^{(0)}_i + \frac{1}{2} \dot{Y}^{(0)} \Delta t,
+      \\
+%%
+      \alpha^{(1/2)}_i &= \alpha^{(0)}_i + \frac{1}{2}
+      \dot{\alpha}^{(0)} \Delta t, \\
+%%
+      \tilde{\bm{v}}_{i} &= \bm{v}^{(0)}_i + \bm{a}^{(0)}_i \Delta t, \\
+%%
+      \tilde{\bm{u}}_{i} &= \bm{u}^{(0)}_i + \dot{\bm{u}}^{(0)}_i \Delta
+      t + \epsilon_{{\rm nuc},i}(\Delta t), \\
+%%
+      \tilde{Y}_i &= Y^{(0)}_i + \dot{Y}^{(0)} \Delta t, \\
+%%
+      \tilde{\alpha}_i &= \alpha^{(0)}_i + \dot{\alpha}^{(0)}_i \Delta
+      t, \\
+%%
+      \tilde{P}_i &= P^{(0)}_i + \dot{P}_i \Delta t, \\
+%%
+      \tilde{H}_i &= H^{(0)}_i + \dot{H}_i \Delta t.
+    \end{align}
+    We obtain the time derivatives $\dot{P}_i$ and $\dot{H}_i$ as follows:
+    \begin{align}
+      \dot{P}_i &= - \frac{\partial P_i}{\partial \rho} \rho_i (
+      \nabla \cdot \bm{v}_i) + \frac{\partial P_i}{\partial u}
+      \dot{u}_i, \\
+      %%
+      \dot{H}_i &= \frac{H_i}{D} (\nabla \cdot \bm{v}_i).
+    \end{align}
+    Then, we calculate $\tilde{P}_i^k$.
+  \end{enumerate}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\item We derive a volume element iteratively.
+
+  \begin{enumerate}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  \item \label{item:it_disph} We obtain the density, such that $\rho_i
+    = m_i \tilde{P}_i^k / \tilde{Y}_i$.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  \item We obtain the non-smoothed pressure $\hat{P}_i$ from $\rho_i$
+    and $\tilde{u}_i$.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  \item We update $\tilde{Y}_i$, such that $\tilde{Y}_i = m_i \hat{P}^k
+    / \rho_i$.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  \item We calculate $\tilde{P}_i^k$ as follows:
+    \begin{align}
+      \tilde{P}_i^k = \sum_j \tilde{Y}_j W_i,
+    \end{align}
+    where the kernel function is
+    \begin{align}
+      W(r,H) = H^{-D} w(r/H).
+    \end{align}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  \item We obtain kernel support radius: $H_i = C_{H/h} \eta
+    (\tilde{Y}_i/\tilde{P}_i)^{1/D}$.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  \item We return step~\ref{item:it_disph} unless this is the 2nd time.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  \item We calculate density, such that $\rho_i = m_i \tilde{P}_i^k /
+    \tilde{Y}_i$.
+
+  \end{enumerate}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\item We calculate some auxiliary variables as follows:
+  \begin{align}
+    \nabla \cdot \tilde{\bm{v}}_i &= - \frac{1}{\Omega_i
+      \tilde{P}_i^k} \sum \tilde{Y}_j \tilde{\bm{v}}_{ij} \cdot
+    \left[\frac{\partial W_i}{\partial r_{ij}}
+      \frac{\bm{r}_{ij}}{r_{ij}} \right], \\
+%%
+    \nabla \times \tilde{\bm{v}}_i &= - \frac{1}{\Omega_i
+      \tilde{P}_i^k} \sum \tilde{Y}_j \tilde{\bm{v}}_{ij} \times
+    \left[\frac{\partial W_i}{\partial r_{ij}}
+      \frac{\bm{r}_{ij}}{r_{ij}} \right], \\
+%%
+    \Omega_i &= 1 + \frac{1}{D} \frac{H_i}{\tilde{P}_i^k} \sum_j
+    \tilde{Y}_j \frac{\partial W_i}{\partial H_i},
+  \end{align}
+  where the derivative of the kernel function is
+  \begin{align}
+    \frac{\partial W(r,H)}{\partial r} &= H^{-(D+1)} \frac{\partial
+      w(r/H)}{\partial (r/H)}, \\
+%%
+      \frac{\partial W(r,H)}{\partial H} &= -H^{-(D+1)} \left[ D w(q)
+        + q \frac{\partial w}{\partial q} \right].
+  \end{align}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\item We calculate the sound of speed ($\tilde{c}_{{\rm s},i}$) and
+  the Balsara switch:
+  \begin{align}
+    f_i &= \frac{|\nabla \cdot \tilde{\bm{v}}_i|}{|\nabla \cdot
+      \tilde{\bm{v}}_i| + |\nabla \times \tilde{\bm{v}}_i| + 0.0001
+      C_{H/h} \tilde{c}_{{\rm s},i} / \tilde{H}_i}.
+  \end{align}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\item We calculate the gravity and its correction term:
+  \begin{align}
+    \bm{g}_{2,i} &= - \frac{G}{2} \sum_j m_j
+    \frac{\bm{r}_{ij}}{r_{ij}} \left[ \frac{\partial
+        \phi(r_{ij},\tilde{H}_i)}{\partial r_{ij}} + \frac{\partial
+        \phi(r_{ij},\tilde{H}_j)}{\partial r_{ij}} \right], \\
+%%
+    \phi_i &= \frac{G}{2} \sum_j m_j \left[ \phi(r_{ij},\tilde{H}_i) +
+      \phi(r_{ij},\tilde{H}_j) \right] \\
+%%
+    \eta_i &= \frac{\tilde{H}_i}{D\rho_i} \frac{1}{\Omega_i} \sum_j
+    m_j \frac{\partial \phi(r_{ij},\tilde{H}_i)}{\partial
+      \tilde{H}_i},
+  \end{align}
+  where the potential is expressed as:
+  \begin{align}
+    \phi(r,H) &= - \frac{1}{\left( r^2 + H^2 C_{H/h}^{-2}
+      \right)^{1/2}} \\
+%%
+    \frac{\partial \phi(r,H)}{\partial r} &= \frac{r}{\left( r^2 + H^2
+      C_{H/h}^{-2} \right)^{3/2}}, \\
+%%
+    \frac{\partial \phi(r,H)}{\partial H} &=
+    \frac{HC_{H/h}^{-2}}{\left( r^2 + H^2 C_{H/h}^{-2} \right)^{3/2}}.
+  \end{align}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\item We calculate the hydro acceleration, the time derivative of the
+  energy, and one term of the gravity:
+  \begin{align}
+    \bm{a}_i &= - \frac{1}{2m_i} \sum_j \left[ \frac{\tilde{P}_i
+        \tilde{Y}_i}{\tilde{P}_i^{2k} \Omega_i} \tilde{Y}_j +
+      \frac{\tilde{P}_j \tilde{Y}_j}{\tilde{P}_j^{2k} \Omega_j}
+      \tilde{Y}_i + m_i m_j f_{ij} \Pi_{ij} \right] \left(
+    \frac{\partial W_i}{\partial r_{ij}} + \frac{\partial
+      W_j}{\partial r_{ij}} \right) \frac{\bm{r}_{ij}}{r_{ij}}, \\
+%%
+    \dot{u}_i &= \frac{1}{2m_i} \sum_j \left[ \frac{\tilde{P}_i
+        \tilde{Y}_i}{\tilde{P}_i^{2k} \Omega_i} \tilde{Y}_j +
+      \frac{m_i m_j f_{ij} \Pi_{ij}}{2} \right] \tilde{\bm{v}}_{ij}
+    \cdot \left( \frac{\partial W_i}{\partial r_{ij}} + \frac{\partial
+      W_j}{\partial r_{ij}} \right) \frac{\bm{r}_{ij}}{r_{ij}}, \\
+%%
+    \dot{Y}_i &= \frac{(\gamma_i - 1)}{2} \sum_j \frac{\tilde{P}_i
+      \tilde{Y}_i}{\tilde{P}_i^{2k} \Omega_i} \tilde{Y}_j
+    \tilde{\bm{v}}_{ij} \cdot \left( \frac{\partial W_i}{\partial
+      r_{ij}} + \frac{\partial W_j}{\partial r_{ij}} \right)
+    \frac{\bm{r}_{ij}}{r_{ij}}, \\
+%%
+    \bm{g}_{1,i} &= \frac{G}{2} \sum_j m_j \left[ \left( \eta_i
+      \frac{\partial W_{i}}{\partial r_{ij}} + \eta_j \frac{\partial
+        W_{j}}{\partial r_{ij}} \right) \frac{\bm{r}_{ij}}{r_{ij}}
+      \right],
+\end{align}
+  where $\bm{A}_{ij}=- \left( \mathcal{C}_i \bm{r}_{ij} \right) W_i$,
+  and $\bar{\bm{A}}_{ij}=\left( \bm{A}_{ij} - \bm{A}_{ji}
+  \right)/2$. The Balsara switch is $f_{ij} = (f_i + f_j)/2$. The
+  artificial viscosity is as follows:
+  \begin{align}
+    \Pi_{ij} &= - \frac{\tilde{\alpha}_{ij}}{2} \frac{v_{ij}^{\rm sig}
+      w_{ij}^0}{\tilde{\rho}_{ij}}, \\
+%%
+    v_{ij}^{\rm sig} &= \tilde{c}_{{\rm s},i} + \tilde{c}_{{\rm s},j}
+    - 3w_{ij}^0, \\
+%%
+    w_{ij}^0 &= \min \left(w_{ij},0\right), \\
+%%
+    w_{ij} &= \frac{\bm{r}_{ij} \cdot
+      \tilde{\bm{v}}_{ij}}{|\bm{r}_{ij}|},
+  \end{align}
+  where $\tilde{\alpha}_{ij}=(\tilde{\alpha}_i+\tilde{\alpha}_j)/2$,
+  and $\tilde{\rho}_{ij}=(\tilde{\rho}_i+\tilde{\rho}_j)/2$.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\item We calculate $\dot{\alpha}$:
+  \begin{align}
+    \dot{\alpha}_i &= - \frac{\tilde{\alpha}_i - \alpha_{\rm
+        min}}{H_i/(0.25C_{H/h}\tilde{c}_{{\rm s},i})} + \max \left[
+      -(\nabla \cdot \tilde{\bm{v}}_i)(\alpha_{\rm
+        max}-\tilde{\alpha}_i), 0 \right].
+  \end{align}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\item Correct the velocity and energy:
+  \begin{align}
+    \bm{v}_i &= \bm{v}^{(1/2)}_i + \frac{1}{2} \bm{a}_i \Delta t \\
+    %%
+    u_i &= u^{(1/2)}_i + \frac{1}{2} \dot{u}_i \Delta t +
+    \epsilon_{{\rm nuc},i}(\Delta t) \\
+    %%
+    Y_i &= Y^{(1/2)}_i + \frac{1}{2} \dot{Y}_i \Delta t \\
+    %%
+    \alpha_i &= \alpha^{(1/2)}_i + \frac{1}{2} \dot{\alpha}_i \Delta
+    t,
+  \end{align}
+  where $\epsilon_{{\rm nuc},i}(\Delta t)$ has been already obtained
+  in step~\ref{item:predict_disph}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\item We calculate the next timestep:
+  \begin{align}
+    \Delta t_{\rm next} = C \min_i \left[
+      \frac{C_{H/h}^{-1}H_i}{\max_j \left( v_{ij}^{\rm sig} \right) },
+      \left| \frac{u_i^{(0)}}{\dot{u}_i^{(0)}} \right| \right].
+  \end{align}  
+  \redtext{When nuclear reaction is considered, we should see Raskin
+    et al.}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\item We return to step~\ref{item:predict_disph}.
+
+\end{enumerate}
+
+\section{DISPH (not work)}
+
+As the initial condition, we have $m_i$, $\bm{r}_i$, $\bm{v}_i$,
+$u_i$, $\alpha_i$, and $H_i$. We integrate each particle in the
+following way.
+\begin{enumerate}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\item We take step~(\ref{item:initial}) at the initial time, and
+  step~(\ref{item:predict_disph}) at the other times.
+
+  \begin{enumerate}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  \item \label{item:initial} We calculate a tentative density
     $\tilde{\rho}_i$, such that
     \begin{align}
       \tilde{\rho}_i = \sum_j m_j W_i.
@@ -400,7 +651,7 @@ following way.
     \begin{align}
       V_i = \frac{1}{\sum_j (\tilde{P}_j/\tilde{P}_i)^k W_i},
     \end{align}
-    where we adopt $k=0.0625$. Here, the kernel function is
+    where we adopt $k=0.05$. Here, the kernel function is
     \begin{align}
       W(r,H) = H^{-D} w(r/H).
     \end{align}
@@ -427,13 +678,15 @@ following way.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \item We calculate some auxiliary variables as follows:
   \begin{align}
-    \nabla \cdot \tilde{\bm{v}}_i &= - \frac{1}{\tilde{\rho}_i} \sum
-    m_j \tilde{\bm{v}}_{ij} \cdot \left[\frac{\partial W_i}{\partial
-        r_{ij}} \frac{\bm{r}_{ij}}{r_{ij}} \right], \\
+    \nabla \cdot \tilde{\bm{v}}_i &= - V_i \sum \left(
+    \frac{\tilde{P}_j}{\tilde{P}_i} \right)^k \tilde{\bm{v}}_{ij}
+    \cdot \left[\frac{\partial W_i}{\partial r_{ij}}
+      \frac{\bm{r}_{ij}}{r_{ij}} \right], \\
 %%
-    \nabla \times \tilde{\bm{v}}_i &= \frac{1}{\tilde{\rho}_i} \sum
-    m_j \tilde{\bm{v}}_{ij} \times \left[\frac{\partial W_i}{\partial
-        r_{ij}} \frac{\bm{r}_{ij}}{r_{ij}} \right], \\
+    \nabla \times \tilde{\bm{v}}_i &= V_i \sum \left(
+    \frac{\tilde{P}_j}{\tilde{P}_i} \right)^k \tilde{\bm{v}}_{ij}
+    \times \left[\frac{\partial W_i}{\partial r_{ij}}
+      \frac{\bm{r}_{ij}}{r_{ij}} \right], \\
 %%
     \tau_{kl,i} &= \sum_j V_j x_{k,ij} x_{l,ij} W_i,
   \end{align}
@@ -491,12 +744,10 @@ following way.
       \right)^k \bm{A}_{ji} + m_i m_j f_{ij} \Pi_{ij}
       \bar{\bm{A}}_{ij} \right], \\
 %%
-    \dot{u}_i &= - \frac{1}{m_i} \sum_j \left[ \tilde{P}_i V_i^2
-      \left( \frac{\tilde{P}_j}{\tilde{P}_i} \right)^k
-      \tilde{\bm{v}}_j \cdot \bm{A}_{ij} - \tilde{P}_j V_j^2 \left(
-      \frac{\tilde{P}_i}{\tilde{P}_j} \right)^k \tilde{\bm{v}}_i \cdot
-      \bm{A}_{ji} - \frac{m_i m_j f_{ij} \Pi_{ij}}{2}
-      \tilde{\bm{v}}_{ij} \cdot \bar{\bm{A}}_{ij} \right], \\
+    \dot{u}_i &= \frac{1}{m_i} \sum_j \tilde{\bm{v}}_{ij} \cdot \left[
+      \tilde{P}_i V_i^2 \left( \frac{\tilde{P}_j}{\tilde{P}_i}
+      \right)^k \bm{A}_{ij} + \frac{m_i m_j f_{ij} \Pi_{ij}}{2}
+      \bar{\bm{A}}_{ij} \right], \\
 %%
     \bm{g}_{1,i} &= \frac{G}{2} \sum_j m_j \left[ \left( \eta_i
       \frac{\partial W_{i}}{\partial r_{ij}} + \eta_j \frac{\partial
