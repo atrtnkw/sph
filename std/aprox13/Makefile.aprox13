@@ -1,0 +1,19 @@
+#FCC = gfortran
+FFLAGS += -O3
+
+aprox13_main.o: aprox13_main.f90
+	$(FCC) $(FFLAGS) -c aprox13_main.f90 -o aprox13_main.o
+
+aprox13_input.o: aprox13_input.f90
+	$(FCC) $(FFLAGS) -c aprox13_input.f90 -o aprox13_input.o
+
+aprox13.o: aprox13.f90
+	$(FCC) $(FFLAGS) -c aprox13.f90 -o aprox13.o
+
+clean:
+	rm -f *~
+distclean:
+	make -f Makefile.aprox13 clean
+	rm -f *.o
+allclean:
+	make -f Makefile.aprox13 distclean
