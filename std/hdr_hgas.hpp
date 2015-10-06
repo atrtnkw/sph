@@ -277,6 +277,10 @@ namespace RunParameter {
         using namespace CodeUnit;
 
         FILE *fp = fopen(filename, "r");
+        if(fp == NULL) {
+            fprintf(stderr, "Not found header file!\n");
+            PS::Abort();
+        }
         fscanf(fp, "%lf%lf%lf%lf", &Time, &TimeEnd, &TimestepAscii, &TimestepHexa);
         fscanf(fp, "%lld%lld", &FlagDamping, &FlagNuclear);
         fscanf(fp, "%lf%lf", &AlphaMaximum, &AlphaMinimum);
@@ -377,6 +381,9 @@ namespace RunParameter {
     }
 
     void outputRunParameter(char **argv) {
+        if(PS::Comm::getRank() != 0) {
+            return;
+        }
         FILE * fp = FilePointerForLog;
         fprintf(fp, "# # of process %8d\n", PS::Comm::getNumberOfProc());
         fprintf(fp, "# # of thread  %8d\n", PS::Comm::getNumberOfThread());
@@ -396,6 +403,7 @@ namespace RunParameter {
         fprintf(fp, "# Damping: %d\n", FlagDamping);
         fprintf(fp, "# Nuclear: %d\n", FlagNuclear);        
         fprintf(fp, "# # of Step %8d\n", NumberOfStep);
+        fflush(fp);
     }
 
     template <class Tsph>
@@ -451,10 +459,10 @@ void outputData(Tdinfo & dinfo,
     }
     if(RP::Time - (PS::S64)(RP::Time / RP::TimestepAscii) * RP::TimestepAscii == 0.) {
         char filename[64];
-        sprintf(filename, "snap/sph_p%04d.dat", (PS::S32)RP::Time);
+        sprintf(filename, "snap/sph_t%04d.dat", (PS::S32)RP::Time);
         sph.writeParticleAscii(filename);
         if(RP::FlagDamping == 2) {
-            sprintf(filename, "snap/msls_p%04d.dat", (PS::S32)RP::Time);
+            sprintf(filename, "snap/msls_t%04d.dat", (PS::S32)RP::Time);
             msls.writeParticleAscii(filename);
         }
     }
@@ -466,7 +474,7 @@ void outputData(Tdinfo & dinfo,
     PS::F64 etot = calcEnergy(sph);
     if(PS::Comm::getRank() == 0) {
         using namespace CodeUnit;
-        fprintf(RP::FilePointerForLog, "time: %8d %.10f %+e %+e %+e\n",
+        fprintf(RP::FilePointerForLog, "time: %8d %16.10f %+e %+e %+e\n",
                 RP::NumberOfStep, RP::Time * UnitOfTime, RP::Timestep * UnitOfTime,
                 etot * UnitOfEnergy * UnitOfMass, WT::getTimeTotal());
         WT::dump(RP::Time, RP::FilePointerForTime);
@@ -530,8 +538,10 @@ void initializeSimulation() {
     FlagGravity = 1;
     //FlagDamping = 0;
     //FlagNuclear = 0;
-    RP::FilePointerForLog  = fopen("snap/time.log", "w");
-    RP::FilePointerForTime = fopen("snap/prof.log", "w");
+    if(PS::Comm::getRank() == 0) {
+        RP::FilePointerForLog  = fopen("snap/time.log", "w");
+        RP::FilePointerForTime = fopen("snap/prof.log", "w");
+    }
 }
 
 template <class Tdinfo,
@@ -628,8 +638,10 @@ void finalizeSimulation(Tdinfo & dinfo,
                         Tsph & sph,
                         Tmsls & msls) {
     outputData(dinfo, sph, msls);
-    fclose(RP::FilePointerForLog);
-    fclose(RP::FilePointerForTime);
+    if(PS::Comm::getRank() == 0) {
+        fclose(RP::FilePointerForLog);
+        fclose(RP::FilePointerForTime);
+    }
     PS::F64    mc;
     PS::F64vec xc;
     PS::F64vec vc;
