@@ -222,7 +222,7 @@ int main(int argc, char **argv)
     if(atoi(argv[1]) == 0) {
         startSimulation(argv, dinfo, sph, msls, density, hydro, gravity);
     } else {
-        restartSimulation(argv, dinfo, sph);
+        restartSimulation(argv, dinfo, sph, msls);
     }
 
     loopSimulation(dinfo, sph, msls, density, hydro, gravity);

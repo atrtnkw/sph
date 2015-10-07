@@ -62,12 +62,13 @@ template <class Tsph,
           class Tmsls>
 void reduceSeparation(Tsph & sph,
                       Tmsls & msls) {
-    static bool FirstStep    = true;
+//    static bool FirstStep    = true;
     static bool StopDamping2 = false;
 
-    if(FirstStep) {
-        FirstStep = false;
-
+//    if(FirstStep) {
+//        FirstStep = false;
+    if(RP::Time == 0.) {
+        debugFunction("a");
         PS::F64    m1;
         PS::F64vec x1, v1;
         calcCenterOfMass(sph, m1, x1, v1, 1);

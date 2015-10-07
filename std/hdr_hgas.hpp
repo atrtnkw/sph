@@ -85,7 +85,7 @@ public:
         fprintf(fp, "\n");
     }
 
-    void readRestartFile(FILE *fp) {
+    void readHexa(FILE *fp) {
         PS::F64 (*cvt)(PS::U64) = convertU64ToF64;
         PS::S32 s0, s1;
         PS::U64 umass;
@@ -145,7 +145,7 @@ public:
         }
     }
 
-    void writeRestartFile(FILE *fp) const {
+    void writeHexa(FILE *fp) const {
         PS::U64 (*cvt)(PS::F64) = convertF64ToU64;
         fprintf(fp, "%6d %2d %llx", this->id, this->istar, cvt(this->mass));
         fprintf(fp, " %llx %llx %llx", cvt(this->pos[0]), cvt(this->pos[1]), cvt(this->pos[2]));
@@ -297,22 +297,24 @@ namespace RunParameter {
 
 
     template <class Tdinfo,
-              class Tsph>
-    void readRestartFile(FILE *fp,                         
-                         Tdinfo & dinfo,
-                         Tsph & sph) {
+              class Tsph,
+              class Tmsls>
+    void readHexa(FILE *fp,                         
+                  Tdinfo & dinfo,
+                  Tsph & sph,
+                  Tmsls & msls) {
         PS::F64 (*cvt)(PS::U64) = convertU64ToF64;        
         PS::U64 utime, utend, udtime, udta, udth;
         PS::U64 ualphamax, ualphamin, ualphumax, ualphumin;
         PS::U64 uksrmax, uepsu, uenuc;
         PS::U64 urtime, urtimeinv, utcoeff;
         PS::U64 urv[3];
-        PS::S64 nstep, nptcl, fdamp, fnuc;
+        PS::S64 nstep, nptcl, nmsls, fdamp, fnuc;
         fscanf(fp, "%llx %llx %llx %llx %llx %lld", &utime, &utend, &udtime, &udta, &udth, &nstep);
         fscanf(fp, "%llx %llx %llx %llx", &ualphamax, &ualphamin, &ualphumax, &ualphumin);
         fscanf(fp, "%llx %llx", &uksrmax, &uepsu);
         fscanf(fp, "%llx %llx", &urtime, &urtimeinv);
-        fscanf(fp, "%lld %llx", &nptcl, &utcoeff);
+        fscanf(fp, "%lld %lld %llx", &nptcl, &nmsls, &utcoeff);
         fscanf(fp, "%llx %llx %llx", &urv[0], &urv[1], &urv[2]);
         fscanf(fp, "%llx %lld %lld", &uenuc, &fdamp, &fnuc);
         Time          = cvt(utime);
@@ -330,6 +332,7 @@ namespace RunParameter {
         ReductionTime    = cvt(urtime);
         ReductionTimeInv = cvt(urtimeinv);
         sph.setNumberOfParticleLocal(nptcl);
+        msls.setNumberOfParticleLocal(nmsls);
         CoefficientOfTimestep = cvt(utcoeff);
         RotationalVelocity[0] = cvt(urv[0]);
         RotationalVelocity[1] = cvt(urv[1]);
@@ -353,10 +356,12 @@ namespace RunParameter {
     }
 
     template <class Tdinfo,
-              class Tsph>
-    void writeRestartFile(FILE *fp,                          
-                          Tdinfo & dinfo,
-                          Tsph & sph) {
+              class Tsph,
+              class Tmsls>
+    void writeHexa(FILE *fp,                          
+                   Tdinfo & dinfo,
+                   Tsph & sph,
+                   Tmsls & msls) {
         PS::U64 (*cvt)(PS::F64) = convertF64ToU64;
         fprintf(fp, "%llx %llx %llx %llx %llx %lld\n",
                 cvt(Time), cvt(TimeEnd), cvt(Timestep),
@@ -366,7 +371,8 @@ namespace RunParameter {
         fprintf(fp, "%llx %llx %llx %llx\n",
                 cvt(KernelSupportRadiusMaximum), cvt(EpsilonOfInternalEnergy),
                 cvt(ReductionTime), cvt(ReductionTimeInv));
-        fprintf(fp, "%lld %llx\n", sph.getNumberOfParticleLocal(), cvt(CoefficientOfTimestep));
+        fprintf(fp, "%lld %lld %llx\n", sph.getNumberOfParticleLocal(),
+                msls.getNumberOfParticleLocal(), cvt(CoefficientOfTimestep));
         fprintf(fp, "%llx %llx %llx\n", cvt(RotationalVelocity[0]),
                 cvt(RotationalVelocity[1]), cvt(RotationalVelocity[2]));
         fprintf(fp, "%llx %lld %lld\n", cvt(NuclearEnergyTotal), FlagDamping, FlagNuclear);
@@ -421,29 +427,39 @@ namespace RunParameter {
 }
 
 template <class Tdinfo,
-          class Tsph>
-void readRestartFile(char * const filename,
-                     Tdinfo & dinfo,
-                     Tsph & sph) {
+          class Tsph,
+          class Tmsls>
+void readHexa(char * const filename,
+              Tdinfo & dinfo,
+              Tsph & sph,
+              Tmsls & msls) {
     FILE *fp = fopen(filename, "r");
-    RP::readRestartFile(fp, dinfo, sph);
+    RP::readHexa(fp, dinfo, sph, msls);
     for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
-        sph[i].readRestartFile(fp);
+        sph[i].readHexa(fp);
+    }
+    for(PS::S32 i = 0; i < msls.getNumberOfParticleLocal(); i++) {
+        msls[i].readHexa(fp);
     }
     fclose(fp);
     RP::NumberOfParticle = PS::Comm::getSum(sph.getNumberOfParticleLocal());
 }
 
 template <class Tdinfo,
-          class Tsph>
-void writeRestartFile(char * const filename,
-                      Tdinfo & dinfo,
-                      Tsph & sph) {
+          class Tsph,
+          class Tmsls>
+void writeHexa(char * const filename,
+               Tdinfo & dinfo,
+               Tsph & sph,
+               Tmsls & msls) {
 
     FILE *fp = fopen(filename, "w");
-    RP::writeRestartFile(fp, dinfo, sph);
+    RP::writeHexa(fp, dinfo, sph, msls);
     for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
-        sph[i].writeRestartFile(fp);
+        sph[i].writeHexa(fp);
+    }
+    for(PS::S32 i = 0; i < msls.getNumberOfParticleLocal(); i++) {
+        msls[i].writeHexa(fp);
     }
     fclose(fp);
 }
@@ -454,9 +470,6 @@ template <class Tdinfo,
 void outputData(Tdinfo & dinfo,
                 Tsph & sph,
                 Tmsls & msls) {
-    if(RP::FlagDamping == 2) {
-        reduceSeparation(sph, msls);
-    }
     if(RP::Time - (PS::S64)(RP::Time / RP::TimestepAscii) * RP::TimestepAscii == 0.) {
         char filename[64];
         sprintf(filename, "snap/sph_t%04d.dat", (PS::S32)RP::Time);
@@ -469,7 +482,7 @@ void outputData(Tdinfo & dinfo,
     if(RP::Time - (PS::S64)(RP::Time / RP::TimestepHexa) * RP::TimestepHexa == 0.) {
         char filename[64];
         sprintf(filename, "snap/t%04d_p%06d.hexa", (PS::S32)RP::Time, PS::Comm::getRank());
-        writeRestartFile(filename, dinfo, sph);
+        writeHexa(filename, dinfo, sph, msls);
     }
     PS::F64 etot = calcEnergy(sph);
     if(PS::Comm::getRank() == 0) {
@@ -578,13 +591,15 @@ void startSimulation(char **argv,
 }
 
 template <class Tdinfo,
-          class Tsph>
+          class Tsph,
+          class Tmsls>
 void restartSimulation(char **argv,
                        Tdinfo & dinfo,
-                       Tsph & sph) {
+                       Tsph & sph,
+                       Tmsls & msls) {
     char filename[64];
     sprintf(filename, "%s_p%06d.hexa", argv[2], PS::Comm::getRank());
-    readRestartFile(filename, dinfo, sph);
+    readHexa(filename, dinfo, sph, msls);
     ND::setDimension(RP::NumberOfDimension);
     SK::setKernel(RP::KernelType, RP::NumberOfDimension);
     RP::outputRunParameter(argv);
@@ -610,6 +625,9 @@ void loopSimulation(Tdinfo & dinfo,
         WT::reduceInterProcess();
         outputData(dinfo, sph, msls);
         WT::clear();
+        if(RP::FlagDamping == 2) {
+            reduceSeparation(sph, msls);
+        }
         WT::start();
         predict(sph);
         WT::accumulateOthers();
