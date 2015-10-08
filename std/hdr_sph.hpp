@@ -66,7 +66,7 @@ public:
     virtual void readAscii(FILE * fp) {};
     virtual void writeAscii(FILE *fp) const {};
     virtual void referEquationOfState() {};
-    virtual PS::F64 calcTimeStep() {};
+    virtual PS::F64 calcTimestep() {};
     virtual PS::F64 calcEnergy() {};
     virtual PS::F64 calcEnergyDamping2() {};
     virtual void predict(PS::F64 dt) {};

@@ -57,6 +57,13 @@ void referEquationOfState(Tsph & sph) {
 }
 
 template <class Tsph>
+void calcReleasedNuclearEnergy(Tsph & sph) {
+    for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
+        sph[i].calcReleasedNuclearEnergy();
+    }
+}
+
+template <class Tsph>
 void calcBalsaraSwitch(Tsph & sph) {
     for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
         sph[i].calcBalsaraSwitch();
@@ -119,6 +126,16 @@ PS::F64 calcEnergy(Tsph & sph) {
 }
 
 template <class Tsph>
+PS::F64 calcReleasedNuclearEnergyTotal(Tsph & sph) {
+    PS::F64 eloc = 0.;
+    for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
+        eloc += sph[i].mass * sph[i].enuc;
+    }
+    PS::F64 eglb = PS::Comm::getSum(eloc);
+    return eglb;
+}
+
+template <class Tsph>
 PS::F64vec calcMomentum(Tsph & sph) {
     PS::F64vec momloc = 0.;
     for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
@@ -129,11 +146,11 @@ PS::F64vec calcMomentum(Tsph & sph) {
 }
 
 template <class Tsph>
-PS::F64 calcTimeStep(Tsph & sph) {
+PS::F64 calcTimestep(Tsph & sph) {
     PS::S32 nloc = sph.getNumberOfParticleLocal();
     PS::F64 dtc = RP::MaximumTimestep;
     for(PS::S32 i = 0; i < nloc; i++) {
-        PS::F64 dttmp = sph[i].calcTimeStep();
+        PS::F64 dttmp = sph[i].calcTimestep();
         if(dttmp < dtc)
             dtc = dttmp;
     }

@@ -48,7 +48,7 @@ public:
         using namespace CodeUnit;
         using namespace NuclearReaction;
 
-        PS::F64 dt = dtime * UnitOfTimeInv;
+        PS::F64 dt = dtime * UnitOfTime;
         PS::F64 dd = density * UnitOfDensity;;
         PS::F64 tt = temperature;
 

@@ -15,6 +15,7 @@ class WallclockTime {
     PS::F64 TimeCalcGravity;
     PS::F64 TimeReferEquationOfState;
     PS::F64 TimeIntegrateOrbit;
+    PS::F64 TimeCalcNuclearReaction;
     PS::F64 TimeOthers;
     PS::F64 tstart;
 
@@ -25,6 +26,7 @@ class WallclockTime {
     PS::F64 TimeCalcGravityAverage;
     PS::F64 TimeReferEquationOfStateAverage;
     PS::F64 TimeIntegrateOrbitAverage;
+    PS::F64 TimeCalcNuclearReactionAverage;
     PS::F64 TimeOthersAverage;
 
     PS::F64 TimeDecomposeDomainMax;
@@ -34,6 +36,7 @@ class WallclockTime {
     PS::F64 TimeCalcGravityMax;
     PS::F64 TimeReferEquationOfStateMax;
     PS::F64 TimeIntegrateOrbitMax;
+    PS::F64 TimeCalcNuclearReactionMax;
     PS::F64 TimeOthersMax;
 
     WallclockTime() {}
@@ -66,6 +69,7 @@ public:
         ttotal += p.TimeCalcGravity;
         ttotal += p.TimeReferEquationOfState;
         ttotal += p.TimeIntegrateOrbit;
+        ttotal += p.TimeCalcNuclearReaction;
         ttotal += p.TimeOthers;
         return ttotal;
     }
@@ -105,6 +109,11 @@ public:
         p.TimeIntegrateOrbit += p.getWallclockTime() - p.tstart;
     }
 
+    static void accumulateCalcNuclearReaction() {
+        WallclockTime & p = getInstance();
+        p.TimeCalcNuclearReaction += p.getWallclockTime() - p.tstart;
+    }
+
     static void accumulateOthers() {
         WallclockTime & p = getInstance();
         p.TimeOthers += p.getWallclockTime() - p.tstart;
@@ -119,6 +128,7 @@ public:
         p.TimeCalcGravityMax           = PS::Comm::getMaxValue(p.TimeCalcGravity);
         p.TimeReferEquationOfStateMax  = PS::Comm::getMaxValue(p.TimeReferEquationOfState);
         p.TimeIntegrateOrbitMax        = PS::Comm::getMaxValue(p.TimeIntegrateOrbit);
+        p.TimeCalcNuclearReactionMax   = PS::Comm::getMaxValue(p.TimeCalcNuclearReaction);
         p.TimeOthersMax                = PS::Comm::getMaxValue(p.TimeOthers);
 
         PS::F64 rankinv = 1.0 / (PS::F64)(PS::Comm::getNumberOfProc());
@@ -129,6 +139,7 @@ public:
         p.TimeCalcGravityAverage          = PS::Comm::getSum(p.TimeCalcGravity) * rankinv;
         p.TimeReferEquationOfStateAverage = PS::Comm::getSum(p.TimeReferEquationOfState) * rankinv;
         p.TimeIntegrateOrbitAverage       = PS::Comm::getSum(p.TimeIntegrateOrbit) * rankinv;
+        p.TimeCalcNuclearReactionAverage  = PS::Comm::getSum(p.TimeCalcNuclearReaction) * rankinv;
         p.TimeOthersAverage               = PS::Comm::getSum(p.TimeOthers) * rankinv;        
     }
 
@@ -145,6 +156,7 @@ public:
             fprintf(fp, " TimeCalcGravity");
             fprintf(fp, " TimeCalcReferEquationOfState");
             fprintf(fp, " TimeIntegrationOrbit");
+            fprintf(fp, " TimeCalcNuclearReaction");
             fprintf(fp, " TimeOthers");
             fprintf(fp, "\n");
             first = false;
@@ -158,6 +170,7 @@ public:
         fprintf(fp, " %e", p.TimeCalcGravityMax);
         fprintf(fp, " %e", p.TimeReferEquationOfStateMax);
         fprintf(fp, " %e", p.TimeIntegrateOrbitMax);
+        fprintf(fp, " %e", p.TimeCalcNuclearReactionMax);
         fprintf(fp, " %e", p.TimeOthersMax);
         fprintf(fp, " %e", p.TimeDecomposeDomainAverage);
         fprintf(fp, " %e", p.TimeExchangeParticleAverage);
@@ -166,6 +179,7 @@ public:
         fprintf(fp, " %e", p.TimeCalcGravityAverage);
         fprintf(fp, " %e", p.TimeReferEquationOfStateAverage);
         fprintf(fp, " %e", p.TimeIntegrateOrbitAverage);
+        fprintf(fp, " %e", p.TimeCalcNuclearReactionAverage);
         fprintf(fp, " %e", p.TimeOthersAverage);
         fprintf(fp, "\n");
     }
@@ -184,6 +198,7 @@ public:
         p.TimeCalcGravity          = 0.d;
         p.TimeReferEquationOfState = 0.d;
         p.TimeIntegrateOrbit       = 0.d;
+        p.TimeCalcNuclearReaction  = 0.d;
         p.TimeOthers               = 0.d;
     }
 };

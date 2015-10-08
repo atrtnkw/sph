@@ -29,6 +29,8 @@ public:
     PS::F64 temp;
     PS::F64 cmps[NR::NumberOfNucleon];
     PS::S64 cnteos;    
+    PS::F64 dnuc;
+    PS::F64 enuc;
 
     void readAscii(FILE * fp) {
         using namespace CodeUnit;
@@ -61,26 +63,29 @@ public:
         PS::F64    tpres = this->pres * UnitOfPressure;
         PS::F64    tdivv = this->divv * UnitOfTimeInv; // divv [s^-1]
         PS::F64    trotv = this->rotv * UnitOfTimeInv; // rotv [s^-1]
-        PS::F64    tpot  = this->pot  * UnitOfEnergy;        
+        PS::F64    tpot  = this->pot  * UnitOfEnergy;
+        PS::F64    tenuc = this->enuc * UnitOfEnergy;
         PS::F64    tvsmx = this->vsmx * UnitOfVelocity;
         PS::F64    tudot = this->udot * UnitOfEnergy * UnitOfTimeInv;
-        fprintf(fp, "%6d %2d %+.8e", this->id, this->istar, tmass);   //  3
-        fprintf(fp, " %+.8e %+.8e %+.8e", tpos[0], tpos[1], tpos[2]); //  6
-        fprintf(fp, " %+.8e %+.8e %+.8e", tvel[0], tvel[1], tvel[2]); //  9
-        fprintf(fp, " %+.8e %+.8e %+.8e", tacc[0], tacc[1], tacc[2]); // 12
-        fprintf(fp, " %+.8e %+.8e %+.8e", tuene, this->alph, this->alphu); // 15
-        fprintf(fp, " %+.8e %+.8e %6d",   tdens, tksr, this->np);     // 18
-        fprintf(fp, " %+.8e %+.8e %+.8e", tvsnd, tpres, this->temp);  // 21
-        fprintf(fp, " %+.8e %+.8e %+.8e", tdivv, trotv, this->bswt);  // 24
-        fprintf(fp, " %+.8e %+.8e %+.8e", tpot, this->abar, this->zbar); // 27
-        fprintf(fp, " %+.8e %+.8e",       tvsmx, tudot);                 // 29
-        for(PS::S32 k = 0; k < NuclearReaction::NumberOfNucleon; k++) {  // 30 -- 42
+        PS::F64    tdnuc = this->dnuc * UnitOfEnergy;
+        fprintf(fp, "%6d %2d %+e", this->id, this->istar, tmass);    //  3
+        fprintf(fp, " %+e %+e %+e", tpos[0], tpos[1], tpos[2]);      //  6
+        fprintf(fp, " %+e %+e %+e", tvel[0], tvel[1], tvel[2]);      //  9
+        fprintf(fp, " %+e %+e %+e", tacc[0], tacc[1], tacc[2]);      // 12
+        fprintf(fp, " %+e %+e %+e", tuene, this->alph, this->alphu); // 15
+        fprintf(fp, " %+e %+e %6d", tdens, tksr,  this->np);         // 18
+        fprintf(fp, " %+e %+e %+e", tvsnd, tpres, this->temp);       // 21
+        fprintf(fp, " %+e %+e %+e", tdivv, trotv, this->bswt);       // 24
+        fprintf(fp, " %+e %+e %+e", tpot, this->abar, this->zbar);   // 27
+        fprintf(fp, " %+e",         tenuc);                          // 28
+        fprintf(fp, " %+e %+e %+e", tvsmx, tudot, tdnuc);            // 31
+        for(PS::S32 k = 0; k < NuclearReaction::NumberOfNucleon; k++) { // 32 -- 44
             fprintf(fp, " %+.3e", this->cmps[k]);
         }
         if(RP::FlagDamping == 2) {
             PS::F64vec tomg = RP::RotationalVelocity * UnitOfTimeInv;
             PS::F64vec tvec = tomg ^ tpos;
-            fprintf(fp, " %+.16e", tpot - 0.5 * (tvec * tvec));          // 43
+            fprintf(fp, " %+e", tpot - 0.5 * (tvec * tvec));         // 45
         }
         fprintf(fp, "\n");
     }
@@ -95,7 +100,7 @@ public:
         PS::U64 udens, upres, uvsnd, utemp;
         PS::U64 udivv, urotv, ubswt;
         PS::U64 uksr, ugrdh, uvsmx;
-        PS::U64 upot;
+        PS::U64 upot, uenuc;
         PS::U64 ucmps[NR::NumberOfNucleon];
 
         fscanf(fp, "%d %d %llx", &this->id, &this->istar, &umass);
@@ -108,7 +113,7 @@ public:
         fscanf(fp, "%llx %llx %llx %llx", &udens, &upres, &uvsnd, &utemp);
         fscanf(fp, "%llx %llx %llx", &udivv, &urotv, &ubswt);
         fscanf(fp, "%llx %llx %llx", &uksr,  &ugrdh, &uvsmx);
-        fscanf(fp, "%llx", &upot);
+        fscanf(fp, "%llx %llx", &upot, &uenuc);
         for(PS::S32 k = 0; k < NR::NumberOfNucleon; k++) {
             fscanf(fp, "%llx", &ucmps[k]);
         }
@@ -140,6 +145,7 @@ public:
         this->grdh  = cvt(ugrdh);
         this->vsmx  = cvt(uvsmx);
         this->pot   = cvt(upot);        
+        this->enuc  = cvt(uenuc);        
         for(PS::S32 k = 0; k < NR::NumberOfNucleon; k++) {
             this->cmps[k] = cvt(ucmps[k]);
         }
@@ -158,7 +164,7 @@ public:
         fprintf(fp, " %llx %llx", cvt(this->vsnd), cvt(this->temp));
         fprintf(fp, " %llx %llx %llx", cvt(this->divv), cvt(this->rotv), cvt(this->bswt));
         fprintf(fp, " %llx %llx %llx", cvt(this->ksr), cvt(this->grdh), cvt(this->vsmx));
-        fprintf(fp, " %llx", cvt(this->pot));
+        fprintf(fp, " %llx %llx", cvt(this->pot), cvt(this->enuc));
         for(PS::S32 k = 0; k < NR::NumberOfNucleon; k++) {
             fprintf(fp, " %llx", cvt(this->cmps[k]));
         }
@@ -193,14 +199,25 @@ public:
         this->zbar = this->abar * zbar;
     }
 
-    PS::F64 calcTimeStep() {
+    void calcReleasedNuclearEnergy() {
+        if(this->temp > 1e6) {
+            this->dnuc  = CalcNRH::getGeneratedEnergy(RP::Timestep,
+                                                      this->dens,
+                                                      this->temp,
+                                                      this->cmps);
+            this->enuc += this->dnuc;
+        }
+    }
+
+    PS::F64 calcTimestep() {
         using namespace CodeUnit;
         PS::F64 tceff   = RP::CoefficientOfTimestep;
         PS::F64 dth = tceff * this->ksr / (this->vsmx * SK::ksrh);
         PS::F64 dtu = tceff * fabs(this->uene / this->udot);
+        PS::F64 dtn = tceff * fabs(this->uene / this->dnuc) * RP::Timestep;
         dtu = (this->dens < 1e4 * UnitOfDensity) ? RP::MaximumTimestep : dtu;
-        /// consider nuclear reation
-        return std::min(dth, dtu);
+        dtn = (this->dens < 1e4 * UnitOfDensity) ? RP::MaximumTimestep : dtn;
+        return std::min(std::min(dth, dtu), dtn);
     }
 
     inline void addAdditionalForceDamping2() {
@@ -227,7 +244,8 @@ public:
         this->vel2   = this->vel   + 0.5 * this->acc   * dt;
         this->vel    = this->vel   +       this->acc   * dt;
         this->uene2  = this->uene  + 0.5 * this->udot  * dt;
-        this->uene   = this->uene  +       this->udot  * dt;
+        //this->uene   = this->uene  +       this->udot  * dt;
+        this->uene   = this->uene  +       this->udot  * dt  +       this->dnuc;
         this->alph2  = this->alph  + 0.5 * this->adot  * dt;
         this->alph   = this->alph  +       this->adot  * dt;
         this->alphu2 = this->alphu + 0.5 * this->adotu * dt;
@@ -236,7 +254,8 @@ public:
 
     void correct(PS::F64 dt) {
         this->vel   = this->vel2   + 0.5 * this->acc   * dt;
-        this->uene  = this->uene2  + 0.5 * this->udot  * dt;
+        //this->uene  = this->uene2  + 0.5 * this->udot  * dt;
+        this->uene  = this->uene2  + 0.5 * this->udot  * dt  +       this->dnuc;
         this->alph  = this->alph2  + 0.5 * this->adot  * dt;
         this->alphu = this->alphu2 + 0.5 * this->adotu * dt;
     }
@@ -485,11 +504,13 @@ void outputData(Tdinfo & dinfo,
         writeHexa(filename, dinfo, sph, msls);
     }
     PS::F64 etot = calcEnergy(sph);
+    PS::F64 enuc = calcReleasedNuclearEnergyTotal(sph);
     if(PS::Comm::getRank() == 0) {
         using namespace CodeUnit;
-        fprintf(RP::FilePointerForLog, "time: %8d %16.10f %+e %+e %+e\n",
+        fprintf(RP::FilePointerForLog, "time: %8d %16.10f %+e %+e %+e %+e %+e\n",
                 RP::NumberOfStep, RP::Time * UnitOfTime, RP::Timestep * UnitOfTime,
-                etot * UnitOfEnergy * UnitOfMass, WT::getTimeTotal());
+                (etot - enuc) * UnitOfEnergy * UnitOfMass, etot * UnitOfEnergy * UnitOfMass,
+                enuc * UnitOfEnergy * UnitOfMass, WT::getTimeTotal());
         WT::dump(RP::Time, RP::FilePointerForTime);
         fflush(RP::FilePointerForLog);
     }
@@ -621,13 +642,18 @@ void loopSimulation(Tdinfo & dinfo,
 
     WT::clear();
     while(RP::Time < RP::TimeEnd) {
-        RP::Timestep = calcTimeStep(sph);
+        RP::Timestep = calcTimestep(sph);
         WT::reduceInterProcess();
         outputData(dinfo, sph, msls);
         WT::clear();
         if(RP::FlagDamping == 2) {
             reduceSeparation(sph, msls);
         }
+        WT::start();
+        if(RP::FlagNuclear == 1) {
+            calcReleasedNuclearEnergy(sph);
+        }
+        WT::accumulateCalcNuclearReaction();
         WT::start();
         predict(sph);
         WT::accumulateOthers();
