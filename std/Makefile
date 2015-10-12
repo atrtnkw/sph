@@ -1,5 +1,5 @@
 ###### AT_PLATFORM ########
-use_xc  = no
+use_xc  = yes
 ###### AT_EOS #############
 use_ideal = no
 ###### AT_MPI_OPENMP ######

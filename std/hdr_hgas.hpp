@@ -277,6 +277,16 @@ public:
         this->alphu = this->alphu2 + 0.5 * this->adotu * dt;
     }
 
+    void correctDamping3(PS::F64 dt) {
+        this->vel   = this->vel2   + 0.5 * this->acc   * dt;
+        this->uene  = this->uene2  + 0.5 * this->udot  * dt;
+        this->alph  = this->alph2  + 0.5 * this->adot  * dt;
+        this->alphu = this->alphu2 + 0.5 * this->adotu * dt;
+        PS::F64 unow = this->uene;
+        PS::F64 umin = CalcEquationOfState::getEnergyMin(this->dens, this->abar, this->zbar);
+        this->uene   = (unow < umin) ? unow : ((unow - umin) * exp(-0.1 * dt) + umin);
+    }
+
     void calcAlphaDot() {
         PS::F64 src    = std::max((- divv * (RP::AlphaMaximum - this->alph)), 0.);
         PS::F64 tauinv = (0.25 * SK::ksrh * this->vsnd) / this->ksr;
@@ -297,7 +307,7 @@ namespace RunParameter {
 
         FILE *fp = fopen(filename, "r");
         if(fp == NULL) {
-            fprintf(stderr, "Not found header file!\n");
+            fprintf(stderr, "Not found header file %s!\n", filename);
             PS::Abort();
         }
         fscanf(fp, "%lf%lf%lf%lf", &Time, &TimeEnd, &TimestepAscii, &TimestepHexa);
@@ -413,8 +423,7 @@ namespace RunParameter {
         fprintf(fp, "# # of process %8d\n", PS::Comm::getNumberOfProc());
         fprintf(fp, "# # of thread  %8d\n", PS::Comm::getNumberOfThread());
         if(atoi(argv[1]) == 0) {
-            fprintf(fp, "# Header file: %s\n", argv[2]);
-            fprintf(fp, "# Data   file: %s\n", argv[3]);
+            fprintf(fp, "# Header Data:  %s\n", argv[3]);
         } else {
             fprintf(fp, "# Restart file: %s\n", argv[2]);
         }
@@ -537,6 +546,10 @@ void correct(Tsph & sph) {
         for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
             sph[i].correctDamping2(RP::Timestep);
         }
+    } else if(RP::FlagDamping == 3) {
+        for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
+            sph[i].correctDamping3(RP::Timestep);
+        }
     } else {
         fprintf(stderr, "Not supported damping mode %d!\n", RP::FlagDamping);
         PS::Abort();
@@ -591,8 +604,16 @@ void startSimulation(char **argv,
                      Tdensity & density,
                      Thydro & hydro,
                      Tgravity & gravity) {
-    RP::readAscii(argv[2]);
-    sph.readParticleAscii(argv[3]);    
+    char headname[256];
+    sprintf(headname, "%s.head", argv[3]);
+    RP::readAscii(headname);
+    if(atoi(argv[2]) == 0) {
+        char filename[256];
+        sprintf(filename, "%s.data", argv[3]);
+        sph.readParticleAscii(filename);    
+    } else {
+        sph.readParticleAscii(argv[3], "%s_p%06d_i%06d.data");    
+    }
     if(RP::FlagDamping == 2) {
         generateMassLessParticle(msls, sph);
     }
