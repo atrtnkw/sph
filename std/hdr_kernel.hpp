@@ -131,6 +131,35 @@ namespace SmoothingKernel {
         }
     }
 #elif defined USE_HELMHOLTZ
+
+#ifdef FOR_TUBE_TEST
+
+    const PS::F64 eta     = 1.6;
+    const PS::F64 ksrh    = 1.620185;
+    const PS::F64 ksrhinv = 1. / ksrh;
+    const PS::F64 dim     = 1.;
+    const PS::F64 ceff0   = +1.25;
+    const PS::F64 ceff1   = +3.75;
+
+    inline v4df kernel0th(const v4df r) {
+        v4df rmin = v4df::max(v4df(1.d) - r, 0.d);
+        return v4df(ceff0) * rmin * rmin * rmin * (v4df(1.d) + v4df(3.d) * r);
+    }
+    inline v4df kernel1st(const v4df r) {
+        v4df rmin  = v4df::max(v4df(1.d) - r, 0.d);
+        v4df rmin2 = rmin * rmin;
+        v4df rmin3 = rmin * rmin2;
+        return v4df(ceff1) * (rmin3 - rmin2 * (v4df(1.d) + v4df(3.d) * r));
+    }
+    void setKernel(const KernelType kn,
+                   const PS::F64 ndim) {
+        if(PS::Comm::getRank() == 0) {
+            fprintf(stderr, "set 1D WendlandC2!\n");
+        }
+    };
+
+#else
+
     const PS::F64 eta     = 1.6;
     const PS::F64 ksrh    = 1.936492;
     const PS::F64 ksrhinv = 1. / ksrh;
@@ -156,6 +185,9 @@ namespace SmoothingKernel {
             fprintf(stderr, "set 3D WendlandC2!\n");
         }
     };
+
+#endif
+
 #else
 #error We have only two options: USE_IDEAL and USE_HELMHOLTZ.
 #endif

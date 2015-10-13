@@ -500,7 +500,15 @@ void outputData(Tdinfo & dinfo,
                 Tmsls & msls) {
     if(RP::Time - (PS::S64)(RP::Time / RP::TimestepAscii) * RP::TimestepAscii == 0.) {
         char filename[64];
+#ifdef FOR_TUBE_TEST
+        if(RP::Time == 0.) {
+            RP::NumberOfAscii = 0;
+        }
+        sprintf(filename, "snap/sph_t%04d.dat", RP::NumberOfAscii);
+        RP::NumberOfAscii++;
+#else
         sprintf(filename, "snap/sph_t%04d.dat", (PS::S32)RP::Time);
+#endif
         sph.writeParticleAscii(filename);
         if(RP::FlagDamping == 2) {
             sprintf(filename, "snap/msls_t%04d.dat", (PS::S32)RP::Time);
@@ -621,6 +629,14 @@ void startSimulation(char **argv,
     SK::setKernel(RP::KernelType, RP::NumberOfDimension);
     RP::KernelSupportRadiusMaximum = calcSystemSize(sph);
     RP::EpsilonOfInternalEnergy    = RP::setEpsilonOfInternalEnergy(sph);
+#ifdef FOR_TUBE_TEST
+    RP::FlagGravity = 0;
+    RP::Timestep    = 1. / pow(2., 30.);
+    dinfo.setBoundaryCondition(PS::BOUNDARY_CONDITION_PERIODIC_XYZ);
+    dinfo.setPosRootDomain((- 1e9 * CodeUnit::UnitOfLengthInv),
+                           (1e9 * CodeUnit::UnitOfLengthInv));
+    sph.adjustPositionIntoRootDomain(dinfo);
+#endif
     RP::outputRunParameter(argv);
     PS::MT::init_genrand(0);
     dinfo.decomposeDomainAll(sph);
@@ -678,6 +694,9 @@ void loopSimulation(Tdinfo & dinfo,
         WT::start();
         predict(sph);
         WT::accumulateOthers();
+#ifdef FOR_TUBE_TEST
+        sph.adjustPositionIntoRootDomain(dinfo);
+#endif
         WT::start();
         if(RP::NumberOfStep % 4 == 0) {
             PS::MT::init_genrand(0);

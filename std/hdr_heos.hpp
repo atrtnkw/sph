@@ -17,10 +17,16 @@ namespace CodeUnit {
     PS::F64 UnitOfTime         = 1.0d;
 
     PS::F64 UnitOfVelocity     = UnitOfLength / UnitOfTime;
+#ifdef FOR_TUBE_TEST
+    PS::F64 UnitOfDensity      = UnitOfMass /  UnitOfLength;
+    PS::F64 UnitOfEnergy       = UnitOfVelocity * UnitOfVelocity;
+    PS::F64 UnitOfPressure     = UnitOfMass * UnitOfLength / (UnitOfTime * UnitOfTime);
+#else
     PS::F64 UnitOfDensity      = UnitOfMass / (UnitOfLength * UnitOfLength * UnitOfLength);
     PS::F64 UnitOfEnergy       = UnitOfVelocity * UnitOfVelocity;
     PS::F64 UnitOfPressure     = UnitOfMass * UnitOfLength
         / (UnitOfTime * UnitOfTime * UnitOfLength * UnitOfLength);
+#endif
     PS::F64 UnitOfAcceleration = UnitOfVelocity / UnitOfTime;
 
     PS::F64 UnitOfLengthInv    = 1.d / UnitOfLength;
@@ -34,7 +40,6 @@ namespace CodeUnit {
     PS::F64 MaximumOfTemperature       = 1e10;
     PS::F64 MinimumOfTemperature       = 1e5;
     PS::F64 BoundaryTemperature        = 1e8;
-//    PS::F64 TolaranceOfLowTemperature  = 1e-1;
     PS::F64 TolaranceOfLowTemperature  = 1e-4;
     PS::F64 TolaranceOfHighTemperature = 1e-4;
 
@@ -50,15 +55,18 @@ private:
     CalcEquationOfState() {
         using namespace OTOO;
         using namespace CodeUnit;
-        if(RP::FlagDamping == 0) {
+//        if(RP::FlagDamping == 0) {
+        if(RP::FlagDamping != 1) {
             eos_ = new WDEOS_D_E(UnitOfDensity, UnitOfEnergy, UnitOfVelocity,
                                  UnitOfPressure, 1.0e6);
-        } else if(RP::FlagDamping == 1) {
+//        } else if(RP::FlagDamping == 1) {
+        } else {
             eos_ = new WDEOSforDumping(UnitOfDensity, UnitOfEnergy, UnitOfVelocity,
                                        UnitOfPressure, 1.0e6);
-        } else {
-            fprintf(stderr, "Not supported damping mode %d!\n", RP::FlagDamping);
-            PS::Abort();
+//        } else {
+//            fprintf(stderr, "Not supported damping mode %d!\n", RP::FlagDamping);
+//            PS::Abort();
+//        }
         }
     };
     ~CalcEquationOfState() {};

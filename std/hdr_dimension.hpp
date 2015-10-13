@@ -84,6 +84,31 @@ namespace NthDimension {
     }
 #elif defined USE_HELMHOLTZ
 
+#ifdef FOR_TUBE_TEST
+
+    inline v4df calcVolumeInverse(const v4df hi) {
+        return hi;
+    }
+
+    inline PS::F64 calcPowerOfDimInverse(const PS::F64 mass,
+                                         const PS::F64 dens) {
+        return mass / dens;
+    }
+
+    inline PS::F64mat invertMatrix(const PS::F64mat & tau) {
+        PS::F64mat c = 0.;
+        c.xx = 1. / tau.xx;
+        return c;
+    }
+
+    void setDimension(const PS::F64 ndim) {
+        if(PS::Comm::getRank() == 0) {
+            fprintf(stderr, "set 1D!\n");
+        }
+    }
+
+#else
+
     inline v4df calcVolumeInverse(const v4df hi) {
         return hi * hi * hi;
     }
@@ -114,6 +139,8 @@ namespace NthDimension {
             fprintf(stderr, "set 3D!\n");
         }
     }
+
+#endif
 
 #else
 #error We have only two options: USE_IDEAL and USE_HELMHOLTZ.

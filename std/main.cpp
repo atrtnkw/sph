@@ -28,7 +28,7 @@ inline void debugFunction(const char * const literal);
 
 inline void debugFunction(const char * const literal) {
     if(PS::Comm::getRank() == 0) {
-        printf("hogehogehoge %s\n", literal);
+        printf("hogehogehoge %.16e %s\n", RP::Time, literal);
         fflush(stdout);
     }
 }
@@ -42,17 +42,20 @@ void calcAbarZbar(Tsph & sph) {
 
 template <class Tsph>
 void referEquationOfState(Tsph & sph) {
-    if(RP::FlagDamping == 0 || RP::FlagDamping == 2) {
+//    if(RP::FlagDamping == 0 || RP::FlagDamping == 2) {
+    if(RP::FlagDamping != 1) {
         for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
             sph[i].referEquationOfState();
         }
-    } else if(RP::FlagDamping == 1) {
+//    } else if(RP::FlagDamping == 1) {
+    } else {
         for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
             sph[i].referEquationOfStateDamping1();
         }
-    } else {
-        fprintf(stderr, "Not supported damping mode %d!\n", RP::FlagDamping);
-        PS::Abort();
+//    } else {
+//        fprintf(stderr, "Not supported damping mode %d!\n", RP::FlagDamping);
+//        PS::Abort();
+//    }
     }
 }
 
@@ -72,17 +75,20 @@ void calcBalsaraSwitch(Tsph & sph) {
 
 template <class Tsph>
 void addAdditionalForce(Tsph & sph) {
-    if(RP::FlagDamping == 0 || RP::FlagDamping == 1) {
+//    if(RP::FlagDamping == 0 || RP::FlagDamping == 1) {
+    if(RP::FlagDamping != 2) {
         for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
             sph[i].addAdditionalForce();
         }
-    } else if(RP::FlagDamping == 2) {
+//    } else if(RP::FlagDamping == 2) {
+    } else {
         for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
             sph[i].addAdditionalForceDamping2();
         }
-    } else {
-        fprintf(stderr, "Not supported damping mode %d!\n", RP::FlagDamping);
-        PS::Abort();
+//    } else {
+//        fprintf(stderr, "Not supported damping mode %d!\n", RP::FlagDamping);
+//        PS::Abort();
+//    }
     }
 }
 
@@ -109,17 +115,20 @@ void sumAcceleration(Tsph & sph) {
 template <class Tsph>
 PS::F64 calcEnergy(Tsph & sph) {
     PS::F64 eloc = 0.;
-    if(RP::FlagDamping == 0 || RP::FlagDamping == 1) {
+//    if(RP::FlagDamping == 0 || RP::FlagDamping == 1) {
+    if(RP::FlagDamping != 2) {
         for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
             eloc += sph[i].calcEnergy();
         }
-    } else if(RP::FlagDamping == 2) {
+//    } else if(RP::FlagDamping == 2) {
+    } else {
         for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
             eloc += sph[i].calcEnergyDamping2();
         }
-    } else {
-        fprintf(stderr, "Not supported damping mode %d!\n", RP::FlagDamping);
-        PS::Abort();
+//    } else {
+//        fprintf(stderr, "Not supported damping mode %d!\n", RP::FlagDamping);
+//        PS::Abort();
+//    }
     }
     PS::F64 eglb = PS::Comm::getSum(eloc);
     return eglb;

@@ -266,18 +266,16 @@ void calcGravityKernel(Tdinfo & dinfo,
                        Tsph & sph,
                        Tmsls & msls,
                        Tgravity & gravity) {
-//    if(RP::FlagGravity == 1) {
-//        gravity.calcForceAllAndWriteBack(calcGravity<GravityEPJ>(), calcGravity<PS::GravitySPJ>(),
-//                                         sph, dinfo);
-//    }
     if(RP::FlagGravity == 0) {
         return;
     }
     
-    if(RP::FlagDamping == 0 || RP::FlagDamping == 1) {
+//    if(RP::FlagDamping == 0 || RP::FlagDamping == 1) {
+    if(RP::FlagDamping != 2) {
         gravity.calcForceAllAndWriteBack(calcGravity<GravityEPJ>(), calcGravity<PS::GravitySPJ>(),
                                          sph, dinfo);
-    } else if(RP::FlagDamping == 2) {
+//    } else if(RP::FlagDamping == 2) {
+    } else {
         gravity.setParticleLocalTree(sph);
         gravity.setParticleLocalTree(msls, false);
         gravity.calcForceMakingTree(calcGravity<GravityEPJ>(),
@@ -291,8 +289,9 @@ void calcGravityKernel(Tdinfo & dinfo,
         for(PS::S32 i = 0; i < nmsls; i++) {
             msls[i].copyFromForce(gravity.getForce(i+nsph));
         }
-    } else {
-        fprintf(stderr, "Not supported damping mode %d!\n", RP::FlagDamping);
-        PS::Abort();
+//    } else {
+//        fprintf(stderr, "Not supported damping mode %d!\n", RP::FlagDamping);
+//        PS::Abort();
+//    }
     }
 }
