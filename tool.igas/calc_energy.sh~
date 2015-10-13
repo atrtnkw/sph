@@ -1,0 +1,16 @@
+if test $# -ne 1
+then
+    echo "sh $0 <ifile>a"
+    exit
+fi
+
+file=$1
+
+awk 'BEGIN{ek=ep=et=0.;n=0;}
+{
+ek += 0.5 * $2 * ($7**2 + $8**2 + $9**2);
+
+}
+END{print xc/n, yc/n, zc/n}'
+$file
+

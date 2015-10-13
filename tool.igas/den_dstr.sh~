@@ -1,0 +1,7 @@
+if test $# -ne 1
+then
+    echo "sh $0 <ifile>a"
+    exit
+fi
+
+
