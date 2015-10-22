@@ -161,6 +161,7 @@ namespace SmoothingKernel {
 #else
 
     const PS::F64 eta     = 1.6;
+    //const PS::F64 eta     = 1.27;
     const PS::F64 ksrh    = 1.936492;
     const PS::F64 ksrhinv = 1. / ksrh;
     const PS::F64 dim     = 3.;

@@ -296,7 +296,8 @@ public:
         PS::F64 srcu   = this->ksr * SK::ksrhinv * fabs(this->diffu)
             / sqrt(uene + RP::EpsilonOfInternalEnergy)
             * std::max(RP::AlphuMaximum - this->alphu, 0.);
-        this->adotu    = - (this->alphu - RP::AlphuMinimum) * tauinv + src;
+        //this->adotu    = - (this->alphu - RP::AlphuMinimum) * tauinv + src;
+        this->adotu    = - (this->alphu - RP::AlphuMinimum) * tauinv + srcu;
     }
 };
 
@@ -568,7 +569,11 @@ void initializeSimulation() {
     using namespace RunParameter;
     //Time              = 0.;
     //TimeEnd           = 0.;
+#ifdef FOR_TUBE_TEST
+    MaximumTimestep   = 1. / 256.;
+#else
     MaximumTimestep   = 1. / 64.;
+#endif
     MinimumTimestep   = 1e-16;
     Timestep          = RP::MaximumTimestep;
     //TimeAscii         = 0.;
@@ -633,8 +638,8 @@ void startSimulation(char **argv,
     RP::FlagGravity = 0;
     RP::Timestep    = 1. / pow(2., 30.);
     dinfo.setBoundaryCondition(PS::BOUNDARY_CONDITION_PERIODIC_XYZ);
-    dinfo.setPosRootDomain((- 1e9 * CodeUnit::UnitOfLengthInv),
-                           (1e9 * CodeUnit::UnitOfLengthInv));
+    dinfo.setPosRootDomain((- 0.5e9 * CodeUnit::UnitOfLengthInv),
+                           (+ 0.5e9 * CodeUnit::UnitOfLengthInv));
     sph.adjustPositionIntoRootDomain(dinfo);
 #endif
     RP::outputRunParameter(argv);
