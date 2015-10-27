@@ -1,0 +1,8 @@
+for time in $(seq -f "%04g" 0 1 245)
+do
+    ifile=unfy/sph_t"$time".dat
+    if test -e $ifile
+    then
+        echo $ifile
+    fi
+done

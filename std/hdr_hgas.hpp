@@ -518,7 +518,15 @@ void outputData(Tdinfo & dinfo,
     }
     if(RP::Time - (PS::S64)(RP::Time / RP::TimestepHexa) * RP::TimestepHexa == 0.) {
         char filename[64];
+#ifdef FOR_TUBE_TEST
+        if(RP::Time == 0.) {
+            RP::NumberOfHexa = 0;
+        }
+        sprintf(filename, "snap/t%04d_p%06d.hexa", RP::NumberOfHexa, PS::Comm::getRank());
+        RP::NumberOfHexa++;
+#else
         sprintf(filename, "snap/t%04d_p%06d.hexa", (PS::S32)RP::Time, PS::Comm::getRank());
+#endif
         writeHexa(filename, dinfo, sph, msls);
     }
     PS::F64 etot = calcEnergy(sph);
@@ -665,6 +673,13 @@ void restartSimulation(char **argv,
     readHexa(filename, dinfo, sph, msls);
     ND::setDimension(RP::NumberOfDimension);
     SK::setKernel(RP::KernelType, RP::NumberOfDimension);
+#ifdef FOR_TUBE_TEST
+    RP::FlagGravity = 0;
+    //RP::FlagNuclear = 0;
+    dinfo.setBoundaryCondition(PS::BOUNDARY_CONDITION_PERIODIC_XYZ);
+    dinfo.setPosRootDomain((- 0.5e9 * CodeUnit::UnitOfLengthInv),
+                           (+ 0.5e9 * CodeUnit::UnitOfLengthInv));
+#endif
     RP::outputRunParameter(argv);
     return;
 }
