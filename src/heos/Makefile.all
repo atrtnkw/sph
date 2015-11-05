@@ -1,11 +1,11 @@
 ###### AT_PLATFORM ########
-use_xc  = no
+use_xc  = yes
 ###### AT_MPI_OPENMP ######
 use_mpi = yes
 use_omp = yes
 ###########################
 ###### AT_FLAGS ##############################
-#CFLAGS += -DTHERMAL_CONDUCTIVITY
+CFLAGS += -DTHERMAL_CONDUCTIVITY
 CFLAGS += -DSYMMETRIZED_GRAVITY
 CFLAGS += -DNUCLEAR_REACTION
 #
@@ -23,7 +23,7 @@ CFLAGS += -DWENDLANDC2
 ##############################################
 
 ifeq ($(use_xc), yes)
-FDPS_DIR = ../../../fdps/src
+FDPS_DIR = ../../fdps/src
 else
 FDPS_DIR = ../../../fdps-jenever0/src
 endif

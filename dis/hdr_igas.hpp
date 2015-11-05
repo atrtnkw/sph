@@ -19,24 +19,26 @@ public:
         fprintf(fp, " %+e %+e %+e", this->dens, this->vsnd, this->pres); // 17
         fprintf(fp, " %+e %+e %+e", this->divv, this->rotv, this->bswt); // 20
         fprintf(fp, " %+e %+e %+e", this->grdh, this->ksr,  this->pot); // 23
-        fprintf(fp, " %6d", this->np); // 24
-        //fprintf(fp, " %+e %+e %+e", this->ctau.xx, this->ctau.yy, this->ctau.zz);
-        //fprintf(fp, " %+e %+e %+e", this->ctau.xy, this->ctau.xz, this->ctau.yz);
+        fprintf(fp, " %6d %6d", this->np, this->np2); // 25
+        fprintf(fp, " %+e %+e %+e", this->vsmx, this->udot, this->ydot);
         fprintf(fp, "\n");
     }
 
     void referEquationOfState() {
-        this->pres = (RP::AdiabaticIndex - 1.) * this->dens * this->uene;
-        this->vsnd = sqrt(RP::AdiabaticIndex * this->pres / this->dens);
-        this->dpdr = (RP::AdiabaticIndex - 1.) * this->uene;
-        this->dpdu = (RP::AdiabaticIndex - 1.) * this->dens;
+        this->pres  = (RP::AdiabaticIndex - 1.) * this->dens * this->uene;
+        this->presk = pow(this->pres, RP::PowerForWeight);
+        this->vsnd  = sqrt(RP::AdiabaticIndex * this->pres / this->dens);
+        this->dpdr  = (RP::AdiabaticIndex - 1.) * this->uene;
+        this->dpdu  = (RP::AdiabaticIndex - 1.) * this->dens;
+        this->gamm  = RP::AdiabaticIndex;
     }
 
     PS::F64 calcTimeStep() {
         PS::F64 tceff   = RP::CoefficientOfTimestep;
-        PS::F64 dthydro = tceff * this->ksr / (this->vsmx * SK::ksrh);
-        PS::F64 dtenerg = tceff * fabs(this->uene / this->udot);
-        return std::min(dthydro, dtenerg);
+        PS::F64 dth = tceff * this->ksr / (this->vsmx * SK::ksrh);
+        PS::F64 dtu = tceff * fabs(this->uene / this->udot);
+        PS::F64 dty = tceff * fabs(this->vary / this->ydot);
+        return std::min(std::min(dth, dtu), dty);
     }
 
     PS::F64 calcEnergy() {
@@ -55,18 +57,19 @@ public:
         this->vel    = this->vel   +       this->acc   * dt;
         this->uene2  = this->uene  + 0.5 * this->udot  * dt;
         this->uene   = this->uene  +       this->udot  * dt;
-        this->vary2  = this->vary  + 0.5 * this->ydot  * dt;
+        //this->vary2  = this->vary  + 0.5 * this->ydot  * dt;
         this->vary   = this->vary  +       this->ydot  * dt;
         this->alph2  = this->alph  + 0.5 * this->adot  * dt;
         this->alph   = this->alph  +       this->adot  * dt;
         this->pres   = this->pres  +             pdot  * dt;
         this->ksr    = this->ksr   +             hdot  * dt;
+        this->presk  = pow(this->pres, RP::PowerForWeight);
     }
 
     void correct(PS::F64 dt) {
         this->vel   = this->vel2   + 0.5 * this->acc   * dt;
         this->uene  = this->uene2  + 0.5 * this->udot  * dt;
-        this->vary  = this->vary2  + 0.5 * this->ydot  * dt;
+        //this->vary  = this->vary2  + 0.5 * this->ydot  * dt;
         this->alph  = this->alph2  + 0.5 * this->adot  * dt;
     }
 };
@@ -93,11 +96,13 @@ void outputData(Tsph & sph) {
         RP::TimeAscii += RP::TimestepAscii;
         RP::NumberOfAscii++;        
     }
-    PS::F64 etot = calcEnergy(sph);
+    PS::F64    etot = calcEnergy(sph);
+    PS::F64vec vtot = calcMomentum(sph);
     if(PS::Comm::getRank() == 0) {
-        fprintf(RP::FilePointerForLog, "time: %.10f %+e %+e %+e\n",
-                RP::Time, RP::Timestep, etot, WT::getTimeTotal());
+        fprintf(RP::FilePointerForLog, "time: %.10f %+e %+e %+e %+e\n",
+                RP::Time, RP::Timestep, etot, vtot[0], WT::getTimeTotal());
         WT::dump(RP::Time, RP::FilePointerForTime);
+        fflush(RP::FilePointerForLog);
     }
 }
 
@@ -117,7 +122,7 @@ void correct(Tsph & sph) {
 
 void initializeSimulation() {
     RP::MaximumTimestep = 1. / 64.;
-    RP::MinimumTimestep = 1e-10;
+    RP::MinimumTimestep = 1e-16;
     RP::TimeAscii       = 0.;
     RP::NumberOfStep    = 0;
     RP::NumberOfAscii   = 0;
@@ -184,12 +189,17 @@ void loopSimulation(Tdinfo & dinfo,
     WT::clear();
     while(RP::Time < RP::TimeEnd) {
         RP::NumberOfStep++;
+        /*
+        if(RP::Time > 0.) {
+            sph.writeParticleAscii("snap/hoge.dat");
+            PS::Finalize();
+            exit(0);
+        }
+        */
         RP::Timestep = calcTimeStep(sph);
         WT::reduceInterProcess();
         outputData(sph);
         WT::clear();
-        PS::Finalize();
-        exit(0);
         WT::start();
         predict(sph);
         if(RP::ComputationalBox.low_[0] != RP::ComputationalBox.high_[0]) {

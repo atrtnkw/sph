@@ -6,6 +6,20 @@
 
 enum KernelType {CubicSpline = 0, WendlandC2 = 1, WendlandC4 = 2};
 inline void debugFunction(const char * const literal);
+template <class Tdinfo,
+          class Tsph,
+          class Tbhns,
+          class Tmsls,
+          class Tdensity,
+          class Thydro,
+          class Tgravity>
+void calcSPHKernel(Tdinfo & dinfo,
+                   Tsph & sph,
+                   Tbhns & bhns,
+                   Tmsls & msls,
+                   Tdensity & density,
+                   Thydro & hydro,
+                   Tgravity & gravity);
 
 #include "particle_simulator.hpp"
 #include "hdr_time.hpp"
@@ -22,6 +36,7 @@ inline void debugFunction(const char * const literal);
 #error Use what eos is ?
 #endif
 #include "hdr_msls.hpp"
+#include "hdr_bhns.hpp"
 #include "hdr_density.hpp"
 #include "hdr_hydro.hpp"
 #include "hdr_gravity.hpp"
@@ -42,20 +57,14 @@ void calcAbarZbar(Tsph & sph) {
 
 template <class Tsph>
 void referEquationOfState(Tsph & sph) {
-//    if(RP::FlagDamping == 0 || RP::FlagDamping == 2) {
     if(RP::FlagDamping != 1) {
         for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
             sph[i].referEquationOfState();
         }
-//    } else if(RP::FlagDamping == 1) {
     } else {
         for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
             sph[i].referEquationOfStateDamping1();
         }
-//    } else {
-//        fprintf(stderr, "Not supported damping mode %d!\n", RP::FlagDamping);
-//        PS::Abort();
-//    }
     }
 }
 
@@ -73,22 +82,21 @@ void calcBalsaraSwitch(Tsph & sph) {
     }
 }
 
-template <class Tsph>
-void addAdditionalForce(Tsph & sph) {
-//    if(RP::FlagDamping == 0 || RP::FlagDamping == 1) {
+template <class Tsph,
+          class Tbhns>
+void addAdditionalForce(Tsph & sph,
+                        Tbhns & bhns) {
     if(RP::FlagDamping != 2) {
         for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
             sph[i].addAdditionalForce();
         }
-//    } else if(RP::FlagDamping == 2) {
     } else {
         for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
             sph[i].addAdditionalForceDamping2();
         }
-//    } else {
-//        fprintf(stderr, "Not supported damping mode %d!\n", RP::FlagDamping);
-//        PS::Abort();
-//    }
+        for(PS::S64 i = 0; i < bhns.getNumberOfParticleLocal(); i++) {
+            bhns[i].addAdditionalForceDamping2();
+        }
     }
 }
 
@@ -112,23 +120,40 @@ void sumAcceleration(Tsph & sph) {
     }
 }
 
-template <class Tsph>
-PS::F64 calcEnergy(Tsph & sph) {
+template <class Tsph,
+          class Tbhns>
+PS::F64 calcPotentialEnergy(Tsph & sph,
+                            Tbhns & bhns) {
     PS::F64 eloc = 0.;
-//    if(RP::FlagDamping == 0 || RP::FlagDamping == 1) {
+    for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
+        eloc += sph[i].calcPotentialEnergy();
+    }
+    for(PS::S64 i = 0; i < bhns.getNumberOfParticleLocal(); i++) {
+        eloc += bhns[i].calcPotentialEnergy();
+    }
+    PS::F64 eglb = PS::Comm::getSum(eloc);
+    return eglb;
+}
+
+template <class Tsph,
+          class Tbhns>
+PS::F64 calcEnergy(Tsph & sph,
+                   Tbhns & bhns) {
+    PS::F64 eloc = 0.;
     if(RP::FlagDamping != 2) {
         for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
             eloc += sph[i].calcEnergy();
         }
-//    } else if(RP::FlagDamping == 2) {
+        for(PS::S64 i = 0; i < bhns.getNumberOfParticleLocal(); i++) {
+            eloc += bhns[i].calcEnergy();
+        }
     } else {
         for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
             eloc += sph[i].calcEnergyDamping2();
         }
-//    } else {
-//        fprintf(stderr, "Not supported damping mode %d!\n", RP::FlagDamping);
-//        PS::Abort();
-//    }
+        for(PS::S64 i = 0; i < bhns.getNumberOfParticleLocal(); i++) {
+            eloc += bhns[i].calcEnergyDamping2();
+        }
     }
     PS::F64 eglb = PS::Comm::getSum(eloc);
     return eglb;
@@ -190,12 +215,14 @@ PS::F64 calcTimestep(Tsph & sph) {
 
 template <class Tdinfo,
           class Tsph,
+          class Tbhns,
           class Tmsls,
           class Tdensity,
           class Thydro,
           class Tgravity>
 void calcSPHKernel(Tdinfo & dinfo,
                    Tsph & sph,
+                   Tbhns & bhns,
                    Tmsls & msls,
                    Tdensity & density,
                    Thydro & hydro,
@@ -209,14 +236,14 @@ void calcSPHKernel(Tdinfo & dinfo,
     calcBalsaraSwitch(sph);
     WT::accumulateOthers();
     WT::start();
-    calcGravityKernel(dinfo, sph, msls, gravity);
+    calcGravityKernel(dinfo, sph, bhns, msls, gravity);
     WT::accumulateCalcGravity();
     WT::start();
     hydro.calcForceAllAndWriteBack(calcHydro(), sph, dinfo);
     WT::accumulateCalcHydro();
     WT::start();
     sumAcceleration(sph);
-    addAdditionalForce(sph);
+    addAdditionalForce(sph, bhns);
     calcAlphaDot(sph);
     WT::accumulateOthers();
 }
@@ -235,6 +262,10 @@ int main(int argc, char **argv)
     msls.initialize();
     msls.createParticle(0);
     msls.setNumberOfParticleLocal(0);
+    PS::ParticleSystem<BlackHoleNeutronStar> bhns;
+    bhns.initialize();
+    bhns.createParticle(0);
+    bhns.setNumberOfParticleLocal(0);
     PS::TreeForForceShort<Density, DensityEPI, DensityEPJ>::Gather density;
     density.initialize(0);
     PS::TreeForForceShort<Hydro, HydroEPI, HydroEPJ>::Symmetry hydro;
@@ -246,14 +277,14 @@ int main(int argc, char **argv)
     initializeSimulation();
 
     if(atoi(argv[1]) == 0) {
-        startSimulation(argv, dinfo, sph, msls, density, hydro, gravity);
+        startSimulation(argv, dinfo, sph, bhns, msls, density, hydro, gravity);
     } else {
-        restartSimulation(argv, dinfo, sph, msls);
+        restartSimulation(argv, dinfo, sph, bhns, msls);
     }
 
-    loopSimulation(dinfo, sph, msls, density, hydro, gravity);
+    loopSimulation(dinfo, sph, bhns, msls, density, hydro, gravity);
 
-    finalizeSimulation(dinfo, sph, msls);
+    finalizeSimulation(dinfo, sph, bhns, msls);
 
     PS::Finalize();
 

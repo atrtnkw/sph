@@ -20,7 +20,9 @@ namespace RunParameter {
     PS::F64    GravitationalSoftening;
     PS::F64    AlphaMaximum, AlphaMinimum;
     PS::F64    KernelSupportRadiusMaximum; // ksrmax    
-    PS::F64    PowerForWeight = 0.05;
+    PS::F64    PowerForWeightInv = 1.;
+    //PS::F64    PowerForWeightInv = 20.;
+    PS::F64    PowerForWeight    = 1. / PowerForWeightInv;
     
     PS::S64    NumberOfParticle;
     PS::F64    AdiabaticIndex;     // gamma

@@ -30,13 +30,15 @@ public:
     PS::F64    rs;
     PS::F64    dens;
     PS::F64    pres;
+    PS::F64    presk;
     PS::F64    vsnd;
     PS::F64    dpdr;
     PS::F64    dpdu;
+    PS::F64    gamm;
     PS::F64    divv;
     PS::F64    rotv;
     PS::F64    bswt;
-    PS::S64    np;
+    PS::S64    np, np2;
     PS::F64    grdh;
     PS::F64    vsmx;
     PS::F64    pot;
@@ -46,7 +48,6 @@ public:
     PS::F64    eta;
     PS::F64    abar;
     PS::F64    zbar;
-    PS::F64mat ctau;
 
     PS::F64vec getPos() const {
         return this->pos;
@@ -72,11 +73,13 @@ public:
     virtual void correct(PS::F64 dt) {};
 
     void calcVariableY() {
-        this->vary = this->mass * this->pres / this->dens;
+        //this->vary = this->mass * this->pres / this->dens;
+        this->vary = this->mass * this->presk / this->dens;
     }
 
     void calcDensity() {
-        this->dens = this->mass * this->pres / this->vary;
+        //this->dens = this->mass * this->pres / this->vary;
+        this->dens = this->mass * this->presk / this->vary;
     }
 
     void calcBalsaraSwitch() {

@@ -35,7 +35,6 @@ public:
     PS::F64    hinv;
     PS::F64    pres;
     PS::F64    vary;
-    PS::F64mat ctau;
     PS::F64    bswt;
     PS::F64    dens;
     PS::F64    vsnd;
@@ -49,14 +48,13 @@ public:
         this->vel  = sph.vel;
         this->ksr  = sph.ksr;
         this->hinv = 1. / sph.ksr;
-        this->pres = sph.vary / sph.pres;
+        this->pres = sph.pres * sph.vary * sph.grdh / (sph.presk * sph.presk);
         this->vary = sph.vary;
-        this->ctau = sph.ctau;
         this->bswt = 0.5 * sph.bswt;
         this->dens = sph.dens;
         this->vsnd = sph.vsnd;
         this->alph = sph.alph;
-        this->gamm = RP::AdiabaticIndex;
+        this->gamm = sph.gamm;
     }
 
     PS::F64vec getPos() const {
@@ -82,7 +80,6 @@ public:
     PS::F64    hinv;
     PS::F64    pres;
     PS::F64    vary;
-    PS::F64mat ctau;
     PS::F64    bswt;
     PS::F64    dens;
     PS::F64    vsnd;
@@ -95,9 +92,9 @@ public:
         this->vel  = sph.vel;
         this->ksr  = sph.ksr;
         this->hinv = 1. / sph.ksr;
-        this->pres = sph.vary / sph.pres;
+        //this->pres = sph.pres * sph.vary / (sph.presk * sph.presk);
+        this->pres = sph.pres * sph.vary * sph.grdh / (sph.presk * sph.presk);
         this->vary = sph.vary;
-        this->ctau = sph.ctau;
         this->bswt = 0.5 * sph.bswt;
         this->dens = sph.dens;
         this->vsnd = sph.vsnd;
@@ -141,12 +138,6 @@ struct calcHydro {
             PS::F64 buf_hi[nvector];
             PS::F64 buf_ps[nvector];
             PS::F64 buf_ys[nvector];
-            PS::F64 buf_xx[nvector];
-            PS::F64 buf_yy[nvector];
-            PS::F64 buf_zz[nvector];
-            PS::F64 buf_xy[nvector];
-            PS::F64 buf_xz[nvector];
-            PS::F64 buf_yz[nvector];
             PS::F64 buf_bs[nvector];
             PS::F64 buf_dn[nvector];
             PS::F64 buf_cs[nvector];
@@ -165,12 +156,6 @@ struct calcHydro {
                 buf_hi[ii] = epi[i+ii].hinv;
                 buf_ps[ii] = epi[i+ii].pres;
                 buf_ys[ii] = epi[i+ii].vary;
-                buf_xx[ii] = epi[i+ii].ctau.xx;
-                buf_yy[ii] = epi[i+ii].ctau.yy;
-                buf_zz[ii] = epi[i+ii].ctau.zz;
-                buf_xy[ii] = epi[i+ii].ctau.xy;
-                buf_xz[ii] = epi[i+ii].ctau.xz;
-                buf_yz[ii] = epi[i+ii].ctau.yz;
                 buf_bs[ii] = epi[i+ii].bswt;
                 buf_dn[ii] = epi[i+ii].dens;
                 buf_cs[ii] = epi[i+ii].vsnd;
@@ -181,7 +166,6 @@ struct calcHydro {
             v4df px_i, py_i, pz_i;
             v4df vx_i, vy_i, vz_i;
             v4df hi_i, ps_i, ys_i;
-            v4df xx_i, yy_i, zz_i, xy_i, xz_i, yz_i;
             v4df bs_i, dn_i, cs_i, al_i;
             v4df gm_i;
             id_i.load(buf_id);
@@ -195,18 +179,12 @@ struct calcHydro {
             hi_i.load(buf_hi);
             ps_i.load(buf_ps);
             ys_i.load(buf_ys);
-            xx_i.load(buf_xx);
-            yy_i.load(buf_yy);
-            zz_i.load(buf_zz);
-            xy_i.load(buf_xy);
-            xz_i.load(buf_xz);
-            yz_i.load(buf_yz);
             bs_i.load(buf_bs);
             dn_i.load(buf_dn);
             cs_i.load(buf_cs);
             al_i.load(buf_al);
             gm_i.load(buf_gm);
-            v4df hi3_i = ND::calcVolumeInverse(hi_i);;
+            v4df hi4_i = hi_i * ND::calcVolumeInverse(hi_i);
             v4df achx_i(0.);
             v4df achy_i(0.);
             v4df achz_i(0.);
@@ -221,36 +199,17 @@ struct calcHydro {
                 v4df dvy_ij = vy_i - v4df(epj[j].vel[1]);
                 v4df dvz_ij = vz_i - v4df(epj[j].vel[2]);
 
-                v4df lax_i = dpx_ij * xx_i + dpy_ij * xy_i + dpz_ij * xz_i;
-                v4df lay_i = dpx_ij * xy_i + dpy_ij * yy_i + dpz_ij * yz_i;
-                v4df laz_i = dpx_ij * xz_i + dpy_ij * yz_i + dpz_ij * zz_i;
-                v4df lax_j = dpx_ij * epj[j].ctau.xx + dpy_ij * epj[j].ctau.xy
-                    + dpz_ij * epj[j].ctau.xz;
-                v4df lay_j = dpx_ij * epj[j].ctau.xy + dpy_ij * epj[j].ctau.yy
-                    + dpz_ij * epj[j].ctau.yz;
-                v4df laz_j = dpx_ij * epj[j].ctau.xz + dpy_ij * epj[j].ctau.yz
-                    + dpz_ij * epj[j].ctau.zz;
-
                 v4df r2_ij = dpx_ij * dpx_ij + dpy_ij * dpy_ij + dpz_ij * dpz_ij;
                 v4df ri_ij = ((id_i != v4df(epj[j].id)) & rsqrt(r2_ij));
                 v4df r1_ij = r2_ij * ri_ij;
                 v4df q_i   = r1_ij * hi_i;
                 v4df q_j   = r1_ij * epj[j].hinv;
 
-                v4df hi3_j = v4df(ND::calcVolumeInverse(epj[j].hinv));
-                v4df w0_i  = v4df(-1.0) * hi3_i * SK::kernel0th(q_i);
-                v4df w0_j  =              hi3_j * SK::kernel0th(q_j);
-
-                lax_i *= w0_i;
-                lay_i *= w0_i;
-                laz_i *= w0_i;
-                lax_j *= w0_j;
-                lay_j *= w0_j;
-                laz_j *= w0_j;                
-
-                v4df lax_ij = v4df(0.5) * (lax_i - lax_j);
-                v4df lay_ij = v4df(0.5) * (lay_i - lay_j);
-                v4df laz_ij = v4df(0.5) * (laz_i - laz_j);
+                v4df hi4_j = v4df(epj[j].hinv) * ND::calcVolumeInverse(epj[j].hinv);
+                v4df ka_ij = (hi4_i * SK::kernel1st(q_i) + hi4_j * SK::kernel1st(q_j)) * ri_ij;
+                v4df kx_ij = ka_ij * dpx_ij;
+                v4df ky_ij = ka_ij * dpy_ij;
+                v4df kz_ij = ka_ij * dpz_ij;
 
                 v4df w_ij   = (dpx_ij * dvx_ij + dpy_ij * dvy_ij + dpz_ij * dvz_ij) * ri_ij;
                 v4df w0_ij  = ((w_ij < v4df(0.)) & w_ij);
@@ -260,27 +219,20 @@ struct calcHydro {
                                 
                 vsmx_i  = v4df::max(vsmx_i, vs_ij);
 
-                v4df ta_i = ps_i * v4df(epj[j].vary);
-                lax_i  *= ta_i;
-                lay_i  *= ta_i;
-                laz_i  *= ta_i;
-                lax_ij *= av_ij;
-                lay_ij *= av_ij;
-                laz_ij *= av_ij;
+                v4df ta_ij = ps_i * v4df(epj[j].vary) + v4df(epj[j].pres) * ys_i + av_ij;
+                achx_i -= ta_ij * kx_ij;
+                achy_i -= ta_ij * ky_ij;
+                achz_i -= ta_ij * kz_ij;
 
-                achx_i -= (lax_i - v4df(epj[j].pres) * ys_i * lax_j + lax_ij);
-                achy_i -= (lay_i - v4df(epj[j].pres) * ys_i * lay_j + lay_ij);
-                achz_i -= (laz_i - v4df(epj[j].pres) * ys_i * laz_j + laz_ij);
-
-                v4df vla_i  = dvx_ij * lax_i  + dvy_ij * lay_i  + dvz_ij * laz_i;
-                v4df vla_ij = dvx_ij * lax_ij + dvy_ij * lay_ij + dvz_ij * laz_ij;
-                udot_i += (vla_i + v4df(0.5) * vla_ij);
-
-                ydot_i += vla_i;
+                v4df tu_ij = ps_i * v4df(epj[j].vary) + v4df(0.5) * av_ij;
+                v4df uv_ij = dvx_ij * kx_ij + dvy_ij * ky_ij + dvz_ij * kz_ij;
+                udot_i += tu_ij * uv_ij;
+                    
+                ydot_i += ps_i * v4df(epj[j].vary) * uv_ij;
 
             }
 
-            v4df mi_i = rcp(ms_i);
+            v4df mi_i = v4df(0.5) * rcp(ms_i);
             achx_i *= mi_i;
             achy_i *= mi_i;
             achz_i *= mi_i;

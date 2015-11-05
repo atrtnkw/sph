@@ -328,25 +328,35 @@ namespace RunParameter {
 
     template <class Tdinfo,
               class Tsph,
+              class Tbhns,
               class Tmsls>
     void readHexa(FILE *fp,                         
                   Tdinfo & dinfo,
                   Tsph & sph,
+                  Tbhns & bhns,
                   Tmsls & msls) {
         PS::F64 (*cvt)(PS::U64) = convertU64ToF64;        
         PS::U64 utime, utend, udtime, udta, udth;
         PS::U64 ualphamax, ualphamin, ualphumax, ualphumin;
-        PS::U64 uksrmax, uepsu, uenuc;
+        PS::U64 uksrmax, uepsu, uenuc, ueabs;
         PS::U64 urtime, urtimeinv, utcoeff;
         PS::U64 urv[3];
-        PS::S64 nstep, nptcl, nmsls, fdamp, fnuc;
+        PS::S64 nstep, nptcl, nmsls, nbhns, fdamp, fnuc, fbin;
         fscanf(fp, "%llx %llx %llx %llx %llx %lld", &utime, &utend, &udtime, &udta, &udth, &nstep);
         fscanf(fp, "%llx %llx %llx %llx", &ualphamax, &ualphamin, &ualphumax, &ualphumin);
         fscanf(fp, "%llx %llx", &uksrmax, &uepsu);
         fscanf(fp, "%llx %llx", &urtime, &urtimeinv);
+#if 0 // ???
         fscanf(fp, "%lld %lld %llx", &nptcl, &nmsls, &utcoeff);
+#else
+        fscanf(fp, "%lld %lld %lld %llx", &nptcl, &nmsls, &nbhns, &utcoeff);
+#endif
         fscanf(fp, "%llx %llx %llx", &urv[0], &urv[1], &urv[2]);
+#if 0 // ???
         fscanf(fp, "%llx %lld %lld", &uenuc, &fdamp, &fnuc);
+#else
+        fscanf(fp, "%llx %llx %lld %lld %lld", &uenuc, &ueabs, &fdamp, &fnuc, &fbin);
+#endif
         Time          = cvt(utime);
         TimeEnd       = cvt(utend);
         Timestep      = cvt(udtime);
@@ -363,13 +373,16 @@ namespace RunParameter {
         ReductionTimeInv = cvt(urtimeinv);
         sph.setNumberOfParticleLocal(nptcl);
         msls.setNumberOfParticleLocal(nmsls);
+        bhns.setNumberOfParticleLocal(nbhns);
         CoefficientOfTimestep = cvt(utcoeff);
         RotationalVelocity[0] = cvt(urv[0]);
         RotationalVelocity[1] = cvt(urv[1]);
         RotationalVelocity[2] = cvt(urv[2]);
         NuclearEnergyTotal    = cvt(uenuc);
+        AbsorbedEnergyTotal   = cvt(ueabs);
         FlagDamping           = fdamp;
         FlagNuclear           = fnuc;
+        FlagBinary            = fbin;
 
         for(PS::S32 i = 0; i < PS::Comm::getNumberOfProc(); i++) {
             PS::F64ort domain;
@@ -387,10 +400,12 @@ namespace RunParameter {
 
     template <class Tdinfo,
               class Tsph,
+              class Tbhns,
               class Tmsls>
     void writeHexa(FILE *fp,                          
                    Tdinfo & dinfo,
                    Tsph & sph,
+                   Tbhns & bhns,
                    Tmsls & msls) {
         PS::U64 (*cvt)(PS::F64) = convertF64ToU64;
         fprintf(fp, "%llx %llx %llx %llx %llx %lld\n",
@@ -401,11 +416,22 @@ namespace RunParameter {
         fprintf(fp, "%llx %llx %llx %llx\n",
                 cvt(KernelSupportRadiusMaximum), cvt(EpsilonOfInternalEnergy),
                 cvt(ReductionTime), cvt(ReductionTimeInv));
+#if 0 // ???
         fprintf(fp, "%lld %lld %llx\n", sph.getNumberOfParticleLocal(),
                 msls.getNumberOfParticleLocal(), cvt(CoefficientOfTimestep));
+#else
+        fprintf(fp, "%lld %lld %lld %llx\n", sph.getNumberOfParticleLocal(),
+                msls.getNumberOfParticleLocal(), bhns.getNumberOfParticleLocal(),
+                cvt(CoefficientOfTimestep));
+#endif
         fprintf(fp, "%llx %llx %llx\n", cvt(RotationalVelocity[0]),
                 cvt(RotationalVelocity[1]), cvt(RotationalVelocity[2]));
+#if 0 // ???
         fprintf(fp, "%llx %lld %lld\n", cvt(NuclearEnergyTotal), FlagDamping, FlagNuclear);
+#else
+        fprintf(fp, "%llx %llx\n", cvt(NuclearEnergyTotal), cvt(AbsorbedEnergyTotal));
+        fprintf(fp, "%lld %lld %lld\n", FlagDamping, FlagNuclear, FlagBinary);
+#endif
 
         PS::S32 nproc = PS::Comm::getNumberOfProc();
         for(PS::S32 i = 0; i < nproc; i++) {
@@ -437,6 +463,7 @@ namespace RunParameter {
         fprintf(fp, "# EpsilonU:   %+e\n", EpsilonOfInternalEnergy * CodeUnit::UnitOfEnergy);
         fprintf(fp, "# Damping: %d\n", FlagDamping);
         fprintf(fp, "# Nuclear: %d\n", FlagNuclear);        
+        fprintf(fp, "# Binary:  %d\n", FlagBinary);        
         fprintf(fp, "# # of Step %8d\n", NumberOfStep);
         fflush(fp);
     }
@@ -457,18 +484,23 @@ namespace RunParameter {
 
 template <class Tdinfo,
           class Tsph,
+          class Tbhns,
           class Tmsls>
 void readHexa(char * const filename,
               Tdinfo & dinfo,
               Tsph & sph,
+              Tbhns & bhns,
               Tmsls & msls) {
     FILE *fp = fopen(filename, "r");
-    RP::readHexa(fp, dinfo, sph, msls);
+    RP::readHexa(fp, dinfo, sph, bhns, msls);
     for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
         sph[i].readHexa(fp);
     }
     for(PS::S32 i = 0; i < msls.getNumberOfParticleLocal(); i++) {
         msls[i].readHexa(fp);
+    }
+    for(PS::S32 i = 0; i < bhns.getNumberOfParticleLocal(); i++) {
+        bhns[i].readHexa(fp);
     }
     fclose(fp);
     RP::NumberOfParticle = PS::Comm::getSum(sph.getNumberOfParticleLocal());
@@ -476,28 +508,35 @@ void readHexa(char * const filename,
 
 template <class Tdinfo,
           class Tsph,
+          class Tbhns,
           class Tmsls>
 void writeHexa(char * const filename,
                Tdinfo & dinfo,
                Tsph & sph,
+               Tbhns & bhns,
                Tmsls & msls) {
 
     FILE *fp = fopen(filename, "w");
-    RP::writeHexa(fp, dinfo, sph, msls);
+    RP::writeHexa(fp, dinfo, sph, bhns, msls);
     for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
         sph[i].writeHexa(fp);
     }
     for(PS::S32 i = 0; i < msls.getNumberOfParticleLocal(); i++) {
         msls[i].writeHexa(fp);
     }
+    for(PS::S32 i = 0; i < bhns.getNumberOfParticleLocal(); i++) {
+        bhns[i].writeHexa(fp);
+    }
     fclose(fp);
 }
 
 template <class Tdinfo,
           class Tsph,
+          class Tbhns,
           class Tmsls>
 void outputData(Tdinfo & dinfo,
                 Tsph & sph,
+                Tbhns & bhns,
                 Tmsls & msls) {
     if(RP::Time - (PS::S64)(RP::Time / RP::TimestepAscii) * RP::TimestepAscii == 0.) {
         char filename[64];
@@ -515,6 +554,10 @@ void outputData(Tdinfo & dinfo,
             sprintf(filename, "snap/msls_t%04d.dat", (PS::S32)RP::Time);
             msls.writeParticleAscii(filename);
         }
+        if(RP::FlagBinary == 1) {
+            sprintf(filename, "snap/bhns_t%04d.dat", (PS::S32)RP::Time);
+            bhns.writeParticleAscii(filename);
+        }
     }
     if(RP::Time - (PS::S64)(RP::Time / RP::TimestepHexa) * RP::TimestepHexa == 0.) {
         char filename[64];
@@ -527,33 +570,46 @@ void outputData(Tdinfo & dinfo,
 #else
         sprintf(filename, "snap/t%04d_p%06d.hexa", (PS::S32)RP::Time, PS::Comm::getRank());
 #endif
-        writeHexa(filename, dinfo, sph, msls);
+        writeHexa(filename, dinfo, sph, bhns, msls);
     }
-    PS::F64 etot = calcEnergy(sph);
+    PS::F64 etot = calcEnergy(sph, bhns);
     PS::F64 enuc = calcReleasedNuclearEnergyTotal(sph);
     if(PS::Comm::getRank() == 0) {
         using namespace CodeUnit;
-        fprintf(RP::FilePointerForLog, "time: %8d %16.10f %+e %+e %+e %+e %+e\n",
+        PS::F64 eabs = RP::AbsorbedEnergyTotal;
+        fprintf(RP::FilePointerForLog, "time: %8d %16.10f %+e %+e %+e %+e %+e %+e\n",
                 RP::NumberOfStep, RP::Time * UnitOfTime, RP::Timestep * UnitOfTime,
-                (etot - enuc) * UnitOfEnergy * UnitOfMass, etot * UnitOfEnergy * UnitOfMass,
-                enuc * UnitOfEnergy * UnitOfMass, WT::getTimeTotal());
+                //(etot - enuc + eabs) * UnitOfEnergy * UnitOfMass, etot * UnitOfEnergy * UnitOfMass,
+                (etot - enuc - eabs) * UnitOfEnergy * UnitOfMass, etot * UnitOfEnergy * UnitOfMass,
+                enuc * UnitOfEnergy * UnitOfMass, eabs * UnitOfEnergy * UnitOfMass,
+                WT::getTimeTotal());
         WT::dump(RP::Time, RP::FilePointerForTime);
         fflush(RP::FilePointerForLog);
     }
 }
 
-template <class Tsph>
-void predict(Tsph & sph) {
+template <class Tsph,
+          class Tbhns>
+void predict(Tsph & sph,
+             Tbhns & bhns) {
     for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
         sph[i].predict(RP::Timestep);
     }
+    for(PS::S64 i = 0; i < bhns.getNumberOfParticleLocal(); i++) {
+        bhns[i].predict(RP::Timestep);
+    }
 }
 
-template <class Tsph>
-void correct(Tsph & sph) {
+template <class Tsph,
+          class Tbhns>
+void correct(Tsph & sph,
+             Tbhns & bhns) {
     if(RP::FlagDamping == 0) {
         for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
             sph[i].correct(RP::Timestep);
+        }
+        for(PS::S64 i = 0; i < bhns.getNumberOfParticleLocal(); i++) {
+            bhns[i].correct(RP::Timestep);
         }
     } else if(RP::FlagDamping == 1) {
         for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
@@ -562,6 +618,9 @@ void correct(Tsph & sph) {
     } else if(RP::FlagDamping == 2) {
         for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
             sph[i].correctDamping2(RP::Timestep);
+        }
+        for(PS::S64 i = 0; i < bhns.getNumberOfParticleLocal(); i++) {
+            bhns[i].correctDamping2(RP::Timestep);
         }
     } else if(RP::FlagDamping == 3) {
         for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
@@ -603,6 +662,7 @@ void initializeSimulation() {
     //AdiabaticIndex;
     //RotationalVelocity; // omega
     NuclearEnergyTotal = 0.; // enuc
+    AbsorbedEnergyTotal = 0.;
     FlagGravity = 1;
     //FlagDamping = 0;
     //FlagNuclear = 0;
@@ -614,6 +674,7 @@ void initializeSimulation() {
 
 template <class Tdinfo,
           class Tsph,
+          class Tbhns,
           class Tmsls,
           class Tdensity,
           class Thydro,
@@ -621,6 +682,7 @@ template <class Tdinfo,
 void startSimulation(char **argv,
                      Tdinfo & dinfo,
                      Tsph & sph,
+                     Tbhns & bhns,
                      Tmsls & msls,
                      Tdensity & density,
                      Thydro & hydro,
@@ -632,6 +694,15 @@ void startSimulation(char **argv,
         char filename[256];
         sprintf(filename, "%s.data", argv[3]);
         sph.readParticleAscii(filename);    
+        sprintf(filename, "%s.bhns", argv[3]);
+        FILE *fp  = fopen(filename, "r");
+        if(fp != NULL) {
+            fclose(fp);
+            bhns.readParticleAscii(filename);
+            RP::FlagBinary = 1;
+        } else {
+            RP::FlagBinary = 0;
+        }
     } else {
         sph.readParticleAscii(argv[3], "%s_p%06d_i%06d.data");    
     }
@@ -640,7 +711,7 @@ void startSimulation(char **argv,
     }
     ND::setDimension(RP::NumberOfDimension);
     SK::setKernel(RP::KernelType, RP::NumberOfDimension);
-    RP::KernelSupportRadiusMaximum = calcSystemSize(sph);
+    RP::KernelSupportRadiusMaximum = calcSystemSize(sph, bhns);
     RP::EpsilonOfInternalEnergy    = RP::setEpsilonOfInternalEnergy(sph);
 #ifdef FOR_TUBE_TEST
     RP::FlagGravity = 0;
@@ -654,23 +725,26 @@ void startSimulation(char **argv,
     PS::MT::init_genrand(0);
     dinfo.decomposeDomainAll(sph);
     sph.exchangeParticle(dinfo);
+    bhns.exchangeParticle(dinfo);
     if(RP::FlagDamping == 2) {
         msls.exchangeParticle(dinfo);
-        calcRotationalVelocity(sph);
+        calcRotationalVelocity(sph, bhns);
     }
-    calcSPHKernel(dinfo, sph, msls, density, hydro, gravity);
+    calcSPHKernel(dinfo, sph, bhns, msls, density, hydro, gravity);
 }
 
 template <class Tdinfo,
           class Tsph,
+          class Tbhns,
           class Tmsls>
 void restartSimulation(char **argv,
                        Tdinfo & dinfo,
                        Tsph & sph,
+                       Tbhns & bhns,
                        Tmsls & msls) {
     char filename[64];
     sprintf(filename, "%s_p%06d.hexa", argv[2], PS::Comm::getRank());
-    readHexa(filename, dinfo, sph, msls);
+    readHexa(filename, dinfo, sph, bhns, msls);
     ND::setDimension(RP::NumberOfDimension);
     SK::setKernel(RP::KernelType, RP::NumberOfDimension);
 #ifdef FOR_TUBE_TEST
@@ -686,12 +760,14 @@ void restartSimulation(char **argv,
 
 template <class Tdinfo,
           class Tsph,
+          class Tbhns,
           class Tmsls,
           class Tdensity,
           class Thydro,
           class Tgravity>
 void loopSimulation(Tdinfo & dinfo,
                     Tsph & sph,
+                    Tbhns & bhns,
                     Tmsls & msls,
                     Tdensity & density,
                     Thydro & hydro,
@@ -701,10 +777,10 @@ void loopSimulation(Tdinfo & dinfo,
     while(RP::Time < RP::TimeEnd) {
         RP::Timestep = calcTimestep(sph);
         WT::reduceInterProcess();
-        outputData(dinfo, sph, msls);
-        WT::clear();
+        outputData(dinfo, sph, bhns, msls);
+        WT::clear();        
         if(RP::FlagDamping == 2) {
-            reduceSeparation(sph, msls);
+            reduceSeparation(sph, bhns, msls);
         }
         WT::start();
         if(RP::FlagNuclear == 1) {
@@ -712,7 +788,7 @@ void loopSimulation(Tdinfo & dinfo,
         }
         WT::accumulateCalcNuclearReaction();
         WT::start();
-        predict(sph);
+        predict(sph, bhns);
         WT::accumulateOthers();
 #ifdef FOR_TUBE_TEST
         sph.adjustPositionIntoRootDomain(dinfo);
@@ -725,11 +801,16 @@ void loopSimulation(Tdinfo & dinfo,
         WT::accumulateDecomposeDomain();
         WT::start();
         sph.exchangeParticle(dinfo);
+        bhns.exchangeParticle(dinfo);
         WT::accumulateExchangeParticle();
-        calcSPHKernel(dinfo, sph, msls, density, hydro, gravity);
+        calcSPHKernel(dinfo, sph, bhns, msls, density, hydro, gravity);
         WT::start();
-        correct(sph);
+        correct(sph, bhns);
         WT::accumulateOthers();
+        if(RP::FlagBinary == 1) {
+            //absorbParticleIntoBlackHoleNeutronStar(sph, bhns);
+            absorbParticleIntoBlackHoleNeutronStar(dinfo, sph, bhns, msls, density, hydro, gravity);
+        }
         RP::Time += RP::Timestep;
         RP::NumberOfStep++;
     }
@@ -737,11 +818,13 @@ void loopSimulation(Tdinfo & dinfo,
 
 template <class Tdinfo,
           class Tsph,
+          class Tbhns,
           class Tmsls>
 void finalizeSimulation(Tdinfo & dinfo,
                         Tsph & sph,
+                        Tbhns & bhns,
                         Tmsls & msls) {
-    outputData(dinfo, sph, msls);
+    outputData(dinfo, sph, bhns, msls);
     if(PS::Comm::getRank() == 0) {
         fclose(RP::FilePointerForLog);
         fclose(RP::FilePointerForTime);
@@ -749,13 +832,22 @@ void finalizeSimulation(Tdinfo & dinfo,
     PS::F64    mc;
     PS::F64vec xc;
     PS::F64vec vc;
-    calcCenterOfMass(sph, mc, xc, vc);
+    if(RP::FlagBinary == 0) {
+        calcCenterOfMass(sph, mc, xc, vc);
+    } else {
+        calcCenterOfMass(sph, bhns, mc, xc, vc);
+    }
     PS::S32 nloc = sph.getNumberOfParticleLocal();
     for(PS::S32 i = 0; i < nloc; i++) {
         sph[i].pos -= xc;
         sph[i].vel -= vc;
     }
+    for(PS::S32 i = 0; i < bhns.getNumberOfParticleLocal(); i++) {
+        bhns[i].pos -= xc;
+        bhns[i].vel -= vc;
+    }
     sph.writeParticleAscii("snap/final.dat");
+    bhns.writeParticleAscii("snap/bhns_final.dat");
 }
 
 typedef HelmholtzGas GeneralSPH;

@@ -27,13 +27,17 @@ namespace RunParameter {
     PS::F64    ReductionTimeInv;
     
     PS::S64    NumberOfParticle;
-    PS::F64    AdiabaticIndex;     // gamma
-    PS::F64vec RotationalVelocity; // omega
-    PS::F64    NuclearEnergyTotal; // enuc
+    PS::F64    AdiabaticIndex;      // gamma
+    PS::F64vec RotationalVelocity;  // omega
+    PS::F64    NuclearEnergyTotal;  // enuc
+    PS::F64    AbsorbedEnergyTotal; //
 
     PS::S64    FlagGravity; // 0: off, 1: on
     PS::S64    FlagDamping; // 0: normal, 1: single, 2: binary
     PS::S64    FlagNuclear; // 0: off, 1: on
+    PS::S64    FlagBinary;  // 0: WDWD, 1: NSWD/BHWD
+
+    PS::F64    InnerRadiusBlackHoleNeutronStar = 1e7; // cm
 
     FILE * FilePointerForLog;
     FILE * FilePointerForTime;

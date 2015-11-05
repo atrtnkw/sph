@@ -117,6 +117,13 @@ void MassLess::copyFromForce(const Gravity & gravity) {
     this->pot   = GravityConstantInThisUnit * gravity.pot;
 }
 
+void BlackHoleNeutronStar::copyFromForce(const Gravity & gravity) {
+    using namespace CodeUnit;
+    this->acc   = GravityConstantInThisUnit * gravity.acc;
+    this->eta   = 0.;
+    this->pot   = GravityConstantInThisUnit * gravity.pot;
+}
+
 class GravityEPI {
 public:
     PS::F64vec pos;
@@ -129,6 +136,11 @@ public:
     void copyFromFP(const MassLess & msls){         
         pos  = msls.pos;
         eps2 = RP::GravitationalSoftening * RP::GravitationalSoftening;
+    }
+
+    void copyFromFP(const BlackHoleNeutronStar & bhns) {
+        pos  = bhns.pos;
+        eps2 = bhns.eps * bhns.eps;
     }
 
     PS::F64vec getPos() const {
@@ -154,6 +166,12 @@ public:
         mass = msls.mass;
         pos  = msls.pos;
         eps2 = RP::GravitationalSoftening * RP::GravitationalSoftening;
+    }
+
+    void copyFromFP(const BlackHoleNeutronStar & bhns) {
+        mass = bhns.mass;
+        pos  = bhns.pos;
+        eps2 = bhns.eps * bhns.eps;
     }
 
     PS::F64vec getPos() const {
@@ -260,24 +278,26 @@ struct calcGravity {
 
 template <class Tdinfo,
           class Tsph,
+          class Tbhns,
           class Tmsls,
           class Tgravity>
 void calcGravityKernel(Tdinfo & dinfo,
                        Tsph & sph,
+                       Tbhns & bhns,
                        Tmsls & msls,
                        Tgravity & gravity) {
     if(RP::FlagGravity == 0) {
         return;
     }
-    
-//    if(RP::FlagDamping == 0 || RP::FlagDamping == 1) {
+
+    /*
     if(RP::FlagDamping != 2) {
         gravity.calcForceAllAndWriteBack(calcGravity<GravityEPJ>(), calcGravity<PS::GravitySPJ>(),
                                          sph, dinfo);
-//    } else if(RP::FlagDamping == 2) {
     } else {
         gravity.setParticleLocalTree(sph);
         gravity.setParticleLocalTree(msls, false);
+        gravity.setParticleLocalTree(bhns, false);
         gravity.calcForceMakingTree(calcGravity<GravityEPJ>(),
                                     calcGravity<PS::GravitySPJ>(),
                                     dinfo);
@@ -289,9 +309,28 @@ void calcGravityKernel(Tdinfo & dinfo,
         for(PS::S32 i = 0; i < nmsls; i++) {
             msls[i].copyFromForce(gravity.getForce(i+nsph));
         }
-//    } else {
-//        fprintf(stderr, "Not supported damping mode %d!\n", RP::FlagDamping);
-//        PS::Abort();
-//    }
+        PS::S32 nbhns = bhns.getNumberOfParticleLocal();
+        for(PS::S32 i = 0; i < nbhns; i++) {
+            bhns[i].copyFromForce(gravity.getForce(i+nsph+nmsls));
+        }
+    }
+    */
+    gravity.setParticleLocalTree(sph);
+    gravity.setParticleLocalTree(msls, false);
+    gravity.setParticleLocalTree(bhns, false);
+    gravity.calcForceMakingTree(calcGravity<GravityEPJ>(),
+                                calcGravity<PS::GravitySPJ>(),
+                                dinfo);
+    PS::S32 nsph  = sph.getNumberOfParticleLocal();
+    for(PS::S32 i = 0; i < nsph; i++) {
+        sph[i].copyFromForce(gravity.getForce(i));
+    }
+    PS::S32 nmsls = msls.getNumberOfParticleLocal();
+    for(PS::S32 i = 0; i < nmsls; i++) {
+        msls[i].copyFromForce(gravity.getForce(i+nsph));
+    }
+    PS::S32 nbhns = bhns.getNumberOfParticleLocal();
+    for(PS::S32 i = 0; i < nbhns; i++) {
+        bhns[i].copyFromForce(gravity.getForce(i+nsph+nmsls));
     }
 }

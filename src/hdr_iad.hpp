@@ -160,6 +160,8 @@ struct calcDerivativeIntegralBasic {
                 vsmx_i = (vs_ij > vsmx_i) ? vs_ij : vsmx_i;                                
 
 #ifdef SYMMETRIZED_GRAVITY
+                PS::F64 dw_i = hi_i * hi3_i * KernelSph::kernel1st(q_i);
+                PS::F64 dw_j = hi_j * hi3_j * KernelSph::kernel1st(q_j);
                 PS::F64vec dg_ij = dx_ij * (m_j * ri_ij * (eta_i * dw_i + eta_j * dw_j));
                 g1_i += dg_ij;
 #endif

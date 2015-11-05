@@ -13,9 +13,10 @@ public:
 };
 
 void SPH::copyFromForce(const Volume & volume) {
-    this->pres = volume.pres;
-    this->ksr  = volume.ksr;
-    this->np   = volume.np;
+    this->pres  = pow(volume.pres, RP::PowerForWeightInv);
+    this->presk = volume.pres;
+    this->ksr   = volume.ksr;
+    this->np    = volume.np;
 };
 
 class VolumeEPI {

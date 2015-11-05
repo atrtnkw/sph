@@ -29,11 +29,34 @@ void calcCenterOfMass(Tsph & sph,
     vc *= minv;    
 }
 
-template <class Tsph>
-PS::F64 calcSystemSize(Tsph & sph) {
+template <class Tsph,
+          class Tbhns>
+void calcCenterOfMass(Tsph & sph,
+                      Tbhns & bhns,
+                      PS::F64    & mc,
+                      PS::F64vec & xc,
+                      PS::F64vec & vc) {
+    PS::F64 m0, m1;
+    PS::F64vec x0, x1;
+    PS::F64vec v0, v1;                
+    calcCenterOfMass(bhns, m0, x0, v0);
+    calcCenterOfMass(sph,  m1, x1, v1);
+    mc = m0 + m1;
+    xc = (m0 * x0 + m1 * x1) / (m0 + m1);
+    vc = (m0 * v0 + m1 * v1) / (m0 + m1);
+}
+
+template <class Tsph,
+          class Tbhns>
+PS::F64 calcSystemSize(Tsph & sph,
+                       Tbhns & bhns) {
     PS::F64    m0, m1;
     PS::F64vec x0, x1, v0, v1;
-    calcCenterOfMass(sph, m0, x0, v0, 0);
+    if(RP::FlagBinary == 0) {
+        calcCenterOfMass(sph, m0, x0, v0, 0);
+    } else {
+        calcCenterOfMass(bhns, m0, x0, v0, 0);
+    }
     calcCenterOfMass(sph, m1, x1, v1, 1);
     PS::F64vec dx = x0 - x1;
     PS::F64    dr = (m0 != 0. && m1 != 0.) ? sqrt(dx * dx)
@@ -41,12 +64,18 @@ PS::F64 calcSystemSize(Tsph & sph) {
     return dr;
 }
 
-template <class Tsph>
-void calcRotationalVelocity(Tsph & sph) {
+template <class Tsph,
+          class Tbhns>
+void calcRotationalVelocity(Tsph & sph,
+                            Tbhns & bhns) {
     PS::F64    m0, m1;
     PS::F64vec x0, x1;
     PS::F64vec v0, v1;
-    calcCenterOfMass(sph, m0, x0, v0, 0);
+    if(RP::FlagBinary == 0) {
+        calcCenterOfMass(sph, m0, x0, v0, 0);
+    } else {
+        calcCenterOfMass(bhns, m0, x0, v0, 0);
+    }
     calcCenterOfMass(sph, m1, x1, v1, 1);
 
     PS::F64vec axisv = x0 - x1;
@@ -59,8 +88,10 @@ void calcRotationalVelocity(Tsph & sph) {
 }
 
 template <class Tsph,
+          class Tbhns,
           class Tmsls>
 void reduceSeparation(Tsph & sph,
+                      Tbhns & bhns,
                       Tmsls & msls) {
     static bool StopDamping2 = false;
 
@@ -91,21 +122,35 @@ void reduceSeparation(Tsph & sph,
         PS::F64    m0, m1;
         PS::F64vec x0, x1;
         PS::F64vec v0, v1;
-        calcCenterOfMass(sph, m0, x0, v0, 0);
+        if(RP::FlagBinary == 0) {
+            calcCenterOfMass(sph, m0, x0, v0, 0);
+        } else {
+            calcCenterOfMass(bhns, m0, x0, v0, 0);
+        }
         calcCenterOfMass(sph, m1, x1, v1, 1);
 
         if(StopDamping2) {
             PS::F64 mc;
             PS::F64vec xc;
             PS::F64vec vc;
-            calcCenterOfMass(sph, mc, xc, vc);            
+            if(RP::FlagBinary == 0) {
+                calcCenterOfMass(sph, mc, xc, vc);
+            } else {
+                calcCenterOfMass(sph, bhns, mc, xc, vc);
+            }
             for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
                 sph[i].pos -= xc;
                 sph[i].vel -= vc;
                 sph[i].vel += RP::RotationalVelocity ^ sph[i].pos;
             }    
+            for(PS::S32 i = 0; i < bhns.getNumberOfParticleLocal(); i++) {
+                bhns[i].pos -= xc;
+                bhns[i].vel -= vc;
+                bhns[i].vel += RP::RotationalVelocity ^ bhns[i].pos;
+            }    
             sph.writeParticleAscii("snap/final.dat");
             msls.writeParticleAscii("snap/msls_final.dat");
+            bhns.writeParticleAscii("snap/bhns_final.dat");
             PS::Finalize();
             exit(0);
         }
@@ -122,9 +167,16 @@ void reduceSeparation(Tsph & sph,
         PS::F64    mc;
         PS::F64vec xc;
         PS::F64vec vc;
-        calcCenterOfMass(sph, mc, xc, vc);
+        if(RP::FlagBinary == 0) {
+            calcCenterOfMass(sph, mc, xc, vc);
+        } else {
+            calcCenterOfMass(sph, bhns, mc, xc, vc);
+        }
         for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
             sph[i].pos -= xc;
+        }
+        for(PS::S32 i = 0; i < bhns.getNumberOfParticleLocal(); i++) {
+            bhns[i].pos -= xc;
         }
 
         PS::F64 xlag = searchLagrange1(msls, x0[0], x1[0]);
@@ -139,7 +191,169 @@ void reduceSeparation(Tsph & sph,
         }
         StopDamping2 = PS::Comm::synchronizeConditionalBranchOR(StopDamping2Local);
 
-        calcRotationalVelocity(sph);
+        calcRotationalVelocity(sph, bhns);
    }
 }
+
+#if 0
+
+template <class Tbhns>
+PS::F64vec broadcastPositionOfBlackHoleNeutronStar(Tbhns & bhns) {
+    PS::S32    nbhns = bhns.getNumberOfParticleLocal();
+    PS::F64vec ploc  = 0.;
+    if(nbhns == 1) {
+        ploc = bhns[0].pos;
+    } else if(nbhns == 0) {
+        ploc = 0.;
+    } else {
+        fprintf(stderr, "Not supported in this case (in function %s)!\n", __FUNCTION__);
+        PS::Abort();
+    }
+    PS::F64vec pglb  = PS::Comm::getSum(ploc);
+    return pglb;
+}
+
+// ??? now not absorb, but delete
+template <class Tsph,
+          class Tbhns>
+void absorbParticleIntoBlackHoleNeutronStar(Tsph & sph,
+                                            Tbhns & bhns) {
+    PS::F64    rabs  = RP::InnerRadiusBlackHoleNeutronStar * CodeUnit::UnitOfLengthInv;
+    PS::F64    deloc = 0.;
+    PS::F64vec pbhns = broadcastPositionOfBlackHoleNeutronStar(bhns);
+    for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); ) {
+        PS::F64vec dx = sph[i].pos - pbhns;
+        PS::F64    r2 = dx * dx;
+        if(r2 >= rabs * rabs) {
+            i++;
+            continue;
+        }
+        fprintf(stderr, "## absorb Particle %16.10f %8d\n", RP::Time * UnitOfTime, sph[i].id);
+        deloc += sph[i].mass * (0.5 * (sph[i].vel * sph[i].vel) + sph[i].uene + sph[i].pot);
+        PS::S32 nsph = sph.getNumberOfParticleLocal();
+        sph[i] = sph[nsph-1];
+        sph.setNumberOfParticleLocal(nsph-1);
+    }
+    PS::F64 deglb = PS::Comm::getSum(deloc);
+    RP::AbsorbedEnergyTotal += deglb;
+}
+
+#else
+
+template <class Tbhns>
+void broadcastBlackHoleNeutronStar(const Tbhns & bhns,
+                                   PS::F64    & mass,
+                                   PS::F64vec & pos,
+                                   PS::F64vec & vel) {
+    PS::S32    nbhns = bhns.getNumberOfParticleLocal();
+    PS::F64    mloc  = 0.;
+    PS::F64vec ploc  = 0.;
+    PS::F64vec vloc  = 0.;
+    if(nbhns == 1) {
+        mloc = bhns[0].mass;
+        ploc = bhns[0].pos;
+        vloc = bhns[0].vel;
+    } else if(nbhns == 0) {
+        mloc = 0.;
+        ploc = 0.;
+        vloc = 0.;
+    } else {
+        fprintf(stderr, "Not supported in this case (in function %s)!\n", __FUNCTION__);
+        PS::Abort();
+    }
+    mass = PS::Comm::getSum(mloc);
+    pos  = PS::Comm::getSum(ploc);
+    vel  = PS::Comm::getSum(vloc);
+}
+
+template <class Tbhns>
+void correctBlackHoleNeutronStar(Tbhns & bhns,
+                                 const PS::F64    mass,
+                                 const PS::F64vec momentum) {
+    PS::S32    nbhns = bhns.getNumberOfParticleLocal();
+    if(nbhns == 1) {
+        bhns[0].vel  = (bhns[0].mass * bhns[0].vel + momentum) / (bhns[0].mass + mass);
+        bhns[0].mass = bhns[0].mass + mass;
+    } else if(nbhns == 0) {
+        ;
+    } else {
+        fprintf(stderr, "Not supported in this case (in function %s)!\n", __FUNCTION__);
+        PS::Abort();
+    }    
+}
+
+template <class Tdinfo,
+          class Tsph,
+          class Tbhns,
+          class Tmsls,
+          class Tdensity,
+          class Thydro,
+          class Tgravity>
+void absorbParticleIntoBlackHoleNeutronStar(Tdinfo & dinfo,
+                                            Tsph & sph,
+                                            Tbhns & bhns,
+                                            Tmsls & msls,
+                                            Tdensity & density,
+                                            Thydro & hydro,
+                                            Tgravity & gravity) {
+    PS::F64    mbhns;
+    PS::F64vec pbhns, vbhns;
+    broadcastBlackHoleNeutronStar(bhns, mbhns, pbhns, vbhns);
+
+    PS::F64    ekloc = 0.;
+    PS::F64    ephi0 = calcPotentialEnergy(sph, bhns);
+    PS::F64    uloc0 = 0.;
+    PS::S32    ndloc = 0;
+    PS::F64    msloc = 0.;
+    PS::F64vec mmloc = 0.;
+    PS::F64    etot0 = calcEnergy(sph, bhns);
+
+    PS::F64    rabs  = RP::InnerRadiusBlackHoleNeutronStar * CodeUnit::UnitOfLengthInv;
+    for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); ) {
+        PS::F64vec dx = sph[i].pos - pbhns;
+        PS::F64    r2 = dx * dx;
+        if(r2 >= rabs * rabs) {
+            i++;
+            continue;
+        }
+        fprintf(stderr, "## absorb Particle %16.10f %8d\n", RP::Time * CodeUnit::UnitOfTime,
+                sph[i].id);
+        ndloc++;
+        ekloc += 0.5 * sph[i].mass * (sph[i].vel * sph[i].vel);
+        uloc0 +=       sph[i].mass *  sph[i].uene;
+        msloc +=       sph[i].mass;
+        mmloc +=       sph[i].mass *  sph[i].vel;
+        PS::S32 nsph = sph.getNumberOfParticleLocal();
+        sph[i] = sph[nsph-1];
+        sph.setNumberOfParticleLocal(nsph-1);
+    }
+    PS::S32    ndglb = PS::Comm::getSum(ndloc);
+    PS::F64    kglb0 = PS::Comm::getSum(ekloc) + 0.5 * mbhns * (vbhns * vbhns);
+    PS::F64    uglb0 = PS::Comm::getSum(uloc0);
+    PS::F64    msglb = PS::Comm::getSum(msloc);
+    PS::F64vec mmglb = PS::Comm::getSum(mmloc);
+
+    if(ndglb > 0) {
+        correctBlackHoleNeutronStar(bhns, msglb, mmglb);
+
+        calcSPHKernel(dinfo, sph, bhns, msls, density, hydro, gravity);
+
+        PS::F64 etot1 = calcEnergy(sph, bhns);
+
+        broadcastBlackHoleNeutronStar(bhns, mbhns, pbhns, vbhns);
+        PS::F64 kglb1 = 0.5 * mbhns * (vbhns * vbhns);
+        PS::F64 ephi1 = calcPotentialEnergy(sph, bhns);
+        RP::AbsorbedEnergyTotal += (kglb1 + ephi1) - (kglb0 + uglb0 + ephi0);
+        /*
+        if(PS::Comm::getRank() == 0) {
+            using namespace CodeUnit;
+            fprintf(stderr, "## %+e %+e\n",
+                    ((kglb1 + ephi1) - (kglb0 + uglb0 + ephi0)) * UnitOfMass * UnitOfEnergy,
+                    (etot1 - etot0) * UnitOfMass * UnitOfEnergy);
+        }
+        */
+    }
+}
+
+#endif
 

@@ -4,21 +4,25 @@ class Auxiliary {
 public:
     PS::F64    divv;
     PS::F64    rotv;
-    PS::F64mat ctau;    
     PS::F64    dens;
+    PS::F64    grdh;
+    PS::S64    nj2;
     void clear() {
         this->divv = 0.0;
         this->rotv = 0.0;
-        this->ctau = 0.0;
         this->dens = 0.0;
+        this->grdh = 0.0;
+        this->nj2  = 0;
     }
 };
 
 void SPH::copyFromForce(const Auxiliary & auxiliary) {
     this->divv = auxiliary.divv;
     this->rotv = auxiliary.rotv;
-    this->ctau = auxiliary.ctau;
     this->dens = auxiliary.dens;
+    //this->grdh = auxiliary.grdh;
+    this->grdh = 1.;
+    this->np2  = auxiliary.nj2;
 };
 
 class AuxiliaryEPI {
@@ -33,7 +37,7 @@ public:
         this->pos  = sph.pos;
         this->vel  = sph.vel;
         this->ksr  = sph.ksr;
-        this->pres = sph.pres;
+        this->pres = sph.presk;
     }
     PS::F64vec getPos() const {
         return this->pos;
@@ -59,7 +63,7 @@ public:
         this->mass = sph.mass;
         this->pos  = sph.pos;
         this->vel  = sph.vel;
-        this->pres = sph.pres;
+        this->pres = sph.presk;
         this->vary = sph.vary;
     }
     PS::F64vec getPos() const {
@@ -132,13 +136,9 @@ struct calcAuxiliary {
             v4df rotx_i(0.);
             v4df roty_i(0.);
             v4df rotz_i(0.);
-            v4df ctxx_i(0.);
-            v4df ctyy_i(0.);
-            v4df ctzz_i(0.);
-            v4df ctxy_i(0.);
-            v4df ctxz_i(0.);
-            v4df ctyz_i(0.);
             v4df dens_i(0.);
+            v4df grdh_i(0.);
+            v4df nj2_i(0.);
 
             for(PS::S32 j = 0; j < njp; j++) {
                 v4df dpx_ij = px_i - v4df(epj[j].pos[0]);
@@ -153,8 +153,8 @@ struct calcAuxiliary {
                 v4df r1_ij = r2_ij * ri_ij;
                 v4df q_i   = r1_ij * hi_i;
 
-                v4df w1_i = hi4_i * SK::kernel1st(q_i);
-                v4df wc_i = ri_ij * w1_i * v4df(epj[j].vary);
+                v4df w1_i = SK::kernel1st(q_i);
+                v4df wc_i = ri_ij * hi4_i * w1_i * v4df(epj[j].vary);
                 v4df wx_i = wc_i * dpx_ij;
                 v4df wy_i = wc_i * dpy_ij;
                 v4df wz_i = wc_i * dpz_ij;
@@ -166,54 +166,37 @@ struct calcAuxiliary {
                 roty_i += dvz_ij * wx_i - dvx_ij * wz_i;
                 rotz_i += dvx_ij * wy_i - dvy_ij * wx_i;
 
-                v4df w0_i = hi3_i * SK::kernel0th(q_i);
-                v4df vl_j = v4df(epj[j].vary) * rcp(epj[j].pres) * w0_i;
-                ctxx_i += vl_j * dpx_ij * dpx_ij;
-                ctyy_i += vl_j * dpy_ij * dpy_ij;
-                ctzz_i += vl_j * dpz_ij * dpz_ij;
-                ctxy_i += vl_j * dpx_ij * dpy_ij;
-                ctxz_i += vl_j * dpx_ij * dpz_ij;
-                ctyz_i += vl_j * dpy_ij * dpz_ij;
+                v4df w0_i = SK::kernel0th(q_i);
+                dens_i += v4df(epj[j].mass) * hi3_i * w0_i;
+                grdh_i -= v4df(epj[j].vary) * hi4_i * (w0_i * RP::NumberOfDimension + q_i * w1_i);
 
-                dens_i += v4df(epj[j].mass) * w0_i;
+                nj2_i  += ((q_i < 1.) & v4df(1.));
             }            
 
+            v4df omgi_i = rcp(v4df(1.) + hs_i * grdh_i * rcp(ps_i * RP::NumberOfDimension));
             v4df rot2_i = rotx_i * rotx_i + roty_i * roty_i + rotz_i * rotz_i;
             v4df rotv_i = rot2_i * ((rot2_i != 0.) & rsqrt(rot2_i));
-            v4df pi_i = v4df(-1.) * rcp(ps_i);
+            //v4df pi_i = v4df(-1.) * rcp(ps_i);
+            v4df pi_i   = v4df(-1.) * rcp(ps_i) * omgi_i;
             divv_i *= pi_i;
             rotv_i *= pi_i;
 
             PS::F64 buf_divv[nvector];
             PS::F64 buf_rotv[nvector];
-            PS::F64 buf_ctxx[nvector];
-            PS::F64 buf_ctyy[nvector];
-            PS::F64 buf_ctzz[nvector];
-            PS::F64 buf_ctxy[nvector];
-            PS::F64 buf_ctxz[nvector];
-            PS::F64 buf_ctyz[nvector];
             PS::F64 buf_dens[nvector];
+            PS::F64 buf_omgi[nvector];
+            PS::F64 buf_nj2[nvector];
             divv_i.store(buf_divv);
             rotv_i.store(buf_rotv);
-            ctxx_i.store(buf_ctxx);
-            ctyy_i.store(buf_ctyy);
-            ctzz_i.store(buf_ctzz);
-            ctxy_i.store(buf_ctxy);
-            ctxz_i.store(buf_ctxz);
-            ctyz_i.store(buf_ctyz);
             dens_i.store(buf_dens);
+            omgi_i.store(buf_omgi);
+            nj2_i.store(buf_nj2);
             for(PS::S32 ii = 0; ii < nii; ii++) {
                 auxiliary[i+ii].divv = buf_divv[ii];
                 auxiliary[i+ii].rotv = buf_rotv[ii];
-                PS::F64mat otau = 0.;
-                otau.xx = buf_ctxx[ii];
-                otau.yy = buf_ctyy[ii];
-                otau.zz = buf_ctzz[ii];
-                otau.xy = buf_ctxy[ii];
-                otau.xz = buf_ctxz[ii];
-                otau.yz = buf_ctyz[ii];
-                auxiliary[i+ii].ctau = ND::invertMatrix(otau);
                 auxiliary[i+ii].dens = buf_dens[ii];
+                auxiliary[i+ii].grdh = buf_omgi[ii];
+                auxiliary[i+ii].nj2  = buf_nj2[ii];
             }
 
         }        

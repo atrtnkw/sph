@@ -52,14 +52,23 @@ namespace SmoothingKernel {
                 dim   = +1.0;
                 ceff0 = +1.3333333333333333;
                 ceff1 = -8.;
+                if(PS::Comm::getRank() == 0) {
+                    fprintf(stderr, "set 1D cubic spline!\n");
+                }
             } else if (ndim == 2) {
                 dim   = +2.0;
                 ceff0 = +1.8189136353359468d;
                 ceff1 = -10.913481812015681d;
+                if(PS::Comm::getRank() == 0) {
+                    fprintf(stderr, "set 2D cubic spline!\n");
+                }
             } else {
                 dim   = +3.0;
                 ceff0  = +2.5464790894703255d;
                 ceff1  = -15.278874536821953d;
+                if(PS::Comm::getRank() == 0) {
+                    fprintf(stderr, "set 3D cubic spline!\n");
+                }
             }
             ceff0x = ceff0 * 2.d;
         }

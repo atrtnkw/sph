@@ -52,6 +52,7 @@ void generateMassLessParticle(Tmassless & msls,
         hminloc = std::min(hi, hminloc);
     }
     PS::F64 xmax = 2. * PS::Comm::getMaxValue(xmaxloc);
+    xmax = std::max(xmax, 0.); // ??? caution!!!
     PS::F64 xmin = 2. * PS::Comm::getMinValue(xminloc);
     PS::F64 hmax =      PS::Comm::getMaxValue(hmaxloc);
     PS::F64 hmin =      PS::Comm::getMinValue(hminloc);

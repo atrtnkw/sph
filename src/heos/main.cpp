@@ -4,6 +4,8 @@
 #include <cstdio>
 #include <cstring>
 
+//bool mightyflag = false;
+
 #include "particle_simulator.hpp"
 
 static PS::F64 MaximumTimeStep    = 1. / 64.;
@@ -280,33 +282,27 @@ template <class Tptcl>
 PS::F64 calcTimeStep(Tptcl & system,
                      PS::F64 t,
                      PS::F64 dt) {
-    // check
     const PS::F64 dtmin = 1e-10;
 
     PS::S32 nloc = system.getNumberOfParticleLocal();
     PS::F64 dtc = 1e30;
     for(PS::S32 i = 0; i < nloc; i++) {
-        //PS::F64 dttmp = system[i].calcTimeStep();
         PS::F64 dttmp = system[i].calcTimeStep(dt);
         if(dttmp < dtc)
             dtc = dttmp;
     }
     dtc = PS::Comm::getMinValue(dtc);
 
-    if(dtc < 1e-9) {
-        system.writeParticleAscii("snap/hoge.dat");
-        PS::Finalize();
-        exit(0);
-    }
-
-    assert(dtc >= 0.0);
-
     if(dt > dtc) {
         while(dt > dtc) {
             dt *= 0.5;
-            assert(dt > dtmin);
+            if(dt <= dtmin) {
+                printf("Timestep: %+e\n", dtc);
+                system.writeParticleAscii("snap/hoge.dat");
+                PS::Finalize();
+                exit(0);
+            }
         }        
-//    } else if(2. * dt <= dtc) {
     } else if(2. * dt <= dtc && 2. * dt <= MaximumTimeStep) {
         PS::F64 dt2 = 2. * dt;
         if(t - (PS::S64)(t / dt2) * dt2 == 0.) {
@@ -417,6 +413,12 @@ void calcSPHKernel(Thdr & header,
     WT::start();
     calcGravityKernel(dinfo, sph, msls, gravity);
     WT::accumulateCalcGravity();
+    /*
+    if(header.time > 213.3188) {
+        mightyflag = true;
+        sph.writeParticleAscii("hoge", "snap/%s_%06d_%06d.dat");
+    }
+    */
     WT::start();
     derivative.calcForceAllAndWriteBack(calcDerivative, sph, dinfo);
     WT::accumulateCalcHydro();
@@ -426,7 +428,6 @@ void calcSPHKernel(Thdr & header,
         sph[i].calcAlphaDot();
     }
     WT::accumulateOthers();
-
     return;
 }
 

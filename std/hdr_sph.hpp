@@ -88,6 +88,10 @@ public:
         this->acc = this->acch + this->accg1 + this->accg2;
     }
 
+    inline PS::F64 calcPotentialEnergy() {
+        return 0.5 * this->mass * this->pot;
+    }
+
     //void readHexa(FILE *fp);
     //void writeHexa(FILE *fp) const;
 

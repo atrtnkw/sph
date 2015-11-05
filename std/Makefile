@@ -1,5 +1,5 @@
 ###### AT_PLATFORM ########
-use_xc  = yes
+use_xc  = no
 ###### AT_EOS #############
 use_ideal = no
 ###### AT_MPI_OPENMP ######
@@ -50,7 +50,7 @@ endif
 endif
 
 HDR = hdr_run.hpp hdr_time.hpp vector_x86.hpp hdr_dimension.hpp hdr_kernel.hpp \
-	hdr_sph.hpp hdr_msls.hpp hdr_density.hpp hdr_hydro.hpp hdr_gravity.hpp
+	hdr_sph.hpp hdr_msls.hpp hdr_density.hpp hdr_hydro.hpp hdr_gravity.hpp hdr_bhns.hpp
 
 ifeq ($(use_ideal), yes)
 

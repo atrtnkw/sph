@@ -61,14 +61,23 @@ namespace NthDimension {
             calcVolumeInverse     = calcVolumeInverse1D;
             calcPowerOfDimInverse = calcPowerOfDimInverse1D;
             invertMatrix          = invertMatrix1D;
+            if(PS::Comm::getRank() == 0) {
+                fprintf(stderr, "set 1D!\n");
+            }
         } else if (ndim == 2) {        
             calcVolumeInverse     = calcVolumeInverse2D;
             calcPowerOfDimInverse = calcPowerOfDimInverse2D;
             invertMatrix          = invertMatrix2D;
+            if(PS::Comm::getRank() == 0) {
+                fprintf(stderr, "set 2D!\n");
+            }
         } else {
             calcVolumeInverse     = calcVolumeInverse3D;
             calcPowerOfDimInverse = calcPowerOfDimInverse3D;
             invertMatrix          = invertMatrix3D;
+            if(PS::Comm::getRank() == 0) {
+                fprintf(stderr, "set 3D!\n");
+            }
         }
     }
     
