@@ -215,9 +215,12 @@ public:
         PS::F64 dth = tceff * this->ksr / (this->vsmx * SK::ksrh);
         PS::F64 dtu = tceff * fabs(this->uene / this->udot);
         PS::F64 dtn = tceff * fabs(this->uene / this->dnuc) * RP::Timestep;
+        PS::F64vec grv = this->accg1 + this->accg1;
+        PS::F64 dtg = tceff * this->ksr / sqrt(grv * grv);
         dtu = (this->dens < 1e4 * UnitOfDensity) ? RP::MaximumTimestep : dtu;
         dtn = (this->dens < 1e4 * UnitOfDensity) ? RP::MaximumTimestep : dtn;
-        return std::min(std::min(dth, dtu), dtn);
+        //return std::min(std::min(dth, dtu), dtn);
+        return std::min(std::min(dth, dtu), std::min(dtn, dtg));
     }
 
     inline void addAdditionalForceDamping2() {
