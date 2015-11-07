@@ -312,7 +312,8 @@ void absorbParticleIntoBlackHoleNeutronStar(Tdinfo & dinfo,
     for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); ) {
         PS::F64vec dx = sph[i].pos - pbhns;
         PS::F64    r2 = dx * dx;
-        if(r2 >= rabs * rabs) {
+        //if(r2 >= rabs * rabs) {
+        if(r2 >= sph[i].ksr * sph[i].ksr) {
             i++;
             continue;
         }
