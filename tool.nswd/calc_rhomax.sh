@@ -1,6 +1,8 @@
 tbgn=0
-tend=190
-idir=snap
+tend=500
+idir=run.ksr0.5
+
+echo "Directory $idir" >&2
 
 for time in $(seq -f "%04g" $tbgn 1 $tend)
 do

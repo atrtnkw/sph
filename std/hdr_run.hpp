@@ -37,8 +37,8 @@ namespace RunParameter {
     PS::S64    FlagNuclear; // 0: off, 1: on
     PS::S64    FlagBinary;  // 0: WDWD, 1: NSWD/BHWD
 
-    PS::F64    InnerRadiusBlackHoleNeutronStar = 1e7; // cm
-    //PS::F64    InnerRadiusBlackHoleNeutronStar = 1e8; // cm
+    //PS::F64    InnerRadiusBlackHoleNeutronStar = 2e8; // [cm] (m=0.1/1k)
+    //PS::F64    MassStandardPerParticle         = 1.9891e32 / 1024.; // [g] (0.1Msun/1k)
 
     FILE * FilePointerForLog;
     FILE * FilePointerForTime;

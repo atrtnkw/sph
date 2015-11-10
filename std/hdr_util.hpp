@@ -308,12 +308,15 @@ void absorbParticleIntoBlackHoleNeutronStar(Tdinfo & dinfo,
     PS::F64vec mmloc = 0.;
     PS::F64    etot0 = calcEnergy(sph, bhns);
 
-    PS::F64    rabs  = RP::InnerRadiusBlackHoleNeutronStar * CodeUnit::UnitOfLengthInv;
+    //PS::F64    mstd  = RP::MassStandardPerParticle * CodeUnit::UnitOfMassInv;
+    //PS::F64    rabs  = RP::InnerRadiusBlackHoleNeutronStar * CodeUnit::UnitOfLengthInv
+    //* pow(sph[0].mass / mstd, 1/3.);
     for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); ) {
         PS::F64vec dx = sph[i].pos - pbhns;
         PS::F64    r2 = dx * dx;
         //if(r2 >= rabs * rabs) {
-        if(r2 >= sph[i].ksr * sph[i].ksr) {
+        //if(r2 >= sph[i].ksr * sph[i].ksr) {
+        if(r2 >= 0.25 * sph[i].ksr * sph[i].ksr) {
             i++;
             continue;
         }
