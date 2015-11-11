@@ -1,6 +1,6 @@
 tbgn=0
 tend=500
-idir=run.ksr0.5
+idir=run
 
 echo "Directory $idir" >&2
 
