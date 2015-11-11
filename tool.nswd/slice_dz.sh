@@ -1,6 +1,12 @@
-time=0200
-idir=run
-delz=5e7
+if test $# -ne 3
+then
+    echo "sh $0 <idir> <time:????> <dz>"
+    exit
+fi
+
+idir=$1
+time=$2
+delz=$3
 
 bhns="$idir"/bhns_t"$time".dat
 sph="$idir"/sph_t"$time".dat
