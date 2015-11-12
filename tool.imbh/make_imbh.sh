@@ -1,0 +1,41 @@
+if test $# -ne 4
+then
+    echo "sh $0 <BHmass[Msun]> <smallerWD> <beta> <ofile>"
+    exit
+fi
+
+bhmas=$1
+ifile=$2
+ibeta=$3
+ofile=$4
+
+bneps=1e6
+gravc=0.000000066738480
+msn=`echo "1.9891 * 10^33" | bc`
+
+m1=`echo "$bhmas * $msn" | bc`
+m2=`awk 'BEGIN{mtot=0.0;}{mtot+=$3}END{printf("%lf\n", mtot);}' $ifile`
+rt=`echo "scale=5; 1.2 * 10^11 * e(1/3.*l($m1/(1000000.*$msn))) / e(1/3.*l($m2/(0.6*$msn)))" | bc -l`
+
+rp=`echo "scale=5; $rt / $ibeta" | bc`
+ri=`echo "scale=5; $rt * 3." | bc`
+vy=`echo "scale=5; e(0.5*l(2.*$gravc*$rp*($m1+$m2))) / $ri" | bc -l`
+vx=`echo "scale=5; e(0.5*l(2.*$gravc*($m1+$m2)/$ri-$vy*$vy))" | bc -l`
+
+echo "0" > dummy
+
+r1=`awk '{print + ri * m2 / (m1 + m2)}' ri=$ri m1=$m1 m2=$m2 dummy`
+r2=`awk '{print - ri * m1 / (m1 + m2)}' ri=$ri m1=$m1 m2=$m2 dummy`
+vx1=`awk '{print - vx * m2 / (m1 + m2)}' vx=$vx m1=$m1 m2=$m2 dummy`
+vx2=`awk '{print + vx * m1 / (m1 + m2)}' vx=$vx m1=$m1 m2=$m2 dummy`
+vy1=`awk '{print + vy * m2 / (m1 + m2)}' vy=$vy m1=$m1 m2=$m2 dummy`
+vy2=`awk '{print - vy * m1 / (m1 + m2)}' vy=$vy m1=$m1 m2=$m2 dummy`
+
+printf "IMBH: %+e %+e %+e\n" $r1 $vx1 $vy1 >&2
+printf "WD:   %+e %+e %+e\n" $r2 $vx2 $vy2 >&2
+
+awk '{printf("%10d %2d %+e %+e %+e %+e %+e %+e %+e %+e\n", 0, 0, mns, x, 0., 0., vx, vy, 0., eps);}' mns=$m1 x=$r1 vx=$vx1 vy=$vy1 eps=$bneps dummy > "$ofile".bhns
+awk '{printf("%10d %2d %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e\n", $1, 1, $3, $4+dx, $5, $6, $7+dvx, $8+dvy, $9, $13, $14, $15, $17, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44);}' dx=$r2 dvx=$vx2 dvy=$vy2 $ifile > "$ofile".data
+
+rm -f dummy
+
