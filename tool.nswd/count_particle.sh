@@ -1,6 +1,12 @@
+if test $# -ne 1
+then
+    echo "sh $0 <idir>"
+    exit
+fi
+
+idir=$1
 tbgn=0
 tend=500
-idir=run
 
 echo "Directory $idir" >&2
 
