@@ -37,7 +37,8 @@ namespace CodeUnit {
     PS::F64 UnitOfEnergyInv    = 1.d / UnitOfEnergy;
     PS::F64 UnitOfPressureInv  = 1.d / UnitOfPressure;
 
-    PS::F64 MaximumOfTemperature       = 1e10;
+    //PS::F64 MaximumOfTemperature       = 1e10;
+    PS::F64 MaximumOfTemperature       = 1e13;
     PS::F64 MinimumOfTemperature       = 1e5;
     PS::F64 BoundaryTemperature        = 1e8;
     PS::F64 TolaranceOfLowTemperature  = 1e-4;
