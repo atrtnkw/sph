@@ -12,10 +12,12 @@ ofile=$4
 bneps=1e6
 gravc=0.000000066738480
 msn=`echo "1.9891 * 10^33" | bc`
+rwd=`echo "10^9" | bc`
 
 m1=`echo "$bhmas * $msn" | bc`
 m2=`awk 'BEGIN{mtot=0.0;}{mtot+=$3}END{printf("%lf\n", mtot);}' $ifile`
-rt=`echo "scale=5; 1.2 * 10^11 * e(1/3.*l($m1/(1000000.*$msn))) / e(1/3.*l($m2/(0.6*$msn)))" | bc -l`
+rm=`awk 'BEGIN{r2max=0.0;}{r2=$4**2+$5**2+$6**2;if(r2>r2max)r2max=r2;}END{printf("%lf\n", sqrt(r2max));}' $ifile`
+rt=`echo "scale=5; 1.2 * 10^11 * e(1/3.*l($m1/(1000000.*$msn))) * ($rm/$rwd) / e(1/3.*l($m2/(0.6*$msn)))" | bc -l`
 
 rp=`echo "scale=5; $rt / $ibeta" | bc`
 ri=`echo "scale=5; $rt * 3." | bc`
@@ -31,6 +33,7 @@ vx2=`awk '{print + vx * m1 / (m1 + m2)}' vx=$vx m1=$m1 m2=$m2 dummy`
 vy1=`awk '{print + vy * m2 / (m1 + m2)}' vy=$vy m1=$m1 m2=$m2 dummy`
 vy2=`awk '{print - vy * m1 / (m1 + m2)}' vy=$vy m1=$m1 m2=$m2 dummy`
 
+printf "rtrp: %+e %+e\n" $rt $rp >&2
 printf "IMBH: %+e %+e %+e\n" $r1 $vx1 $vy1 >&2
 printf "WD:   %+e %+e %+e\n" $r2 $vx2 $vy2 >&2
 

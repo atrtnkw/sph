@@ -206,6 +206,8 @@ public:
                                                       this->temp,
                                                       this->cmps);
             this->enuc += this->dnuc;
+        } else {
+            this->dnuc  = 0.;
         }
     }
 
@@ -345,7 +347,9 @@ namespace RunParameter {
         PS::U64 urtime, urtimeinv, utcoeff;
         PS::U64 urv[3];
         PS::S64 nstep, nptcl, nmsls, nbhns, fdamp, fnuc, fbin;
+        PS::S64 nascii, nhexa;
         fscanf(fp, "%llx %llx %llx %llx %llx %lld", &utime, &utend, &udtime, &udta, &udth, &nstep);
+        fscanf(fp, "%lld %lld", &nascii, &nhexa);
         fscanf(fp, "%llx %llx %llx %llx", &ualphamax, &ualphamin, &ualphumax, &ualphumin);
         fscanf(fp, "%llx %llx", &uksrmax, &uepsu);
         fscanf(fp, "%llx %llx", &urtime, &urtimeinv);
@@ -366,6 +370,8 @@ namespace RunParameter {
         TimestepAscii = cvt(udta);
         TimestepHexa  = cvt(udth);
         NumberOfStep  = nstep;
+        NumberOfAscii = nascii - 1;
+        NumberOfHexa  = nhexa  - 1;
         AlphaMaximum  = cvt(ualphamax);
         AlphaMinimum  = cvt(ualphamin);
         AlphuMaximum  = cvt(ualphumax);
@@ -414,6 +420,7 @@ namespace RunParameter {
         fprintf(fp, "%llx %llx %llx %llx %llx %lld\n",
                 cvt(Time), cvt(TimeEnd), cvt(Timestep),
                 cvt(TimestepAscii), cvt(TimestepHexa), NumberOfStep);
+        fprintf(fp, "%lld %lld\n", NumberOfAscii, NumberOfHexa);
         fprintf(fp, "%llx %llx %llx %llx\n",
                 cvt(AlphaMaximum), cvt(AlphaMinimum), cvt(AlphuMaximum), cvt(AlphuMinimum));
         fprintf(fp, "%llx %llx %llx %llx\n",
@@ -543,36 +550,56 @@ void outputData(Tdinfo & dinfo,
                 Tmsls & msls) {
     if(RP::Time - (PS::S64)(RP::Time / RP::TimestepAscii) * RP::TimestepAscii == 0.) {
         char filename[64];
-#ifdef FOR_TUBE_TEST
-        if(RP::Time == 0.) {
-            RP::NumberOfAscii = 0;
+//#ifdef FOR_TUBE_TEST
+//        if(RP::Time == 0.) {
+//            RP::NumberOfAscii = 0;
+//        }
+//        sprintf(filename, "snap/sph_t%04d.dat", RP::NumberOfAscii);
+//        RP::NumberOfAscii++;
+//#else
+        if(RP::TimestepAscii >= 1.) {
+            sprintf(filename, "snap/sph_t%04d.dat", (PS::S32)RP::Time);
+        } else {
+            if(RP::Time == 0.) {
+                RP::NumberOfAscii = 0;
+            }
+            sprintf(filename, "snap/sph_t%04d.dat", RP::NumberOfAscii);
+            RP::NumberOfAscii++;
         }
-        sprintf(filename, "snap/sph_t%04d.dat", RP::NumberOfAscii);
-        RP::NumberOfAscii++;
-#else
-        sprintf(filename, "snap/sph_t%04d.dat", (PS::S32)RP::Time);
-#endif
+//#endif
         sph.writeParticleAscii(filename);
         if(RP::FlagDamping == 2) {
             sprintf(filename, "snap/msls_t%04d.dat", (PS::S32)RP::Time);
             msls.writeParticleAscii(filename);
         }
         if(RP::FlagBinary == 1) {
-            sprintf(filename, "snap/bhns_t%04d.dat", (PS::S32)RP::Time);
+            if(RP::TimestepAscii >= 1.) {
+                sprintf(filename, "snap/bhns_t%04d.dat", (PS::S32)RP::Time);
+            } else {
+                sprintf(filename, "snap/bhns_t%04d.dat", RP::NumberOfAscii - 1);
+            }
             bhns.writeParticleAscii(filename);
         }
     }
     if(RP::Time - (PS::S64)(RP::Time / RP::TimestepHexa) * RP::TimestepHexa == 0.) {
         char filename[64];
-#ifdef FOR_TUBE_TEST
-        if(RP::Time == 0.) {
-            RP::NumberOfHexa = 0;
+//#ifdef FOR_TUBE_TEST
+//        if(RP::Time == 0.) {
+//            RP::NumberOfHexa = 0;
+//        }
+//        sprintf(filename, "snap/t%04d_p%06d.hexa", RP::NumberOfHexa, PS::Comm::getRank());
+//        RP::NumberOfHexa++;
+//#else
+        if(RP::TimestepHexa >= 1.) {
+            sprintf(filename, "snap/t%04d_p%06d.hexa", (PS::S32)RP::Time, PS::Comm::getRank());
+        } else {
+            if(RP::Time == 0.) {
+                RP::NumberOfHexa = 0;
+            }
+            sprintf(filename, "snap/t%04d_p%06d.hexa", RP::NumberOfHexa, PS::Comm::getRank());
+            RP::NumberOfHexa++;
         }
-        sprintf(filename, "snap/t%04d_p%06d.hexa", RP::NumberOfHexa, PS::Comm::getRank());
-        RP::NumberOfHexa++;
-#else
-        sprintf(filename, "snap/t%04d_p%06d.hexa", (PS::S32)RP::Time, PS::Comm::getRank());
-#endif
+//#endif
         writeHexa(filename, dinfo, sph, bhns, msls);
     }
     PS::F64 etot = calcEnergy(sph, bhns);
