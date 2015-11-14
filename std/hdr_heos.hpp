@@ -37,8 +37,8 @@ namespace CodeUnit {
     PS::F64 UnitOfEnergyInv    = 1.d / UnitOfEnergy;
     PS::F64 UnitOfPressureInv  = 1.d / UnitOfPressure;
 
-    //PS::F64 MaximumOfTemperature       = 1e10;
-    PS::F64 MaximumOfTemperature       = 1e13;
+    PS::F64 MaximumOfTemperature       = 1e10;
+    //PS::F64 MaximumOfTemperature       = 1e11;
     PS::F64 MinimumOfTemperature       = 1e5;
     PS::F64 BoundaryTemperature        = 1e8;
     PS::F64 TolaranceOfLowTemperature  = 1e-4;
@@ -56,18 +56,12 @@ private:
     CalcEquationOfState() {
         using namespace OTOO;
         using namespace CodeUnit;
-//        if(RP::FlagDamping == 0) {
         if(RP::FlagDamping != 1) {
             eos_ = new WDEOS_D_E(UnitOfDensity, UnitOfEnergy, UnitOfVelocity,
                                  UnitOfPressure, 1.0e6);
-//        } else if(RP::FlagDamping == 1) {
         } else {
             eos_ = new WDEOSforDumping(UnitOfDensity, UnitOfEnergy, UnitOfVelocity,
                                        UnitOfPressure, 1.0e6);
-//        } else {
-//            fprintf(stderr, "Not supported damping mode %d!\n", RP::FlagDamping);
-//            PS::Abort();
-//        }
         }
     };
     ~CalcEquationOfState() {};
@@ -140,6 +134,7 @@ public:
 
         if(eg > umax) {
             fprintf(stderr, "Too large energy!\n");
+            fprintf(stderr, "Density: %+e Energy: %+e Abar: %+e\n", dd, eg, abar);
             PS::Abort();
         } else if (eg > umin) {
             PS::F64 ttmid;

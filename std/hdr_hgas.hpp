@@ -817,6 +817,12 @@ void loopSimulation(Tdinfo & dinfo,
             calcReleasedNuclearEnergy(sph);
         }
         WT::accumulateCalcNuclearReaction();
+        /*
+        if(RP::Time > 1.459838867) {
+            sprintf(filename, "snap/sph_t%.10f.dat", RP::Time);
+            sph.writeParticleAscii(filename);
+        }
+        */
         WT::start();
         predict(sph, bhns);
         WT::accumulateOthers();

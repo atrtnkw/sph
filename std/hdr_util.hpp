@@ -266,29 +266,12 @@ void broadcastBlackHoleNeutronStar(const Tbhns & bhns,
     vel  = PS::Comm::getSum(vloc);
 }
 
-template <class Tbhns>
-void correctBlackHoleNeutronStar(Tbhns & bhns,
-                                 const PS::F64    mass,
-                                 const PS::F64vec momentum) {
-    PS::S32    nbhns = bhns.getNumberOfParticleLocal();
-    if(nbhns == 1) {
-        bhns[0].vel  = (bhns[0].mass * bhns[0].vel + momentum) / (bhns[0].mass + mass);
-        bhns[0].mass = bhns[0].mass + mass;
-    } else if(nbhns == 0) {
-        ;
-    } else {
-        fprintf(stderr, "Not supported in this case (in function %s)!\n", __FUNCTION__);
-        PS::Abort();
-    }    
-}
 //template <class Tbhns>
 //void correctBlackHoleNeutronStar(Tbhns & bhns,
 //                                 const PS::F64    mass,
-//                                 const PS::F64vec masspos,
 //                                 const PS::F64vec momentum) {
 //    PS::S32    nbhns = bhns.getNumberOfParticleLocal();
 //    if(nbhns == 1) {
-//        bhns[0].pos  = (bhns[0].mass * bhns[0].pos + masspos)  / (bhns[0].mass + mass);
 //        bhns[0].vel  = (bhns[0].mass * bhns[0].vel + momentum) / (bhns[0].mass + mass);
 //        bhns[0].mass = bhns[0].mass + mass;
 //    } else if(nbhns == 0) {
@@ -298,6 +281,23 @@ void correctBlackHoleNeutronStar(Tbhns & bhns,
 //        PS::Abort();
 //    }    
 //}
+template <class Tbhns>
+void correctBlackHoleNeutronStar(Tbhns & bhns,
+                                 const PS::F64    mass,
+                                 const PS::F64vec masspos,
+                                 const PS::F64vec momentum) {
+    PS::S32    nbhns = bhns.getNumberOfParticleLocal();
+    if(nbhns == 1) {
+        bhns[0].pos  = (bhns[0].mass * bhns[0].pos + masspos)  / (bhns[0].mass + mass);
+        bhns[0].vel  = (bhns[0].mass * bhns[0].vel + momentum) / (bhns[0].mass + mass);
+        bhns[0].mass = bhns[0].mass + mass;
+    } else if(nbhns == 0) {
+        ;
+    } else {
+        fprintf(stderr, "Not supported in this case (in function %s)!\n", __FUNCTION__);
+        PS::Abort();
+    }    
+}
 
 template <class Tdinfo,
           class Tsph,
@@ -322,7 +322,7 @@ void absorbParticleIntoBlackHoleNeutronStar(Tdinfo & dinfo,
     PS::F64    uloc0 = 0.;
     PS::S32    ndloc = 0;
     PS::F64    msloc = 0.;
-    //PS::F64vec mxloc = 0.;
+    PS::F64vec mxloc = 0.;
     PS::F64vec mmloc = 0.;
     PS::F64    etot0 = calcEnergy(sph, bhns);
 
@@ -337,14 +337,11 @@ void absorbParticleIntoBlackHoleNeutronStar(Tdinfo & dinfo,
         fprintf(stderr, "###Absorbed %16.10f\n", RP::Time * CodeUnit::UnitOfTime);
         fprintf(stderr, "###");
         sph[i].writeAscii(stderr);
-        //fprintf(stderr, "## absorb Particle %16.10f %8d\n", RP::Time * CodeUnit::UnitOfTime,
-        //sph[i].id);
-        //sph[i].writeAscii(stderr);
         ndloc++;
         ekloc += 0.5 * sph[i].mass * (sph[i].vel * sph[i].vel);
         uloc0 +=       sph[i].mass *  sph[i].uene;
         msloc +=       sph[i].mass;
-        //mxloc +=       sph[i].mass *  sph[i].pos;
+        mxloc +=       sph[i].mass *  sph[i].pos;
         mmloc +=       sph[i].mass *  sph[i].vel;
         PS::S32 nsph = sph.getNumberOfParticleLocal();
         sph[i] = sph[nsph-1];
@@ -354,12 +351,12 @@ void absorbParticleIntoBlackHoleNeutronStar(Tdinfo & dinfo,
     PS::F64    kglb0 = PS::Comm::getSum(ekloc) + 0.5 * mbhns * (vbhns * vbhns);
     PS::F64    uglb0 = PS::Comm::getSum(uloc0);
     PS::F64    msglb = PS::Comm::getSum(msloc);
-    //PS::F64vec mxglb = PS::Comm::getSum(mxloc);
+    PS::F64vec mxglb = PS::Comm::getSum(mxloc);
     PS::F64vec mmglb = PS::Comm::getSum(mmloc);
 
     if(ndglb > 0) {
-        correctBlackHoleNeutronStar(bhns, msglb, mmglb);
-        //correctBlackHoleNeutronStar(bhns, msglb, mxglb, mmglb);
+        //correctBlackHoleNeutronStar(bhns, msglb, mmglb);
+        correctBlackHoleNeutronStar(bhns, msglb, mxglb, mmglb);
 
         calcSPHKernel(dinfo, sph, bhns, msls, density, hydro, gravity);
 
