@@ -33,12 +33,15 @@ vx2=`awk '{print + vx * m1 / (m1 + m2)}' vx=$vx m1=$m1 m2=$m2 dummy`
 vy1=`awk '{print + vy * m2 / (m1 + m2)}' vy=$vy m1=$m1 m2=$m2 dummy`
 vy2=`awk '{print - vy * m1 / (m1 + m2)}' vy=$vy m1=$m1 m2=$m2 dummy`
 
-printf "rtrp: %+e %+e\n" $rt $rp >&2
-printf "IMBH: %+e %+e %+e\n" $r1 $vx1 $vy1 >&2
-printf "WD:   %+e %+e %+e\n" $r2 $vx2 $vy2 >&2
+printf "rtrp: %+e %+e\n" $rt $rp > "$ofile".log
+printf "IMBH: %+e %+e %+e\n" $r1 $vx1 $vy1 >> "$ofile".log
+printf "WD:   %+e %+e %+e\n" $r2 $vx2 $vy2 >> "$ofile".log
 
 awk '{printf("%10d %2d %+e %+e %+e %+e %+e %+e %+e %+e\n", 0, 0, mns, x, 0., 0., vx, vy, 0., eps);}' mns=$m1 x=$r1 vx=$vx1 vy=$vy1 eps=$bneps dummy > "$ofile".bhns
 awk '{printf("%10d %2d %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e\n", $1, 1, $3, $4+dx, $5, $6, $7+dvx, $8+dvy, $9, $13, $14, $15, $17, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44);}' dx=$r2 dvx=$vx2 dvy=$vy2 $ifile > "$ofile".data
+
+cp "$ofile".bhns  "$ofile".atc0.bhns
+awk -f ~/git-sph/tool.hgas/zero_alphu.awk "$ofile".data > "$ofile".atc0.data
 
 rm -f dummy
 

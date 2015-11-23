@@ -94,26 +94,31 @@ public:
         PS::F64 (*cvt)(PS::U64) = convertU64ToF64;
         PS::S32 s0, s1;
         PS::U64 umass;
-        PS::U64 upos[3], uvel[3], uacc[3];
+        PS::U64 upos[3], uvel[3], uacc[3], uacch[3], uaccg1[3], uaccg2[3];
         PS::U64 uuene, uudot;
         PS::U64 ualph, uadot, ualphu, uadotu;
         PS::U64 udens, upres, uvsnd, utemp;
         PS::U64 udivv, urotv, ubswt;
         PS::U64 uksr, ugrdh, uvsmx;
-        PS::U64 upot, uenuc;
+        PS::U64 upot, uenuc, udnuc;
+        PS::U64 uabar, uzbar;
         PS::U64 ucmps[NR::NumberOfNucleon];
 
         fscanf(fp, "%d %d %llx", &this->id, &this->istar, &umass);
         fscanf(fp, "%llx %llx %llx", &upos[0], &upos[1], &upos[2]);
         fscanf(fp, "%llx %llx %llx", &uvel[0], &uvel[1], &uvel[2]);
         fscanf(fp, "%llx %llx %llx", &uacc[0], &uacc[1], &uacc[2]);
+        fscanf(fp, "%llx %llx %llx", &uacch[0], &uacch[1], &uacch[2]);
+        fscanf(fp, "%llx %llx %llx", &uaccg1[0], &uaccg1[1], &uaccg1[2]);
+        fscanf(fp, "%llx %llx %llx", &uaccg2[0], &uaccg2[1], &uaccg2[2]);
         fscanf(fp, "%llx %llx", &uuene, &uudot);
         fscanf(fp, "%llx %llx", &ualph, &uadot);
         fscanf(fp, "%llx %llx", &ualphu, &uadotu);
         fscanf(fp, "%llx %llx %llx %llx", &udens, &upres, &uvsnd, &utemp);
         fscanf(fp, "%llx %llx %llx", &udivv, &urotv, &ubswt);
         fscanf(fp, "%llx %llx %llx", &uksr,  &ugrdh, &uvsmx);
-        fscanf(fp, "%llx %llx", &upot, &uenuc);
+        fscanf(fp, "%llx %llx %llx", &upot, &uenuc, &udnuc);
+        fscanf(fp, "%llx %llx", &uabar, &uzbar);
         for(PS::S32 k = 0; k < NR::NumberOfNucleon; k++) {
             fscanf(fp, "%llx", &ucmps[k]);
         }
@@ -128,6 +133,15 @@ public:
         this->acc[0] = cvt(uacc[0]);
         this->acc[1] = cvt(uacc[1]);
         this->acc[2] = cvt(uacc[2]);
+        this->acch[0] = cvt(uacch[0]);
+        this->acch[1] = cvt(uacch[1]);
+        this->acch[2] = cvt(uacch[2]);
+        this->accg1[0] = cvt(uaccg1[0]);
+        this->accg1[1] = cvt(uaccg1[1]);
+        this->accg1[2] = cvt(uaccg1[2]);
+        this->accg2[0] = cvt(uaccg2[0]);
+        this->accg2[1] = cvt(uaccg2[1]);
+        this->accg2[2] = cvt(uaccg2[2]);
         this->uene  = cvt(uuene);
         this->udot  = cvt(uudot);
         this->alph  = cvt(ualph);
@@ -146,6 +160,9 @@ public:
         this->vsmx  = cvt(uvsmx);
         this->pot   = cvt(upot);        
         this->enuc  = cvt(uenuc);        
+        this->dnuc  = cvt(udnuc);        
+        this->abar  = cvt(uabar);
+        this->zbar  = cvt(uzbar);
         for(PS::S32 k = 0; k < NR::NumberOfNucleon; k++) {
             this->cmps[k] = cvt(ucmps[k]);
         }
@@ -157,6 +174,11 @@ public:
         fprintf(fp, " %llx %llx %llx", cvt(this->pos[0]), cvt(this->pos[1]), cvt(this->pos[2]));
         fprintf(fp, " %llx %llx %llx", cvt(this->vel[0]), cvt(this->vel[1]), cvt(this->vel[2]));
         fprintf(fp, " %llx %llx %llx", cvt(this->acc[0]), cvt(this->acc[1]), cvt(this->acc[2]));
+        fprintf(fp, " %llx %llx %llx", cvt(this->acch[0]), cvt(this->acch[1]), cvt(this->acch[2]));
+        fprintf(fp, " %llx %llx %llx",
+                cvt(this->accg1[0]), cvt(this->accg1[1]), cvt(this->accg1[2]));
+        fprintf(fp, " %llx %llx %llx",
+                cvt(this->accg2[0]), cvt(this->accg2[1]), cvt(this->accg2[2]));
         fprintf(fp, " %llx %llx", cvt(this->uene), cvt(this->udot));
         fprintf(fp, " %llx %llx", cvt(this->alph), cvt(this->adot));
         fprintf(fp, " %llx %llx", cvt(this->alphu), cvt(this->adotu));
@@ -164,7 +186,8 @@ public:
         fprintf(fp, " %llx %llx", cvt(this->vsnd), cvt(this->temp));
         fprintf(fp, " %llx %llx %llx", cvt(this->divv), cvt(this->rotv), cvt(this->bswt));
         fprintf(fp, " %llx %llx %llx", cvt(this->ksr), cvt(this->grdh), cvt(this->vsmx));
-        fprintf(fp, " %llx %llx", cvt(this->pot), cvt(this->enuc));
+        fprintf(fp, " %llx %llx %llx", cvt(this->pot), cvt(this->enuc), cvt(this->dnuc));
+        fprintf(fp, " %llx %llx", cvt(this->abar), cvt(this->zbar));
         for(PS::S32 k = 0; k < NR::NumberOfNucleon; k++) {
             fprintf(fp, " %llx", cvt(this->cmps[k]));
         }
@@ -213,16 +236,17 @@ public:
 
     PS::F64 calcTimestep() {
         using namespace CodeUnit;
-        PS::F64 tceff   = RP::CoefficientOfTimestep;
+        PS::F64 tceff = RP::CoefficientOfTimestep;
         PS::F64 dth = tceff * this->ksr / (this->vsmx * SK::ksrh);
-        PS::F64 dtu = tceff * fabs(this->uene / this->udot);
-        PS::F64 dtn = tceff * fabs(this->uene / this->dnuc) * RP::Timestep;
-        PS::F64vec grv = this->accg1 + this->accg1;
-        PS::F64 dtg = tceff * this->ksr / sqrt(grv * grv);
-        dtu = (this->dens < 1e4 * UnitOfDensity) ? RP::MaximumTimestep : dtu;
-        dtn = (this->dens < 1e4 * UnitOfDensity) ? RP::MaximumTimestep : dtn;
-        //return std::min(std::min(dth, dtu), dtn);
-        return std::min(std::min(dth, dtu), std::min(dtn, dtg));
+        PS::F64 dtu = RP::MaximumTimestep;
+        if(this->dens * UnitOfDensity > 1e4 && this->temp > 1e7) {
+            PS::F64 umin = CalcEquationOfState::getEnergyMin(this->dens, this->abar, this->zbar);
+            dtu = tceff * fabs(this->uene - umin)
+                / (fabs(this->udot) * RP::Timestep + fabs(this->dnuc)) * RP::Timestep;
+        }
+        PS::F64vec grv = this->accg1 + this->accg2;
+        PS::F64 dtg = 0.3 * tceff * sqrt(this->ksr / sqrt(grv * grv));
+        return std::min(std::min(dth, dtu), dtg);
     }
 
     inline void addAdditionalForceDamping2() {
@@ -669,7 +693,7 @@ void initializeSimulation() {
 #ifdef FOR_TUBE_TEST
     MaximumTimestep   = 1. / 256.;
 #else
-    MaximumTimestep   = 1. / 64.;
+    MaximumTimestep   = 1. / 256.;
 #endif
     MinimumTimestep   = 1e-16;
     Timestep          = RP::MaximumTimestep;
@@ -784,6 +808,9 @@ void restartSimulation(char **argv,
     dinfo.setPosRootDomain((- 0.5e9 * CodeUnit::UnitOfLengthInv),
                            (+ 0.5e9 * CodeUnit::UnitOfLengthInv));
 #endif
+    // *********************
+    //RP::CoefficientOfTimestep = 1e-3;
+    // *********************
     RP::outputRunParameter(argv);
     return;
 }
@@ -817,12 +844,6 @@ void loopSimulation(Tdinfo & dinfo,
             calcReleasedNuclearEnergy(sph);
         }
         WT::accumulateCalcNuclearReaction();
-        /*
-        if(RP::Time > 1.459838867) {
-            sprintf(filename, "snap/sph_t%.10f.dat", RP::Time);
-            sph.writeParticleAscii(filename);
-        }
-        */
         WT::start();
         predict(sph, bhns);
         WT::accumulateOthers();
