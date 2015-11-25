@@ -1,7 +1,11 @@
 #pragma once
 
 #include "hdr_heos.hpp"
+#ifdef USE_ISO7
+#include "hdr_nuc_iso7.hpp"
+#else
 #include "hdr_nuc.hpp"
+#endif
 #include "hdr_util.hpp"
 
 static PS::U64 convertF64ToU64(PS::F64 val) {
@@ -273,7 +277,6 @@ public:
         this->vel2   = this->vel   + 0.5 * this->acc   * dt;
         this->vel    = this->vel   +       this->acc   * dt;
         this->uene2  = this->uene  + 0.5 * this->udot  * dt;
-        //this->uene   = this->uene  +       this->udot  * dt;
         this->uene   = this->uene  +       this->udot  * dt  +       this->dnuc;
         this->alph2  = this->alph  + 0.5 * this->adot  * dt;
         this->alph   = this->alph  +       this->adot  * dt;
@@ -283,7 +286,6 @@ public:
 
     void correct(PS::F64 dt) {
         this->vel   = this->vel2   + 0.5 * this->acc   * dt;
-        //this->uene  = this->uene2  + 0.5 * this->udot  * dt;
         this->uene  = this->uene2  + 0.5 * this->udot  * dt  +       this->dnuc;
         this->alph  = this->alph2  + 0.5 * this->adot  * dt;
         this->alphu = this->alphu2 + 0.5 * this->adotu * dt;
@@ -377,17 +379,17 @@ namespace RunParameter {
         fscanf(fp, "%llx %llx %llx %llx", &ualphamax, &ualphamin, &ualphumax, &ualphumin);
         fscanf(fp, "%llx %llx", &uksrmax, &uepsu);
         fscanf(fp, "%llx %llx", &urtime, &urtimeinv);
-#if 0 // ???
-        fscanf(fp, "%lld %lld %llx", &nptcl, &nmsls, &utcoeff);
-#else
+//#if 0 // ???
+//        fscanf(fp, "%lld %lld %llx", &nptcl, &nmsls, &utcoeff);
+//#else
         fscanf(fp, "%lld %lld %lld %llx", &nptcl, &nmsls, &nbhns, &utcoeff);
-#endif
+//#endif
         fscanf(fp, "%llx %llx %llx", &urv[0], &urv[1], &urv[2]);
-#if 0 // ???
-        fscanf(fp, "%llx %lld %lld", &uenuc, &fdamp, &fnuc);
-#else
+//#if 0 // ???
+//        fscanf(fp, "%llx %lld %lld", &uenuc, &fdamp, &fnuc);
+//#else
         fscanf(fp, "%llx %llx %lld %lld %lld", &uenuc, &ueabs, &fdamp, &fnuc, &fbin);
-#endif
+//#endif
         Time          = cvt(utime);
         TimeEnd       = cvt(utend);
         Timestep      = cvt(udtime);
@@ -450,22 +452,22 @@ namespace RunParameter {
         fprintf(fp, "%llx %llx %llx %llx\n",
                 cvt(KernelSupportRadiusMaximum), cvt(EpsilonOfInternalEnergy),
                 cvt(ReductionTime), cvt(ReductionTimeInv));
-#if 0 // ???
-        fprintf(fp, "%lld %lld %llx\n", sph.getNumberOfParticleLocal(),
-                msls.getNumberOfParticleLocal(), cvt(CoefficientOfTimestep));
-#else
+//#if 0 // ???
+//        fprintf(fp, "%lld %lld %llx\n", sph.getNumberOfParticleLocal(),
+//                msls.getNumberOfParticleLocal(), cvt(CoefficientOfTimestep));
+//#else
         fprintf(fp, "%lld %lld %lld %llx\n", sph.getNumberOfParticleLocal(),
                 msls.getNumberOfParticleLocal(), bhns.getNumberOfParticleLocal(),
                 cvt(CoefficientOfTimestep));
-#endif
+//#endif
         fprintf(fp, "%llx %llx %llx\n", cvt(RotationalVelocity[0]),
                 cvt(RotationalVelocity[1]), cvt(RotationalVelocity[2]));
-#if 0 // ???
-        fprintf(fp, "%llx %lld %lld\n", cvt(NuclearEnergyTotal), FlagDamping, FlagNuclear);
-#else
+//#if 0 // ???
+//        fprintf(fp, "%llx %lld %lld\n", cvt(NuclearEnergyTotal), FlagDamping, FlagNuclear);
+//#else
         fprintf(fp, "%llx %llx\n", cvt(NuclearEnergyTotal), cvt(AbsorbedEnergyTotal));
         fprintf(fp, "%lld %lld %lld\n", FlagDamping, FlagNuclear, FlagBinary);
-#endif
+//#endif
 
         PS::S32 nproc = PS::Comm::getNumberOfProc();
         for(PS::S32 i = 0; i < nproc; i++) {
@@ -574,13 +576,6 @@ void outputData(Tdinfo & dinfo,
                 Tmsls & msls) {
     if(RP::Time - (PS::S64)(RP::Time / RP::TimestepAscii) * RP::TimestepAscii == 0.) {
         char filename[64];
-//#ifdef FOR_TUBE_TEST
-//        if(RP::Time == 0.) {
-//            RP::NumberOfAscii = 0;
-//        }
-//        sprintf(filename, "snap/sph_t%04d.dat", RP::NumberOfAscii);
-//        RP::NumberOfAscii++;
-//#else
         if(RP::TimestepAscii >= 1.) {
             sprintf(filename, "snap/sph_t%04d.dat", (PS::S32)RP::Time);
         } else {
@@ -590,7 +585,6 @@ void outputData(Tdinfo & dinfo,
             sprintf(filename, "snap/sph_t%04d.dat", RP::NumberOfAscii);
             RP::NumberOfAscii++;
         }
-//#endif
         sph.writeParticleAscii(filename);
         if(RP::FlagDamping == 2) {
             sprintf(filename, "snap/msls_t%04d.dat", (PS::S32)RP::Time);
@@ -607,13 +601,6 @@ void outputData(Tdinfo & dinfo,
     }
     if(RP::Time - (PS::S64)(RP::Time / RP::TimestepHexa) * RP::TimestepHexa == 0.) {
         char filename[64];
-//#ifdef FOR_TUBE_TEST
-//        if(RP::Time == 0.) {
-//            RP::NumberOfHexa = 0;
-//        }
-//        sprintf(filename, "snap/t%04d_p%06d.hexa", RP::NumberOfHexa, PS::Comm::getRank());
-//        RP::NumberOfHexa++;
-//#else
         if(RP::TimestepHexa >= 1.) {
             sprintf(filename, "snap/t%04d_p%06d.hexa", (PS::S32)RP::Time, PS::Comm::getRank());
         } else {
@@ -623,7 +610,6 @@ void outputData(Tdinfo & dinfo,
             sprintf(filename, "snap/t%04d_p%06d.hexa", RP::NumberOfHexa, PS::Comm::getRank());
             RP::NumberOfHexa++;
         }
-//#endif
         writeHexa(filename, dinfo, sph, bhns, msls);
     }
     PS::F64 etot = calcEnergy(sph, bhns);
@@ -633,7 +619,6 @@ void outputData(Tdinfo & dinfo,
         PS::F64 eabs = RP::AbsorbedEnergyTotal;
         fprintf(RP::FilePointerForLog, "time: %8d %16.10f %+e %+e %+e %+e %+e %+e\n",
                 RP::NumberOfStep, RP::Time * UnitOfTime, RP::Timestep * UnitOfTime,
-                //(etot - enuc + eabs) * UnitOfEnergy * UnitOfMass, etot * UnitOfEnergy * UnitOfMass,
                 (etot - enuc - eabs) * UnitOfEnergy * UnitOfMass, etot * UnitOfEnergy * UnitOfMass,
                 enuc * UnitOfEnergy * UnitOfMass, eabs * UnitOfEnergy * UnitOfMass,
                 WT::getTimeTotal());
@@ -832,10 +817,11 @@ void loopSimulation(Tdinfo & dinfo,
 
     WT::clear();
     while(RP::Time < RP::TimeEnd) {
-        RP::Timestep = calcTimestep(sph);
+        //RP::Timestep = calcTimestep(sph);
         WT::reduceInterProcess();
         outputData(dinfo, sph, bhns, msls);
-        WT::clear();        
+        WT::clear();
+        RP::Timestep = calcTimestep(sph);
         if(RP::FlagDamping == 2) {
             reduceSeparation(sph, bhns, msls);
         }

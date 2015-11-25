@@ -1,0 +1,16 @@
+#FCC = gfortran
+FFLAGS += -O3
+
+iso7_main.o: iso7_main.f90
+	$(FCC) $(FFLAGS) -c iso7_main.f90 -o iso7_main.o
+
+public_iso7.o: public_iso7.f90
+	$(FCC) $(FFLAGS) -c public_iso7.f90 -o public_iso7.o
+
+clean:
+	rm -f *~
+distclean:
+	make -f Makefile.iso7 clean
+	rm -f *.o
+allclean:
+	make -f Makefile.iso7 distclean

@@ -1,6 +1,7 @@
 ###### AT_PLATFORM ########
-use_xc  = no
+use_xc  = yes
 ###### AT_EOS #############
+use_iso7  = no
 use_ideal = no
 ###### AT_MPI_OPENMP ######
 use_mpi = yes
@@ -15,7 +16,7 @@ use_omp = yes
 ##############################################
 
 ifeq ($(use_xc), yes)
-FDPS_DIR = ../../fdps/src
+FDPS_DIR = /home/tanikwat/fdps/src
 else
 FDPS_DIR = ../../../fdps-jenever0/src
 endif
@@ -81,8 +82,13 @@ else
 
 FFLAGS += -I. -I./heos
 CFLAGS += -DUSE_HELMHOLTZ
+ifeq ($(use_iso7), yes)
+CFLAGS += -DUSE_ISO7
+OBJ  = main.o heos/eos.o iso7/iso7_main.o iso7/public_iso7.o
+else
 OBJ  = main.o heos/eos.o aprox13/aprox13_main.o aprox13/aprox13_input.o \
 	aprox13/aprox13.o
+endif
 HDR += hdr_hgas.hpp hdr_heos.hpp hdr_nuc.hpp hdr_util.hpp
 ETC  = Makefile
 
@@ -108,6 +114,12 @@ aprox13/aprox13_input.o: aprox13/aprox13_input.f90
 aprox13/aprox13.o: aprox13/aprox13.f90
 	make -C aprox13 -f Makefile.aprox13 aprox13.o FCC="$(FCC)"
 
+iso7/iso7_main.o: iso7/iso7_main.f90
+	make -C iso7 -f Makefile.iso7 iso7_main.o FCC="$(FCC)"
+
+iso7/public_iso7.o: iso7/public_iso7.f90
+	make -C iso7 -f Makefile.iso7 public_iso7.o FCC="$(FCC)"
+
 asm: main.cpp $(HDR) $(ETC)
 	$(CCC) $(PS_PATH) $(CFLAGS) -S main.cpp
 
@@ -118,16 +130,19 @@ clean:
 	rm -f *.s
 	make -C heos -f Makefile.heos clean
 	make -C aprox13 -f Makefile.aprox13 clean
+	make -C iso7 -f Makefile.iso7 clean
 distclean:
 	make clean
 	rm -f *.o
 	make -C heos -f Makefile.heos distclean
-	make -C aprox13 -f Makefile.aprox13 distclean
+	make -C aprox13 -f Makefile.aprox13 distclean	
+	make -C iso7 -f Makefile.iso7 distclean	
 allclean:
 	make distclean
 	rm -f run
 	make -C heos -f Makefile.heos allclean
 	make -C aprox13 -f Makefile.aprox13 allclean
+	make -C iso7 -f Makefile.iso7 allclean
 
 endif
 
