@@ -1,12 +1,12 @@
-if test $# -ne 1
+if test $# -ne 3
 then
-    echo "sh $0 <idir>"
+    echo "sh $0 <idir> <tbgn> <tend>"
     exit
 fi
 
 idir=$1
-tbgn=0
-tend=500
+tbgn=$2
+tend=$3
 
 echo "Directory $idir" >&2
 

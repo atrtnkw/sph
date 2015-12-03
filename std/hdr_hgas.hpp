@@ -228,10 +228,19 @@ public:
 
     void calcReleasedNuclearEnergy() {
         if(this->temp > 1e6) {
+            //********************* A. Tanikawa adds this.
+            PS::F64 temptemp = std::min(this->temp, 1e10);
+            this->dnuc  = CalcNRH::getGeneratedEnergy(RP::Timestep,
+                                                      this->dens,
+                                                      temptemp,
+                                                      this->cmps);
+            /*
             this->dnuc  = CalcNRH::getGeneratedEnergy(RP::Timestep,
                                                       this->dens,
                                                       this->temp,
                                                       this->cmps);
+            */
+            //*********************
             this->enuc += this->dnuc;
         } else {
             this->dnuc  = 0.;
@@ -243,14 +252,10 @@ public:
         PS::F64 tceff = RP::CoefficientOfTimestep;
         PS::F64 dth = tceff * this->ksr / (this->vsmx * SK::ksrh);
         PS::F64 dtu = RP::MaximumTimestep;
-        if(this->dens * UnitOfDensity > 1e4 && this->temp > 1e7) {
-            PS::F64 umin = CalcEquationOfState::getEnergyMin(this->dens, this->abar, this->zbar);
-            dtu = tceff * fabs(this->uene - umin)
-                / (fabs(this->udot) * RP::Timestep + fabs(this->dnuc)) * RP::Timestep;
-        }
+        PS::F64 dtc = (this->divv < 0.) ? (- tceff / this->divv) : RP::MaximumTimestep;
         PS::F64vec grv = this->accg1 + this->accg2;
-        PS::F64 dtg = 0.3 * tceff * sqrt(this->ksr / sqrt(grv * grv));
-        return std::min(std::min(dth, dtu), dtg);
+        PS::F64 dtg = tceff * sqrt(this->ksr / sqrt(grv * grv));
+        return std::min(std::min(dth, dtu), std::min(dtg, dtc));
     }
 
     inline void addAdditionalForceDamping2() {
@@ -794,10 +799,23 @@ void restartSimulation(char **argv,
                            (+ 0.5e9 * CodeUnit::UnitOfLengthInv));
 #endif
     // *********************
-    //RP::CoefficientOfTimestep = 1e-3;
+    //RP::CoefficientOfTimestep = 0.1;
+    //RP::CoefficientOfTimestep = 0.05;
+    //RP::CoefficientOfTimestep = 0.025;
+    //RP::CoefficientOfTimestep = 0.0125;
     // *********************
     RP::outputRunParameter(argv);
     return;
+}
+
+template <class Tsph>
+void dumpOneParticle(PS::S32 id,
+                     Tsph & sph) {
+    for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
+        if(sph[i].id == id) {
+            sph[i].writeAscii(stdout);
+        }
+    }
 }
 
 template <class Tdinfo,
@@ -817,7 +835,7 @@ void loopSimulation(Tdinfo & dinfo,
 
     WT::clear();
     while(RP::Time < RP::TimeEnd) {
-        //RP::Timestep = calcTimestep(sph);
+        //dumpOneParticle(53447, sph);
         WT::reduceInterProcess();
         outputData(dinfo, sph, bhns, msls);
         WT::clear();

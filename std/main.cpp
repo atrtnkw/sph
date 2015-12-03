@@ -213,6 +213,23 @@ PS::F64 calcTimestep(Tsph & sph) {
     return dt;
 }
 
+template <class Tsph>
+void dumpHighEnergyParticle(Tsph & sph) {
+    bool floc = false;
+    for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
+        PS::F64 umax = CalcEquationOfState::getEnergyMax(sph[i].dens, sph[i].abar, sph[i].zbar);
+        if(sph[i].uene > umax) {
+            floc = true;
+        }
+    }
+    bool fglb = PS::Comm::synchronizeConditionalBranchOR(floc);
+    if(fglb) {
+        sph.writeParticleAscii("snap/hoge.dat");
+        PS::Finalize();
+        exit(0);
+    }
+}
+
 template <class Tdinfo,
           class Tsph,
           class Tbhns,
@@ -232,6 +249,9 @@ void calcSPHKernel(Tdinfo & dinfo,
     WT::accumulateCalcDensity();
     WT::start();
     calcAbarZbar(sph);
+    //***********************
+    //dumpHighEnergyParticle(sph);
+    //***********************
     referEquationOfState(sph);
     calcBalsaraSwitch(sph);
     WT::accumulateOthers();

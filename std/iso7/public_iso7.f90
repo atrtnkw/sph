@@ -25180,7 +25180,7 @@
 ! open the file (use softlinks to input the desired table)
 
 !       open(unit=19,file='helm_table.dat',status='old')
-       open(unit=19,file='iso7/helm_table.dat',status='old')
+       open(unit=19,file='data.code/helm_table.dat',status='old')
 
 
 ! for standard table limits

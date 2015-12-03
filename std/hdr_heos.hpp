@@ -11,6 +11,7 @@ namespace CodeUnit {
     PS::F64 SolarRadius        = 6.9599e10; // cm
     PS::F64 SolarMass          = 1.9891e33; // g
     PS::F64 GravityConstant    = 6.6738480e-8;  // [cm^3 g^-1 g^-2]
+    PS::F64 SpeedOfLight       = 2.99792458e10; // cm s^-1
 
     PS::F64 UnitOfLength       = SolarRadius * 1.0e-3d;
     PS::F64 UnitOfMass         = SolarMass   * 1.0e-6d;
@@ -37,8 +38,8 @@ namespace CodeUnit {
     PS::F64 UnitOfEnergyInv    = 1.d / UnitOfEnergy;
     PS::F64 UnitOfPressureInv  = 1.d / UnitOfPressure;
 
-    PS::F64 MaximumOfTemperature       = 1e10;
-    //PS::F64 MaximumOfTemperature       = 1e11;
+    //PS::F64 MaximumOfTemperature       = 1e10;
+    PS::F64 MaximumOfTemperature       = 1e11;
     PS::F64 MinimumOfTemperature       = 1e5;
     PS::F64 BoundaryTemperature        = 1e8;
     PS::F64 TolaranceOfLowTemperature  = 1e-4;
@@ -48,6 +49,7 @@ namespace CodeUnit {
     PS::F64 GravityConstantInThisUnit  = GravityConstant /
         ((UnitOfLength * UnitOfLength * UnitOfLength) * UnitOfMassInv
          * (UnitOfTimeInv * UnitOfTimeInv));
+    PS::F64 SpeedOfLightInThisUnit = SpeedOfLight * UnitOfVelocityInv;
 }
 
 class CalcEquationOfState {
@@ -100,6 +102,18 @@ public:
         bool    eosfail;
 
         helmeos2_(&ttmin, &dd, &abar, &zbar, &pp, &uu, &du, &cs, &eosfail);
+        PS::F64 eg = uu * CodeUnit::UnitOfEnergyInv;
+        return eg;
+    }
+    static PS::F64 getEnergyMax(PS::F64 density,
+                                PS::F64 abar,
+                                PS::F64 zbar) {
+        PS::F64 ttmax = CodeUnit::MaximumOfTemperature;
+        PS::F64 dd = density * CodeUnit::UnitOfDensity;
+        PS::F64 uu, pp, du, cs;
+        bool    eosfail;
+
+        helmeos2_(&ttmax, &dd, &abar, &zbar, &pp, &uu, &du, &cs, &eosfail);
         PS::F64 eg = uu * CodeUnit::UnitOfEnergyInv;
         return eg;
     }
@@ -164,28 +178,4 @@ public:
         counteos      = cnt;
     }
 
-#if 0
-    static void getAzbar(PS::F64 & xmass,
-                         PS::F64 & abar,
-                         PS::F64 & zbar) {
-        static PS::F64 aion[13] = { 4., 12., 16., 20., 24., 28., 32.,
-                                   36., 40., 44., 48., 52., 56.};
-        static PS::F64 ainv[13] = {1. / aion[0], 1. / aion[1], 1. / aion[2], 1. / aion[3],
-                                   1. / aion[4], 1. / aion[5], 1. / aion[6], 1. / aion[7],
-                                   1. / aion[8], 1. / aion[9], 1. / aion[10], 1. / aion[11],
-                                   1. / aion[12]};
-        static PS::F64 zion[13] = { 2.,  6.,  8., 10., 12., 14., 16.,
-                                   18., 20., 22., 24., 26., 28.};
-
-        PS::F64 atot = 0.0;
-        PS::F64 ztot = 0.0;
-        for(PS::S32 i = 0; i < NumberOfIon; i++) {
-            PS::F64 ymass = xmass[i] / aion[i];
-            atot += ymass;
-            ztot += zion[i] * ymass;
-        }
-        abar = 1. / atot;
-        zbar = ztot * abar;
-    }
-#endif
 };

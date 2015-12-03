@@ -1,13 +1,14 @@
-if test $# -ne 4
+if test $# -ne 5
 then
-    echo "sh $0 <BHmass[Msun]> <smallerWD> <beta> <ofile>"
+    echo "sh $0 <BHmass[Msun]> <smallerWD> <ri/rt> <beta> <ofile>"
     exit
 fi
 
 bhmas=$1
 ifile=$2
-ibeta=$3
-ofile=$4
+irirt=$3
+ibeta=$4
+ofile=$5
 
 bneps=1e6
 gravc=0.000000066738480
@@ -20,7 +21,8 @@ rm=`awk 'BEGIN{r2max=0.0;}{r2=$4**2+$5**2+$6**2;if(r2>r2max)r2max=r2;}END{printf
 rt=`echo "scale=5; 1.2 * 10^11 * e(1/3.*l($m1/(1000000.*$msn))) * ($rm/$rwd) / e(1/3.*l($m2/(0.6*$msn)))" | bc -l`
 
 rp=`echo "scale=5; $rt / $ibeta" | bc`
-ri=`echo "scale=5; $rt * 3." | bc`
+#ri=`echo "scale=5; $rt * 3." | bc`
+ri=`echo "scale=5; $rt * $irirt" | bc`
 vy=`echo "scale=5; e(0.5*l(2.*$gravc*$rp*($m1+$m2))) / $ri" | bc -l`
 vx=`echo "scale=5; e(0.5*l(2.*$gravc*($m1+$m2)/$ri-$vy*$vy))" | bc -l`
 
