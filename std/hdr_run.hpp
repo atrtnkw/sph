@@ -42,6 +42,7 @@ namespace RunParameter {
 
     FILE * FilePointerForLog;
     FILE * FilePointerForTime;
+    FILE * FilePointerForDebug;
 
     PS::S64 readAscii(const char * const filename);
     template <class Tdinfo>

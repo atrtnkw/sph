@@ -714,6 +714,7 @@ void initializeSimulation() {
         RP::FilePointerForLog  = fopen("snap/time.log", "w");
         RP::FilePointerForTime = fopen("snap/prof.log", "w");
     }
+    RP::FilePointerForDebug = fopen("snap/debug.log", "w");
 }
 
 template <class Tdinfo,
@@ -813,9 +814,10 @@ void dumpOneParticle(PS::S32 id,
                      Tsph & sph) {
     for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
         if(sph[i].id == id) {
-            sph[i].writeAscii(stdout);
+            sph[i].writeAscii(RP::FilePointerForDebug);
         }
     }
+    fflush(RP::FilePointerForDebug);
 }
 
 template <class Tdinfo,
@@ -835,7 +837,11 @@ void loopSimulation(Tdinfo & dinfo,
 
     WT::clear();
     while(RP::Time < RP::TimeEnd) {
-        //dumpOneParticle(53447, sph);
+        //dumpOneParticle( 8338, sph);
+        //dumpOneParticle(22098, sph);
+        //dumpOneParticle(52140, sph);
+        //dumpOneParticle(73546, sph);
+        //dumpOneParticle(74703, sph);
         WT::reduceInterProcess();
         outputData(dinfo, sph, bhns, msls);
         WT::clear();
@@ -890,6 +896,7 @@ void finalizeSimulation(Tdinfo & dinfo,
         fclose(RP::FilePointerForLog);
         fclose(RP::FilePointerForTime);
     }
+    fclose(RP::FilePointerForDebug);
     PS::F64    mc;
     PS::F64vec xc;
     PS::F64vec vc;

@@ -1,0 +1,554 @@
+
+c..network common block declarations
+
+
+c..global sizes of the main storage
+
+c..abignet = maximum size of the network = maximum numer of isotopes
+c..abigrat = maximum number of reaction rates
+c..nzmax   = maximum number of zones
+
+      integer          abignet,abigrat,nzmax
+
+c      parameter        (abignet   = 500,
+      parameter        (abignet   = 3400,
+     1                  abigrat   = 14*abignet,
+     2                  nzmax     = 1)
+
+
+
+c..ionmax  = number of isotopes in the network
+c..neqs    = number of equations 
+c..nrat    = number of reaction rates in the network
+c..nzone   = number of spatial zones
+
+      integer          ionmax,neqs,nrat,nzone
+      common /netc1/   ionmax,neqs,nrat,nzone
+
+
+c..temperature-density history file, the root output file name
+      character*80     trho_file,hfile
+      common /dfc1/    trho_file,hfile
+
+
+
+
+c..idnet   = integer identification of network is being used
+c..netname = name of the network 
+      integer          idnet
+      character*8      netname
+      common /netc2/   idnet,netname
+      integer          idaprox13,idaprox19,idtorch47,idtorch76,
+     1                 idtorch127,idtorch200,idtorch489,idtorch513,
+     2                 idtorch640,
+     2                 idtorch3302,idpp123,idcno,
+     3                 idhotcno,idppcno,idwwrp,idpphotcno,
+     4                 idiso7,idachain,idalfa7,idtorchpp,
+     5                 idtorchcno,idbigbang,idtorchbb,idtorchalfa,
+     6                 idtorch1350,idiso9,idhhe
+      parameter        (idaprox13   = 1, 
+     1                  idaprox19   = 2, 
+     4                  idachain    = 3,
+     3                  idiso7      = 4,
+     5                  idalfa7     = 5,
+     7                  idpp123     = 6,
+     8                  idcno       = 7,
+     9                  idhotcno    = 8,
+     &                  idwwrp      = 9,
+     1                  idppcno     = 10,
+     2                  idpphotcno  = 11,
+     2                  idtorch47   = 12,
+     3                  idtorch76   = 13, 
+     4                  idtorch127  = 14,
+     5                  idtorch200  = 15,
+     6                  idtorch489  = 16)
+      parameter        (idtorch513  = 17,
+     1                  idtorch640  = 18,
+     2                  idtorch3302 = 19,
+     3                  idtorchpp   = 20,
+     4                  idtorchcno  = 21,
+     5                  idbigbang   = 22,
+     6                  idtorchbb   = 23,
+     7                  idtorchalfa = 24,
+     8                  idtorch1350 = 25,
+     9                  idiso9      = 26,
+     &                  idhhe       = 27)
+
+
+
+c..flags for turning on or off weak interactions, screening corrections,
+c..evolution variables, nse analysis, and printing
+
+      integer          weak_on,ffn_on,screen_on,pure_network,
+     1                 nse_analysis,allow_nse_evol,nse_on,
+     2                 iprint_files,iprint_screen
+      common /flagc1/  weak_on,ffn_on,screen_on,pure_network,
+     1                 nse_analysis,allow_nse_evol,nse_on,
+     2                 iprint_files,iprint_screen
+
+
+
+c..logicals and storage for the type of burning
+c..one_step              = true means do the integration in one time step mode
+c..hydrostatic           = true means do the integration in hydrostatic mode
+c..expansion             = true turns on the adiabatic mode
+c..self_heat_const_rho   = true for the self_heat mode at constant density
+c..self_heat_const_pres  = true for the self_heat mode at constant pressure
+c..detonation            = true turns on the znd detonation mode
+c..bbang                 = true turns on the early universe mode 
+c..trho_hist             = true means do the integration with an external temp-den history
+
+c..psi         = expansion (+1.0) or a compression (-1.0) for adiabatic mode
+c..den0        = initial density for the adiabatic mode
+c..temp0       = initial temperature for the adiabatic mode
+c..temp_stop   = final adiabatic temperature at which the run terminates
+c..den_stop    = density below which a run terminates
+c..iener       = pointer for the integrated energy equation
+c..itemp       = pointer for the temperature equation
+c..iden        = pointer for the density equation
+c..ivelx       = pointer for the velocity equation
+c..iposx       = pointer for the position equation
+
+
+      logical          one_step,hydrostatic,expansion,
+     1                 self_heat_const_den,self_heat_const_pres,
+     2                 detonation,bbang,trho_hist
+      integer          iener,itemp,iden,ivelx,iposx
+      double precision psi,den0,temp0,temp_stop,den_stop
+      common /netadbt/ psi,den0,temp0,temp_stop,den_stop,
+     1                 iener,itemp,iden,ivelx,iposx,
+     2                 one_step,hydrostatic,expansion,
+     3                 self_heat_const_den,self_heat_const_pres,
+     4                 detonation,bbang,trho_hist
+
+
+
+
+c..logicals and storage for stopping the evolution if a chosen
+c..mass fraction drops below a certain value
+c..name_stop = name of isotope to stop on
+c..xmass_stop = mass fraction of name_stop at whick to halt
+c..id_stop    = the identification number of name_stop
+
+      character*4      name_stop
+      integer          id_stop
+      double precision xmass_stop
+      common /netnmst/ xmass_stop,id_stop,name_stop
+
+
+
+
+c..pointers and a logical for orienting the torch network in
+c..down-arrow mode which puts n,p,a at the end of the network or in
+c..up-arrow mode which puts n,p,a at the beginning of the network
+c..these are set in routine init_torch 
+
+      logical          downarrow
+      integer          ionbeg,ionend
+      common /netc3/   ionbeg,ionend,downarrow
+
+
+
+
+c..mass fractions, other composition variables
+c..xmass     = mass fractions
+c..ymass     = molar fractions
+c..ndens     = number densities
+c..aion      = number of nucleons
+c..zion      = number of protons
+c..nion      = number of neutrons
+c..bion      = binding energies
+c..wpart     = partition functions - statistical weights
+c..xmass_nse = mass fractions of nse distribution
+
+      double precision xmass(abignet),ymass(abignet),
+     1                 aion(abignet),zion(abignet),
+     2                 nion(abignet),bion(abignet),wpart(abignet),
+     3                 xmass_nse(abignet)
+      common /netc6a/  xmass,ymass,aion,zion,nion,bion,wpart,xmass_nse
+
+
+
+
+
+c..the raw reaction rates, their screening factors and the reaction rates
+c..ratraw     = the unscreened reaction rates 
+c..dratrawdt  = derivative of ratraw with temperature
+c..dratrawdd  = derivative of ratraw with density
+c..scfac      = screening factors
+c..dscfacdt   = derivative of scfac with temperature
+c..dscfacdd   = derivative of scfac with density
+c..ratdum     = the screened reaction rates
+c..dratdumdt  = derivative of ratdum with temperature
+c..dratdumdd  = derivative of ratdum with density
+c..dratdumdy1 = derivative of ratdum with a composition variable
+c..dratdumdy2 = derivative of ratdum with a composition variable
+
+
+      double precision ratraw(abigrat),dratrawdt(abigrat),
+     1                 dratrawdd(abigrat),scfac(abigrat),
+     2                 dscfacdt(abigrat),dscfacdd(abigrat),
+     3                 ratdum(abigrat),dratdumdt(abigrat),
+     4                 dratdumdd(abigrat),
+     5                 dratdumdy1(abigrat),dratdumdy2(abigrat)
+
+      common /scc2b2/  ratraw,dratrawdt,
+     1                 dratrawdd,scfac,
+     2                 dscfacdt,dscfacdd,
+     3                 ratdum,dratdumdt,
+     4                 dratdumdd,
+     5                 dratdumdy1,dratdumdy2
+
+
+
+
+
+c..for tabular evaluation of the raw reaction rates
+c..allow storage for 120/points per decade of temperature
+c..logical use_tables for determing if tables are to be used
+
+      integer          nrattab,use_tables
+      parameter        (nrattab = 601) 
+      double precision rattab(abigrat,nrattab),
+     1                 drattabdt(abigrat,nrattab),
+     2                 drattabdd(abigrat,nrattab),
+     3                 ttab(nrattab),dtab(abigrat)
+      common /rcm2t/   rattab,drattabdt,drattabdd,
+     1                 ttab,dtab,use_tables
+
+
+
+c..names of the isotopes and reaction rates
+c..ratnam  = name of the reaction rate
+c..ionam   = name of the isotope in the network
+
+      character*16     ratnam(abigrat)
+      character*5      ionam(abignet)
+      common /netc4/   ratnam,ionam
+
+
+
+c..nuclear energy generation communication
+c..sdot      = total nuclear energy generation rate
+c..dsdotdt   = dervative of sdot with temperature
+c..dsdotdd   = dervative of sdot with density
+c..sneut     = total neutrino energy loss rate
+c..dsneutdt  = derivative of sneut with temperature
+c..dsneutdd  = derivative of sneut with density
+c..sneutpp   = neutrino losses from the ppchains
+c..sneutcno  = neutrino losses from the cno cycles
+c..spen      = neutrino losses from p=>n
+c..snep      = neutrino losses from n=>p
+c..snuw      = neutrino losses from weak reactions on heavy nuclei
+
+      double precision sdot,dsdotdt,dsdotdd,
+     1                 sneut,dsneutdt,dsneutdd,
+     2                 sneutpp,sneutcno,spen,snep,snuw
+      common /netc7/   sdot,dsdotdt,dsdotdd,
+     1                 sneut,dsneutdt,dsneutdd,
+     2                 sneutpp,sneutcno,spen,snep,snuw
+
+
+
+c..for nice identification of key isotopes
+       integer   nisotp
+       parameter (nisotp = 106) 
+       integer 
+     1    ih1,iprot,ineut,ihe4,ih2,ih3,ihe3,ili6,ili7,ili8,
+     2    ibe7,ibe9,ib8,ib9,ib10,ib11,ic11,ic12,ic13,ic14,
+     3    in12,in13,in14,in15,io14,io15,io16,io17,io18,if17,
+     4    if18,if19,ine18,ine19,ine20,ine21,ine22,ina20,ina21,ina22,
+     5    ina23,img22,img23,img24,img25,img26,ial25,ial26,ial27,ial28,
+     6    isi26,isi27,isi28,isi29,isi30,ip28,ip29,ip30,ip31,is30,
+     7    is31,is32,icl35,iar36,ik39,ica40,isc43,isc45,iti44,iti46,
+     8    iti48,iti50,iv46,iv47,iv48,iv51,icr47,icr48,icr49,icr50,
+     9    icr51,icr52,icr53,icr54,imn50,imn51,imn52,imn55,ife52,ife54,
+     &    ife55,ife56,ife57,ife58,ico54,ico55,ico56,ico59,ini56,ini58,
+     1    ini59,ini64,ini66,icu63,izn60,izn64
+
+      common /netc8/
+     1    ih1,iprot,ineut,ihe4,ih2,ih3,ihe3,ili6,ili7,ili8,
+     2    ibe7,ibe9,ib8,ib9,ib10,ib11,ic11,ic12,ic13,ic14,
+     3    in12,in13,in14,in15,io14,io15,io16,io17,io18,if17,
+     4    if18,if19,ine18,ine19,ine20,ine21,ine22,ina20,ina21,ina22,
+     5    ina23,img22,img23,img24,img25,img26,ial25,ial26,ial27,ial28,
+     6    isi26,isi27,isi28,isi29,isi30,ip28,ip29,ip30,ip31,is30,
+     7    is31,is32,icl35,iar36,ik39,ica40,isc43,isc45,iti44,iti46,
+     8    iti48,iti50,iv46,iv47,iv48,iv51,icr47,icr48,icr49,icr50,
+     9    icr51,icr52,icr53,icr54,imn50,imn51,imn52,imn55,ife52,ife54,
+     &    ife55,ife56,ife57,ife58,ico54,ico55,ico56,ico59,ini56,ini58,
+     1    ini59,ini64,ini66,icu63,izn60,izn64
+
+
+
+c..for nice identification of key rates
+       integer   numrates
+       parameter (numrates = 405) 
+
+c..for aprox13 rate identification
+      integer          ir3a,   irg3a,  ircag,  ir1212, ir1216, iroga, 
+     1                 iroag,  irnega, irneag, irmgga, irmgag, irsiga,
+     2                 irmgap, iralpa, iralpg, irsigp, irsiag, irsga,
+     3                 irsiap, irppa,  irppg,  irsgp,  irsag,  irarga,
+     4                 irsap,  irclpa, irclpg, irargp, irarag, ircaga,
+     5                 irarap, irkpa,  irkpg,  ircagp, ircaag, irtiga,
+     6                 ircaap, irscpa, irscpg, irtigp, irtiag, ircrga,
+     7                 irtiap, irvpa,  irvpg,  ircrgp, ircrag, irfega,
+     8                 ircrap, irmnpa, irmnpg, irfegp, irfeag, irniga,
+     9                 ir1616, iraan
+
+      common /netc12/  ir3a,   irg3a,  ircag,  ir1212, ir1216, iroga, 
+     1                 iroag,  irnega, irneag, irmgga, irmgag, irsiga,
+     2                 irmgap, iralpa, iralpg, irsigp, irsiag, irsga,
+     3                 irsiap, irppa,  irppg,  irsgp,  irsag,  irarga,
+     4                 irsap,  irclpa, irclpg, irargp, irarag, ircaga,
+     5                 irarap, irkpa,  irkpg,  ircagp, ircaag, irtiga,
+     6                 ircaap, irscpa, irscpg, irtigp, irtiag, ircrga,
+     7                 irtiap, irvpa,  irvpg,  ircrgp, ircrag, irfega,
+     8                 ircrap, irmnpa, irmnpg, irfegp, irfeag, irniga,
+     9                 ir1616, iraan
+
+
+c..for aprox19 rate identification
+      integer          irpp,   ir33,   ircpg,  irnpg,  iropg, 
+     1                 irnag,  irfeap, ircopa, ircopg, irnigp, irfepg, 
+     2                 ircogp, ir52ng, ir53gn, ir53ng, ir54gn, irheng,
+     3                 irhegn, irhng,  irhegp, irpen,
+     4                 irnep,  irn56ec,ifa,    ifg
+
+      common /netc12/  irpp,   ir33,   ircpg,  irnpg,  iropg, 
+     1                 irnag,  irfeap, ircopa, ircopg, irnigp, irfepg, 
+     2                 ircogp, ir52ng, ir53gn, ir53ng, ir54gn, irheng,
+     3                 irhegn, irhng,  irhegp, irpen,
+     4                 irnep,  irn56ec,ifa,    ifg
+
+
+
+c..for pp123 rate identification
+      integer          irbepg, irb8ep, irbeec, irpep, irhep
+      common /netc12/  irbepg, irb8ep, irbeec, irpep, irhep
+
+
+
+c..for cno rate identification
+      integer        
+     1               irc12pg,  irn13gp,  irn13enu, irc13pg,   irn14gp,  
+     2               irn14pg,  iro15gp,  iro15enu, irn15pa,   irc12ap, 
+     3               irn15pg,  iro16gp,  iro16pg,  irf17gp,   irf17enu,
+     4               iro17pa,  irn14ap,  iro17pg,  irf18gp,   irf18enu, 
+     5               iro18pa,  irn15ap,  iro18pg,  irf19gp,   irf19pa, 
+     6               iro16ap,  irn13pg,  iro14gp,  iro14enu,  iro14ap,
+     7               irf17pa,  irf17pg,  irne18gp, irne18enu, irf18pa,    
+     8               iro15ap,  irne18ap, iro15ag,  irne19ga,  irne19pg,
+     9               irna20gp, irsi26ap, irne19enu, irne20pg, irna21gp
+
+      common /netc12/ 
+     1               irc12pg,  irn13gp,  irn13enu, irc13pg,   irn14gp,  
+     2               irn14pg,  iro15gp,  iro15enu, irn15pa,   irc12ap, 
+     3               irn15pg,  iro16gp,  iro16pg,  irf17gp,   irf17enu,
+     4               iro17pa,  irn14ap,  iro17pg,  irf18gp,   irf18enu, 
+     5               iro18pa,  irn15ap,  iro18pg,  irf19gp,   irf19pa, 
+     6               iro16ap,  irn13pg,  iro14gp,  iro14enu,  iro14ap,
+     7               irf17pa,  irf17pg,  irne18gp, irne18enu, irf18pa,    
+     8               iro15ap,  irne18ap, iro15ag,  irne19ga,  irne19pg,
+     9               irna20gp, irsi26ap, irne19enu, irne20pg, irna21gp
+
+
+c..for bigbang rate identification
+      integer          irweakn,  irweakp,  irpng,   irdgn,    irdpn, 
+     1                 ir2pnp,   irdng,    irtgn,   irddp,    irtpd,
+     2                 irdpg,    irhe3gp,  irddn,   irhe3nd,  irtpn, 
+     3                 irhe3np,  irddg,    irhe4gd, irtpg,    irhe4gp,
+     4                 irtdn,    irhe4nd,  irtt2n,  irhe42nt, irhe3ng,
+     5                 irhe4gn,  irhe3dp,  irhe4pd, irhe3td,  irhe4dt,
+     6                 irhe3tnp, irhe4pnt, ir33inv, irhe4npg, irli6gpn,
+     7                 irdag,    irli6ga,  irtan,   irli6na,  irli6pa,
+     8                 irhe3ap,  irtag,    irli7ga, irli7pa,  ir2he4ga,
+     9                 irli7dn,  irli7t2n, irli7he3np, irhe3ag, irbe7ga, 
+     &                 irli6pg,  irbe7gp,  irli7pn, irbe7np,  irbe7dp,
+     1                 irbe7tnp, irbe7he32p,irbe9pa,irli6ap,  irbe7pg, 
+     2                 irb8gp,   irli6ag,  irb10ga, irli7an,  irb10na,
+     3                 irbe9pg,  irb10gp,  irb10pa, irbe7ap,  irli7ag, 
+     4                 irb11ga,  irb11pa,  ir2he4ap,irbe7ag,  irc11ga, 
+     5                 irb11pn,  irc11np,  irb8ap,  irc11pa,  irb10pg,
+     6                 irc11gp,  irc11na,  irbe9an, irc12na,  irb11pg, 
+     7                 irc12gp,  irb11ap,  irc14pa, irli6ng,  irli7gn   
+
+      common /netc12/  irweakn,  irweakp,  irpng,   irdgn,    irdpn, 
+     1                 ir2pnp,   irdng,    irtgn,   irddp,    irtpd,
+     2                 irdpg,    irhe3gp,  irddn,   irhe3nd,  irtpn, 
+     3                 irhe3np,  irddg,    irhe4gd, irtpg,    irhe4gp,
+     4                 irtdn,    irhe4nd,  irtt2n,  irhe42nt, irhe3ng,
+     5                 irhe4gn,  irhe3dp,  irhe4pd, irhe3td,  irhe4dt,
+     6                 irhe3tnp, irhe4pnt, ir33inv, irhe4npg, irli6gpn,
+     7                 irdag,    irli6ga,  irtan,   irli6na,  irli6pa,
+     8                 irhe3ap,  irtag,    irli7ga, irli7pa,  ir2he4ga,
+     9                 irli7dn,  irli7t2n, irli7he3np, irhe3ag, irbe7ga, 
+     &                 irli6pg,  irbe7gp,  irli7pn, irbe7np,  irbe7dp,
+     1                 irbe7tnp, irbe7he32p,irbe9pa,irli6ap,  irbe7pg, 
+     2                 irb8gp,   irli6ag,  irb10ga, irli7an,  irb10na,
+     3                 irbe9pg,  irb10gp,  irb10pa, irbe7ap,  irli7ag, 
+     4                 irb11ga,  irb11pa,  ir2he4ap,irbe7ag,  irc11ga, 
+     5                 irb11pn,  irc11np,  irb8ap,  irc11pa,  irb10pg,
+     6                 irc11gp,  irc11na,  irbe9an, irc12na,  irb11pg, 
+     7                 irc12gp,  irb11ap,  irc14pa, irli6ng,  irli7gn    
+
+      integer          irh3em,   irc11em,  iraanbe7, irdap,
+     1                 irtap,    irb10ng, irbe9dn,  irb10dp,
+     2                 irb8npa,  irbe9pda, irb11p2a,irc11n2a
+
+      common /netc12/  irh3em,   irc11em,  iraanbe7, irdap,
+     1                 irtap,    irb10ng, irbe9dn,  irb10dp,
+     2                 irb8npa,  irbe9pda, irb11p2a,irc11n2a
+
+
+c..for torc rate identification
+      integer          
+     1          irh3pg,irli7pag,irgaan,irbe9pd,
+     2          ir3ap,ir1212p,irna23pc,ir1212n,irmg23nc,
+     3          ir1212a,irne20ac,ir1616n,irs31no,ir1616p,irp31po,
+     4          ir1616a,irsi28ao,ir1616d,irp30do,ir1216n,
+     5          irsi27no,ir1216p,iral27po,ir1216a,irmg24ao,
+     6          irli7ng,irli8gn,irbe9pn,irb9np,irb10an,irn13na,
+     7          irb11an,irn14na,irn14pa,irc11ap,irc11pg,irn12gp,
+     8          irc12an,iro15na,irc13an,iro16na,irc13pn,irn13np,
+     9          irc14pg,irn15gp,irc14pn,irn14np,irc14ag,iro18ga,
+     &          iro16pa,irn13ap,irn14pn,iro14np,irn14an,irf17na,
+     1          irn14ag,irf18ga,irn15pn,iro15np,irn15an,irf18na,
+     2          irn15ag,irf19ga,iro14ag,irne18ga,iro17ag,irne21ga,
+     3          iro17an,irne20na,iro18ag,irne22ga,iro18an,irne21na
+
+      common /netc12/  
+     1          irh3pg,irli7pag,irgaan,irbe9pd,
+     2          ir3ap,ir1212p,irna23pc,ir1212n,irmg23nc,
+     3          ir1212a,irne20ac,ir1616n,irs31no,ir1616p,irp31po,
+     4          ir1616a,irsi28ao,ir1616d,irp30do,ir1216n,
+     5          irsi27no,ir1216p,iral27po,ir1216a,irmg24ao,
+     6          irli7ng,irli8gn,irbe9pn,irb9np,irb10an,irn13na,
+     7          irb11an,irn14na,irn14pa,irc11ap,irc11pg,irn12gp,
+     8          irc12an,iro15na,irc13an,iro16na,irc13pn,irn13np,
+     9          irc14pg,irn15gp,irc14pn,irn14np,irc14ag,iro18ga,
+     &          iro16pa,irn13ap,irn14pn,iro14np,irn14an,irf17na,
+     1          irn14ag,irf18ga,irn15pn,iro15np,irn15an,irf18na,
+     2          irn15ag,irf19ga,iro14ag,irne18ga,iro17ag,irne21ga,
+     3          iro17an,irne20na,iro18ag,irne22ga,iro18an,irne21na
+
+      integer
+     1          irne20pa,irf17ap,irf18pg,irne19gp,irf19pg,irne20gp,
+     2          irf19pn,irne19np,irf19ap,irne22pa,irna22na,irf19an,
+     3          irna23pa,irne20ap,irne20ng,irne21gn,irne21pg,irna22gp,
+     4          irne21ag,irmg25ga,irne21an,irmg24na,irne22pg,irna23gp,
+     5          irne22ag,irmg26ga,irna22np,irne22pn,irne22an,irmg25na,
+     6          irna21pg,irmg22gp,irmg24pa,irna21ap,irna22pg,irmg23gp,
+     7          irna23pg,irmg24gp,irna23pn,irmg23np,irmg24pg,iral25gp,
+     8          iral27pa,irmg24ap,irmg25pg,iral26gp,irmg25ap,iral28pa,
+     9          irmg25ag,irsi29ga,irmg25an,irsi28na,irmg26pg,iral27gp,
+     &          irmg26ag,irsi30ga,irmg26an,irsi29na,iral25pg,irsi26gp,
+     1          iral26pg,irsi27gp,iral27pg,irsi28gp,iral27an,irp30na,
+     2          irsi27pg,irp28gp,irsi28pg,irp29gp,irsi29pg,irp30gp,
+     3          irsi30pg,irp31gp,irr1,irs1,irt1,iru1,irv1,irw1,irx1,
+     4          iry1,ir1f54,ir2f54,ir3f54,ir4f54,ir5f54,ir6f54,ir7f54,
+     5          ir8f54,iralf1,iralf2,irsi2ni,irni2si
+
+      common /netc12/
+     1          irne20pa,irf17ap,irf18pg,irne19gp,irf19pg,irne20gp,
+     2          irf19pn,irne19np,irf19ap,irne22pa,irna22na,irf19an,
+     3          irna23pa,irne20ap,irne20ng,irne21gn,irne21pg,irna22gp,
+     4          irne21ag,irmg25ga,irne21an,irmg24na,irne22pg,irna23gp,
+     5          irne22ag,irmg26ga,irna22np,irne22pn,irne22an,irmg25na,
+     6          irna21pg,irmg22gp,irmg24pa,irna21ap,irna22pg,irmg23gp,
+     7          irna23pg,irmg24gp,irna23pn,irmg23np,irmg24pg,iral25gp,
+     8          iral27pa,irmg24ap,irmg25pg,iral26gp,irmg25ap,iral28pa,
+     9          irmg25ag,irsi29ga,irmg25an,irsi28na,irmg26pg,iral27gp,
+     &          irmg26ag,irsi30ga,irmg26an,irsi29na,iral25pg,irsi26gp,
+     1          iral26pg,irsi27gp,iral27pg,irsi28gp,iral27an,irp30na,
+     2          irsi27pg,irp28gp,irsi28pg,irp29gp,irsi29pg,irp30gp,
+     3          irsi30pg,irp31gp,irr1,irs1,irt1,iru1,irv1,irw1,irx1,
+     4          iry1,ir1f54,ir2f54,ir3f54,ir4f54,ir5f54,ir6f54,ir7f54,
+     5          ir8f54,iralf1,iralf2,irsi2ni,irni2si
+
+      integer   iralam1,irdelta1,iralam2,irdelta2,irdebug
+
+      common /netc12/
+     1          iralam1,irdelta1,iralam2,irdelta2,irdebug
+
+
+c..for counting the number of non-zero elements in a sparse matrix
+      integer          non_zero_elements
+      common /spnonz/  non_zero_elements
+       
+
+
+c..for bigbang cosmology
+      double precision eta1,xnnu,hubble,cmbtemp
+      common /netcbb/  eta1,xnnu,hubble,cmbtemp
+
+
+c..for thermodynamic profiles and output
+c..mshell     = mass of shell or particle
+c..mint       = mass interior to the shell or particle
+c..sthreshold = mass fractions above sthreshold are written to the summary file
+      double precision mshell,mint,sthreshold
+      common /netcbb/  mshell,mint,sthreshold
+
+
+
+c..for the ffn weak rates
+      integer          nfuldim
+      parameter        (nfuldim = 600)
+
+      double precision datful(5*nfuldim,6,7)
+      common /fulcom/  datful
+      integer          icode(nfuldim),icode2(abignet),nful,nfulnot
+      double precision qn(nfuldim),rectot,rpdtot,redtot,eectot,
+     1                 epdtot,eedtot,wrate
+      common /fuldat/  qn,rectot,rpdtot,redtot,eectot,epdtot,
+     2                 eedtot,wrate,icode,icode2,nful,nfulnot
+
+      double precision  recful(nfuldim),rpdful(nfuldim),
+     1                  redful(nfuldim),eec(nfuldim),eed(nfuldim)
+      common /fulrat/   recful,rpdful,redful,eec,eed
+
+
+
+
+c..for reading the strong and e&m rate coefficients
+      integer          cxdim
+      parameter        (cxdim=175000)
+      double precision cx(cxdim)
+      common  /strngc/ cx
+
+
+
+
+c..for the cross sections and rates
+c..sig   = strong & weak reaction rates
+c..signu = neutrino reaction rates
+      integer          ic1(10,abignet),ic2(10,abignet),ic3(10,abignet),
+     1                 nrr(7,abignet),nrrneut(7,abignet),
+     2                 ist(abignet),kmax,inetin
+      common /crsc1/   ic1,ic2,ic3,nrr,nrrneut,ist,kmax,inetin
+
+      double precision sigraw(14,abignet),sigrawdt(14,abignet),
+     1                 sigrawdd(14,abignet),sig(14,abignet),
+     2                 sigdt(14,abignet),sigdd(14,abignet),
+     3                 as(6*abignet),gs(6*abignet),
+     4                 signuc(4,abignet)
+      common /crsc2/   sigraw,sigrawdt,sigrawdd,sig,sigdt,sigdd,
+     1                 as,gs,signuc
+
+
+
+
+
+c..for setting the torch network
+c..this will cover 100 different entries, which should be plenty
+      integer          izzz(100),inmin(100),inmax(100)
+      common /zetc1/   izzz,inmin,inmax
+
+
+c..work arrays that get used whenever
+      integer          izwork1(abigrat*nzmax),izwork2(abigrat*nzmax)
+      double precision zwork1(abigrat*nzmax),zwork2(abigrat*nzmax),
+     1                 xsum(abignet),ysum(abignet),zsum(abignet)
+      common /zwrkc1/  zwork1,zwork2,xsum,ysum,zsum,izwork1,izwork2

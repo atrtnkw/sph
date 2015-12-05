@@ -90,6 +90,7 @@ OBJ  = main.o heos/eos.o aprox13/aprox13_main.o aprox13/aprox13_input.o \
 	aprox13/aprox13.o
 endif
 HDR += hdr_hgas.hpp hdr_heos.hpp hdr_nuc.hpp hdr_util.hpp
+OBJ += nse/nse_main.o nse/nse.o
 ETC  = Makefile
 
 run: $(OBJ) $(HDR) $(ETC)
@@ -120,6 +121,12 @@ iso7/iso7_main.o: iso7/iso7_main.f90
 iso7/public_iso7.o: iso7/public_iso7.f90
 	make -C iso7 -f Makefile.iso7 public_iso7.o FCC="$(FCC)"
 
+nse/nse_main.o: nse/nse_main.f
+	make -C nse -f Makefile.nse nse_main.o FCC="$(FCC)"
+
+nse/nse.o: nse/nse.f
+	make -C nse -f Makefile.nse nse.o FCC="$(FCC)"
+
 asm: main.cpp $(HDR) $(ETC)
 	$(CCC) $(PS_PATH) $(CFLAGS) -S main.cpp
 
@@ -131,56 +138,20 @@ clean:
 	make -C heos -f Makefile.heos clean
 	make -C aprox13 -f Makefile.aprox13 clean
 	make -C iso7 -f Makefile.iso7 clean
+	make -C nse -f Makefile.nse clean
 distclean:
 	make clean
 	rm -f *.o
 	make -C heos -f Makefile.heos distclean
 	make -C aprox13 -f Makefile.aprox13 distclean	
 	make -C iso7 -f Makefile.iso7 distclean	
+	make -C nse -f Makefile.nse distclean
 allclean:
 	make distclean
 	rm -f run
 	make -C heos -f Makefile.heos allclean
 	make -C aprox13 -f Makefile.aprox13 allclean
 	make -C iso7 -f Makefile.iso7 allclean
+	make -C nse -f Makefile.nse allclean
 
 endif
-
-
-#run: $(OBJ) $(HDR) $(ETC)
-#ifeq ($(use_xc), yes)
-#	$(CCC) $(PS_PATH) $(CFLAGS) $(FFLAGS) -o run $(OBJ) $(CLIBS)
-#else
-#	$(FCC) $(PS_PATH) $(CFLAGS) $(FFLAGS) -o run $(OBJ) $(CLIBS)
-#endif
-
-#heos/eos.o: heos/eos.f
-#	make -C heos -f Makefile.heos FCC="$(FCC)"
-
-#aprox13/aprox13_main.o: aprox13/aprox13_main.f90
-#	make -C aprox13 -f Makefile.aprox13 aprox13_main.o FCC="$(FCC)"
-
-#aprox13/aprox13_input.o: aprox13/aprox13_input.f90
-#	make -C aprox13 -f Makefile.aprox13 aprox13_input.o FCC="$(FCC)"
-
-#aprox13/aprox13.o: aprox13/aprox13.f90
-#	make -C aprox13 -f Makefile.aprox13 aprox13.o FCC="$(FCC)"
-
-#asm: main.cpp $(HDR) $(ETC)
-#	$(CCC) $(PS_PATH) $(CFLAGS) -S main.cpp
-
-#clean:
-#	rm -f *~
-#	rm -f *.o[0-9]*
-#	rm -f core
-#	rm -f *.s
-#	make -C heos -f Makefile.heos clean
-#	make -C aprox13 -f Makefile.aprox13 clean
-#distclean:
-#	make clean
-#	rm -f *.o
-#	make -C aprox13 -f Makefile.aprox13 distclean
-#allclean:
-#	make distclean
-#	rm -f run EOS_*.dat
-#	make -C aprox13 -f Makefile.aprox13 allclean
