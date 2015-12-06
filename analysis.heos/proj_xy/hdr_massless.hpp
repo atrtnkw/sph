@@ -23,7 +23,7 @@ public:
         using namespace CodeUnit;
         PS::F64vec tpos  = this->pos  * UnitOfLength;
         PS::F64    tdens = this->dens * UnitOfDensity;
-        fprintf(fp, " %+e %+e", tpos[0], tpos[1]);
+        fprintf(fp, " %+e %+e %+e", tpos[0], tpos[1], tpos[2]);
         fprintf(fp, " %+e %+e %+e %+e", tdens, this->temp, this->abar, this->shck);
         fprintf(fp, "\n");
     }
@@ -43,8 +43,26 @@ void generateMassLessParticle(Header & hdr,
         msls[i].mass   = 0.;
         msls[i].pos[0] = xmin + dx * (PS::F64)(i % nx);
         msls[i].pos[1] = xmin + dx * (PS::F64)(i / nx);
-        //msls[i].pos[2] = 0.;
         msls[i].pos[2] = hdr.cpos[2];
+        msls[i].ksr    = 4. * dx;
+    }
+}
+
+template <class Tmassless>
+void generateMassLessParticlePlainXZ(Header & hdr,
+                                     Tmassless & msls) {
+    PS::S64 nx    = hdr.msls_nx;
+    PS::F64 xmin  = hdr.msls_xmin;
+    PS::F64 xmax  = hdr.msls_xmax;
+    PS::F64 dx    = (xmax - xmin) / (PS::F64)nx;
+    PS::S64 nmsls = nx * nx;
+    msls.setNumberOfParticleLocal(nmsls);
+    for(PS::S64 i = 0; i < nmsls; i++) {
+        msls[i].id     = -1;
+        msls[i].mass   = 0.;
+        msls[i].pos[0] = xmin + dx * (PS::F64)(i % nx);
+        msls[i].pos[1] = 0.;
+        msls[i].pos[2] = xmin + dx * (PS::F64)(i / nx);
         msls[i].ksr    = 4. * dx;
     }
 }

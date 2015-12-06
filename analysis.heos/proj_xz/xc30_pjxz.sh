@@ -1,4 +1,4 @@
-#PBS -N pxy
+#PBS -N pxz
 #PBS -l mppwidth=24
 #PBS -j oe
 ##PBS -q large-a
@@ -34,7 +34,7 @@ for time in $(seq -f "%04g" $tbgn $dtim $tend)
 do
     ifile="$idir"/sph_t"$time".dat
     bfile="$idir"/bhns_t"$time".dat
-    ofile="$odir"/pxy_t"$time".dat
+    ofile="$odir"/pxz_t"$time".dat
     xpos=`awk '{print $4}' $bfile`
     ypos=`awk '{print $5}' $bfile`
     zpos=`awk '{print $6}' $bfile`

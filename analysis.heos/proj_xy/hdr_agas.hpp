@@ -120,6 +120,57 @@ public:
         fprintf(fp, "\n");
     }
 
+    void shiftCoordinate(const PS::F64vec & cpos) {
+        this->pos -= cpos;
+    }
+
+    void rotateCoordinate(const PS::F64 cost,
+                          const PS::F64 sint) {
+        PS::F64vec tpos = this->pos;
+        this->pos[0] = + cost * tpos[0] - sint * tpos[1];
+        this->pos[1] = + sint * tpos[0] + cost * tpos[1];
+        this->pos[2] = tpos[2];
+    }
+
 };
 
 typedef AnalysisGas GeneralSPH;
+
+template <class T>
+void shiftCoordinate(PS::F64vec & cpos,
+                    T & sph) {
+    for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
+        sph[i].shiftCoordinate(cpos);
+    }    
+}
+
+template <class T>
+PS::F64vec calcDensityCenter(T & sph) {
+    PS::F64    dtot = 0.;
+    PS::F64vec dpos = 0.;
+    for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
+        dtot += sph[i].dens;
+        dpos += sph[i].dens * sph[i].pos;
+    }
+    PS::F64    dtotglb = PS::Comm::getSum(dtot);
+    PS::F64vec dposglb = PS::Comm::getSum(dpos);
+    return ((1. / dtotglb) * dposglb);
+}
+
+template <class T>
+void rotateCoordinate(T & sph) {
+    PS::F64vec cpos = calcDensityCenter(sph);
+    PS::F64    irad = 1. / sqrt(cpos * cpos);
+    PS::F64    cost = cpos[0] * irad;
+    PS::F64    sint = cpos[1] * irad;
+    for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
+        sph[i].rotateCoordinate(cost, -sint);
+    }
+}
+
+template <class T>
+void convertCoordinate(PS::F64vec & cpos,
+                       T & sph) {
+    shiftCoordinate(cpos, sph);
+    rotateCoordinate(sph);
+}
