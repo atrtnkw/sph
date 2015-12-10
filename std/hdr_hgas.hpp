@@ -6,6 +6,7 @@
 #else
 #include "hdr_nuc.hpp"
 #endif
+//#include "hdr_nse.hpp"
 #include "hdr_util.hpp"
 
 static PS::U64 convertF64ToU64(PS::F64 val) {
@@ -35,6 +36,7 @@ public:
     PS::S64 cnteos;    
     PS::F64 dnuc;
     PS::F64 enuc;
+    bool    fnse;
 
     void readAscii(FILE * fp) {
         using namespace CodeUnit;
@@ -91,6 +93,7 @@ public:
             PS::F64vec tvec = tomg ^ tpos;
             fprintf(fp, " %+e", tpot - 0.5 * (tvec * tvec));         // 45
         }
+        fprintf(fp, " %d", this->fnse);
         fprintf(fp, "\n");
     }
 
@@ -126,6 +129,9 @@ public:
         for(PS::S32 k = 0; k < NR::NumberOfNucleon; k++) {
             fscanf(fp, "%llx", &ucmps[k]);
         }
+        // A. Tanikawa adds this 15/12/05
+        fscanf(fp, "%d", &this->fnse);
+        //////
 
         this->mass = cvt(umass);
         this->pos[0] = cvt(upos[0]);
@@ -195,6 +201,9 @@ public:
         for(PS::S32 k = 0; k < NR::NumberOfNucleon; k++) {
             fprintf(fp, " %llx", cvt(this->cmps[k]));
         }
+        // A. Tanikawa adds this 15/12/05
+        fprintf(fp, " %d", this->fnse);
+        ///////
         fprintf(fp, "\n");
     }
     
@@ -229,17 +238,34 @@ public:
     void calcReleasedNuclearEnergy() {
         if(this->temp > 1e6) {
             //********************* A. Tanikawa adds this.
+            /*
             PS::F64 temptemp = std::min(this->temp, 1e10);
             this->dnuc  = CalcNRH::getGeneratedEnergy(RP::Timestep,
                                                       this->dens,
                                                       temptemp,
                                                       this->cmps);
-            /*
-            this->dnuc  = CalcNRH::getGeneratedEnergy(RP::Timestep,
-                                                      this->dens,
-                                                      this->temp,
-                                                      this->cmps);
             */
+            if(this->fnse) {
+                this->dnuc = 0.;
+            } else {
+                PS::F64 cmps2[NR::NumberOfNucleon];
+                for(PS::S32 k = 0; k < NR::NumberOfNucleon; k++) {
+                    cmps2[k] = this->cmps[k];
+                }
+                this->dnuc  = CalcNRH::getGeneratedEnergy(RP::Timestep,
+                                                          this->dens,
+                                                          this->temp,
+                                                          this->cmps);
+                PS::F64 umin = CalcEquationOfState::getEnergyMin(this->dens,
+                                                                 this->abar,
+                                                                 this->zbar);
+                if(this->uene + this->dnuc < 1.1 * umin && this->temp > 5e9) {
+                    this->dnuc = 0.;
+                    for(PS::S32 k = 0; k < NR::NumberOfNucleon; k++) {
+                        this->cmps[k] = cmps2[k];
+                    }
+                }
+            }
             //*********************
             this->enuc += this->dnuc;
         } else {

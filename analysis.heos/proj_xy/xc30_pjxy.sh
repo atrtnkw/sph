@@ -11,12 +11,12 @@ cd $PBS_O_WORKDIR
 mtot=1.0
 nres=64
 nxnx=512
-xmin=-3e9
-xmax=+3e9
+xmin=-1e10
+xmax=+1e10
 idir=../../nswd/data/bns-wd1.0/r064k/run/unfy
-tbgn=0
-tend=1
-dtim=500
+tbgn=446
+tend=500
+dtim=1
 ##########
 odir=snap
 

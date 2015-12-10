@@ -1,7 +1,8 @@
-      subroutine nse(tt,dd,yye,newguess,xmass_out,iprint)
-      include 'implno.dek'
-      include 'const.dek'
-      include 'network.dek'
+!      subroutine nse(tt,dd,yye,newguess,xmass_out,iprint)
+      subroutine nse0(tt,dd,yye,newguess,xmass_out,iprint)
+      include 'implno_nse.dek'
+      include 'const_nse.dek'
+      include 'network_nse.dek'
 
 
 c..given the temperature tt, density dd, and electron mole number ye
@@ -30,7 +31,8 @@ c..communicate
 
 
 c..locals
-      external         nsefunc
+!      external         nsefunc
+      external         nsefunc0
       logical          check
       integer          ntrial,nfev,ntaken,n,i
       parameter        (ntrial = 200, n = 2)
@@ -82,7 +84,9 @@ c..decent guess for all temp, rho, ye combinations.
 c..root find on mass and charge conservation for
 c..the chemical potentials of protons and neutrons
 
-      call xnewt_nse(ntrial,x,n,tolx,tolf,ntaken,check,nfev,nsefunc)
+!      call xnewt_nse(ntrial,x,n,tolx,tolf,ntaken,check,nfev,nsefunc)
+!      call xnewt_nse(ntrial,x,n,tolx,tolf,ntaken,check,nfev,nsefunc0)
+      call xnewt_nse0(ntrial,x,n,tolx,tolf,ntaken,check,nfev,nsefunc0)
 
 
 c..be sure we converged
@@ -99,7 +103,8 @@ c..some optional diagnostics
        write(6,110) 'iterations taken             =',ntaken
        write(6,110) 'function evals               =',nfev
        write(6,111) 'roots                        =',x(1),x(2)
-       call nsefunc(dum,x,resid)
+!       call nsefunc(dum,x,resid)
+       call nsefunc0(dum,x,resid)
        write(6,111) 'mass conservation   residual =',resid(1)
        write(6,111) 'charge conservation residual =',resid(2)
 
@@ -113,7 +118,8 @@ c..some optional diagnostics
 
 
 c..fill the output array using the converged values
-      call nsefunc(dum,x,resid)
+!      call nsefunc(dum,x,resid)
+      call nsefunc0(dum,x,resid)
       do i=1,ionmax
        xmass_out(i) = xmass(i)
       enddo
@@ -127,10 +133,11 @@ c..fill the output array using the converged values
 
 
 
-      subroutine nsefunc(x,y,f)
-      include 'implno.dek'
-      include 'const.dek'
-      include 'network.dek'
+!      subroutine nsefunc(x,y,f)
+      subroutine nsefunc0(x,y,f)
+      include 'implno_nse.dek'
+      include 'const_nse.dek'
+      include 'network_nse.dek'
 
 
 c..this routine returns the root find functions.
@@ -173,7 +180,8 @@ c..take the mass of each isotope to be amu * aion, otherwise a mass formula
 
 
 c..sum the mass fractions in ascending order to minimize roundoff
-      call indexx(ionmax,xmass,indx)
+!      call indexx(ionmax,xmass,indx)
+      call indexx0(ionmax,xmass,indx)
       sum   = 0.0d0
       do i=1,ionmax
        sum   = sum + xmass(indx(i))
@@ -200,10 +208,11 @@ c..mass and charge conservation are the requirements
 
 
 
-      subroutine nsejac(x,y,f,dfdy,n,np)
-      include 'implno.dek'
-      include 'const.dek'
-      include 'network.dek'
+!      subroutine nsejac(x,y,f,dfdy,n,np)
+      subroutine nsejac0(x,y,f,dfdy,n,np)
+      include 'implno_nse.dek'
+      include 'const_nse.dek'
+      include 'network_nse.dek'
 
 c..this routine returns the functions and the jacobian to do the root find on
 c..input is x, and y(n) a vector of the unknowns. output is f(n) 
@@ -255,7 +264,8 @@ c..take the mass of each isotope to be amu * aion, otherwise a mass formula
 
 
 c..sum the mass fractions in ascending order to minimize roundoff
-      call indexx(ionmax,xmass,indx)
+!      call indexx(ionmax,xmass,indx)
+      call indexx0(ionmax,xmass,indx)
       sum   = 0.0d0
       sumbn = 0.0d0
       sumbp = 0.0d0
@@ -300,8 +310,9 @@ c..jacobian
 
 
 
-      subroutine xnewt_nse(ntrial,x,n,tolx,tolf,ntaken,check,nfev,func) 
-      include 'implno.dek' 
+!      subroutine xnewt_nse(ntrial,x,n,tolx,tolf,ntaken,check,nfev,func) 
+      subroutine xnewt_nse0(ntrial,x,n,tolx,tolf,ntaken,check,nfev,func) 
+      include 'implno_nse.dek' 
 
 
 c..given an initial guess x(1:n) for the root of n equations, this routine
@@ -339,7 +350,8 @@ c..common block communicates values from routine xfminx_nse
 c..locals
       integer          i,its,j,indx(np)
       double precision tolmin,stpmx,d,den,f,fold,stpmax,sum,temp,test,
-     1                 fjac(np,np),g(np),p(np),xold(np),xfminx_nse,dum 
+!     1                 fjac(np,np),g(np),p(np),xold(np),xfminx_nse,dum 
+     1                 fjac(np,np),g(np),p(np),xold(np),xfminx_nse0,dum 
 
       parameter        (tolmin = 1.0d-12, 
      1                  stpmx = 2.0d0) 
@@ -349,7 +361,8 @@ c..locals
 c..initialize 
       if (n .gt. np) stop 'n > np in routine xnewt' 
       nn     = n 
-      f      = xfminx_nse(x,func)
+!      f      = xfminx_nse(x,func)
+      f      = xfminx_nse0(x,func)
       nfev   = 1
       ntaken = 0
 
@@ -384,7 +397,8 @@ c       nfev = nfev + 2*n + 1
 
 
 c..analytic jacobian
-       call nsejac(dum,x,fvec,fjac,n,np) 
+!       call nsejac(dum,x,fvec,fjac,n,np) 
+       call nsejac0(dum,x,fvec,fjac,n,np) 
        nfev = nfev + 1
 
 
@@ -409,13 +423,16 @@ c..store x, and f and form right hand sides
 
 
 c..solve the linear systems 
-       call ludcmp(fjac,n,np,indx,d) 
-       call lubksb(fjac,n,np,indx,p) 
+!       call ludcmp(fjac,n,np,indx,d) 
+       call ludcmp0(fjac,n,np,indx,d) 
+!       call lubksb(fjac,n,np,indx,p) 
+       call lubksb0(fjac,n,np,indx,p) 
 
 
 c..line search returns new x and f 
 c..it also gets fvec at the new x when it calls xfminx_nse 
-       call lnsrch_nse(n,xold,fold,g,p,x,f,stpmax,check,nfev,func) 
+!       call lnsrch_nse(n,xold,fold,g,p,x,f,stpmax,check,nfev,func) 
+       call lnsrch_nse0(n,xold,fold,g,p,x,f,stpmax,check,nfev,func) 
 
 
 c..test for convergence on function value 
@@ -466,8 +483,9 @@ c..back for another iteration
 
 
 
-      subroutine lnsrch_nse(n,xold,fold,g,p,x,f,stpmax,check,nfev,func) 
-      include 'implno.dek' 
+!      subroutine lnsrch_nse(n,xold,fold,g,p,x,f,stpmax,check,nfev,func) 
+      subroutine lnsrch_nse0(n,xold,fold,g,p,x,f,stpmax,check,nfev,func) 
+      include 'implno_nse.dek' 
 
 c..given an n dimensional point xold(1:n), the value of the function fold
 c..and the gradient g(1:n) at the point, and a direction p(1:n), this routine 
@@ -491,7 +509,8 @@ c..declare the pass
 
 c..locals
       integer          i
-      double precision xfminx_nse,a,alam,alam2,alamin,b,disc,f2,rhs1,
+!      double precision xfminx_nse,a,alam,alam2,alamin,b,disc,f2,rhs1,
+      double precision xfminx_nse0,a,alam,alam2,alamin,b,disc,f2,rhs1,
      1                 rhs2,slope,sum,temp,test,tmplam,
      2                 alf,tolx 
       parameter        (alf  = 1.0d-4, 
@@ -538,7 +557,8 @@ c..always try a full newton step, start of iteration loop
       enddo
 
 
-      f    = xfminx_nse(x,func)
+!      f    = xfminx_nse(x,func)
+      f    = xfminx_nse0(x,func)
       nfev = nfev + 1 
 
 
@@ -593,8 +613,9 @@ c..store for the next trip through
 
 
 
-      double precision function xfminx_nse(x,func) 
-      include 'implno.dek' 
+!      double precision function xfminx_nse(x,func) 
+      double precision function xfminx_nse0(x,func) 
+      include 'implno_nse.dek' 
 
 
 c..returns f = 0.5 f dot f at x. func is a user supplied routine of the  
@@ -625,7 +646,8 @@ c..common block communicates values back to routine xnewt
        sum = sum + fvec(i)*fvec(i) 
       enddo
 
-      xfminx_nse = 0.5d0 * sum 
+!      xfminx_nse = 0.5d0 * sum 
+      xfminx_nse0 = 0.5d0 * sum 
       return 
       end 
 
@@ -634,8 +656,9 @@ c..common block communicates values back to routine xnewt
 
 
 
-      subroutine jac_nse(x,y,dfdy,mcol,nrow,mmax,nmax,derivs)
-      include 'implno.dek'
+!      subroutine jac_nse(x,y,dfdy,mcol,nrow,mmax,nmax,derivs)
+      subroutine jac_nse0(x,y,dfdy,mcol,nrow,mmax,nmax,derivs)
+      include 'implno_nse.dek'
 
 c..this routine computes a second order accurate jacobian matrix 
 c..of the function contained in the routine derivs.
@@ -704,7 +727,8 @@ c..routine lubksb does the backsubstitution from ludcmp
 
 
 
-      subroutine ludcmp(a,n,np,indx,d) 
+!      subroutine ludcmp(a,n,np,indx,d) 
+      subroutine ludcmp0(a,n,np,indx,d) 
       implicit none
       save
 
@@ -791,7 +815,8 @@ c..and go back for another column of crouts method
 
 
 
-      subroutine lubksb(a,n,np,indx,b) 
+!      subroutine lubksb(a,n,np,indx,b) 
+      subroutine lubksb0(a,n,np,indx,b) 
       implicit none
       save
 
@@ -844,8 +869,9 @@ c..back substitution equation 2.3.7
 
 
 
-      subroutine indexx(n,arr,indx) 
-      include 'implno.dek' 
+!      subroutine indexx(n,arr,indx) 
+      subroutine indexx0(n,arr,indx) 
+      include 'implno_nse.dek' 
 c.. 
 c..indexes an array arr(1:n). that is it outputs the array indx(1:n) such 
 c..that arr(indx(j)) is in ascending order for j=1...n. the input quantities 
@@ -953,9 +979,9 @@ c..push pointers to larger subarray on stack
 
 
 
-      subroutine init_network
-      include 'implno.dek'
-      include 'network.dek'
+      subroutine init_network0
+      include 'implno_nse.dek'
+      include 'network_nse.dek'
 
 c..this routine initializes stuff for a network
 
