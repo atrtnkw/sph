@@ -167,7 +167,8 @@
       xout(1:ionmax) = ys2(1:ionmax) * aion(1:ionmax)
       tout = ys2(itemp)
       dout = ys2(iden)
-      eout = ys2(iener)
+!      eout = ys2(iener)
+      eout = ys2(iener) * energy_scale
 
 ! set the mass non-conservation
       conserv = 0.0d0

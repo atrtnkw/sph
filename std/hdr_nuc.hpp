@@ -51,7 +51,7 @@ private:
                                        PS::F64 tt,
                                        PS::F64 dd,
                                        PS::F64 * cmps) {
-#if 0
+#if 1
         PS::F64 de = 0.;
         solve_aprox13_(&dt, &tt, &dd, cmps, &de);
         return de;
@@ -61,7 +61,6 @@ private:
         solve_aprox13_(&dt, &tt, &dd, cmps, &de);
         PS::F64 n1 = getInstance().countNumberOfNucleon(cmps);
         de = (1. - n0 / n1) * CodeUnit::SpeedOfLight * CodeUnit::SpeedOfLight;
-        //printf("%+e %+e %+e %+e %+e\n", de, n0/n1, n0, n1, CodeUnit::SpeedOfLight);
         return de;
 #endif
     }
@@ -78,7 +77,6 @@ public:
         PS::F64 dd = density * UnitOfDensity;;
         PS::F64 tt = temperature;
 
-        //PS::F64 de = dt * getInstance().callNuclearReaction(dt, tt, dd, composition);
         PS::F64 de = getInstance().callNuclearReaction(dt, tt, dd, composition);
         PS::F64 denergy = de * UnitOfEnergyInv;
 
