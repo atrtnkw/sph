@@ -51,7 +51,8 @@ endif
 endif
 
 HDR = hdr_run.hpp hdr_time.hpp vector_x86.hpp hdr_dimension.hpp hdr_kernel.hpp \
-	hdr_sph.hpp hdr_msls.hpp hdr_density.hpp hdr_hydro.hpp hdr_gravity.hpp hdr_bhns.hpp
+	hdr_sph.hpp hdr_msls.hpp hdr_density.hpp hdr_hydro.hpp hdr_gravity.hpp \
+	hdr_bhns.hpp
 
 ifeq ($(use_ideal), yes)
 
@@ -89,7 +90,7 @@ else
 OBJ  = main.o heos/eos.o aprox13/aprox13_main.o aprox13/aprox13_input.o \
 	aprox13/aprox13.o
 endif
-HDR += hdr_hgas.hpp hdr_heos.hpp hdr_nuc.hpp hdr_util.hpp
+HDR += hdr_hgas.hpp hdr_heos.hpp hdr_nuc.hpp hdr_util.hpp hdr_nse0.hpp
 OBJ += nse/nse_main.o nse/nse.o
 ETC  = Makefile
 

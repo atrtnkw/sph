@@ -44,6 +44,7 @@ awk '{printf("%10d %2d %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %+.3e %+.3e %
 
 cp "$ofile".bhns  "$ofile".atc0.bhns
 awk -f ~/git-sph/tool.hgas/zero_alphu.awk "$ofile".data > "$ofile".atc0.data
+#awk -f ~/current/git-sph/tool.hgas/zero_alphu.awk "$ofile".data > "$ofile".atc0.data
 
 rm -f dummy
 

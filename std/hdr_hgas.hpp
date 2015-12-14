@@ -6,7 +6,7 @@
 #else
 #include "hdr_nuc.hpp"
 #endif
-//#include "hdr_nse.hpp"
+#include "hdr_nse0.hpp"
 #include "hdr_util.hpp"
 
 static PS::U64 convertF64ToU64(PS::F64 val) {
@@ -245,6 +245,7 @@ public:
                                                       temptemp,
                                                       this->cmps);
             */
+            /*
             if(this->fnse) {
                 this->dnuc = 0.;
             } else {
@@ -266,6 +267,16 @@ public:
                     }
                 }
             }
+            */
+            this->dnuc = CalcNRH::getGeneratedEnergy(RP::Timestep,
+                                                     this->dens,
+                                                     this->temp,
+                                                     this->cmps);
+            this->dnuc = CalcNSE::getGeneratedEnergy(this->dens,
+                                                     this->temp,
+                                                     this->cmps);
+            //PS::Finalize();
+            //exit(0);
             //*********************
             this->enuc += this->dnuc;
         } else {

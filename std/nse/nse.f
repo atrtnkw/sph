@@ -27,7 +27,8 @@ c..declare the pass
 
 c..communicate
       double precision temp,den,ye_want,beta
-      common /nsec1/   temp,den,ye_want,beta
+c      common /nsec1/   temp,den,ye_want,beta
+      common /nsec1_nse/   temp,den,ye_want,beta
 
 
 c..locals
@@ -161,7 +162,8 @@ c..locals
 
 c..communicate
       double precision temp,den,ye_want,beta
-      common /nsec1/   temp,den,ye_want,beta
+c      common /nsec1/   temp,den,ye_want,beta
+      common /nsec1_nse/   temp,den,ye_want,beta
 
 
 
@@ -237,7 +239,8 @@ c..locals
 
 c..communicate
       double precision temp,den,ye_want,beta
-      common /nsec1/   temp,den,ye_want,beta
+c      common /nsec1/   temp,den,ye_want,beta
+      common /nsec1_nse/   temp,den,ye_want,beta
 
 
 c..chemical potential and mass fraction of each isotope
@@ -345,7 +348,8 @@ c..common block communicates values from routine xfminx_nse
       integer          nn,np 
       parameter        (np = 4) 
       double precision fvec(np)
-      common /newtnse/ fvec,nn 
+c      common /newtnse/ fvec,nn 
+      common /newtnse_nse/ fvec,nn 
 
 c..locals
       integer          i,its,j,indx(np)
@@ -635,7 +639,8 @@ c..common block communicates values back to routine xnewt
       integer          nn,np 
       parameter        (np = 4) 
       double precision fvec(np)
-      common /newtnse/ fvec,nn 
+c      common /newtnse/ fvec,nn 
+      common /newtnse_nse/ fvec,nn 
 
 
 
