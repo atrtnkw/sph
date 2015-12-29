@@ -90,7 +90,7 @@ else
 OBJ  = main.o heos/eos.o aprox13/aprox13_main.o aprox13/aprox13_input.o \
 	aprox13/aprox13.o
 endif
-HDR += hdr_hgas.hpp hdr_heos.hpp hdr_nuc.hpp hdr_util.hpp hdr_nse0.hpp
+HDR += hdr_hgas.hpp hdr_heos.hpp hdr_nuc.hpp hdr_util.hpp hdr_nse.hpp
 OBJ += nse/nse_main.o nse/nse.o
 ETC  = Makefile
 

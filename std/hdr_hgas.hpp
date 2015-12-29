@@ -6,7 +6,7 @@
 #else
 #include "hdr_nuc.hpp"
 #endif
-#include "hdr_nse0.hpp"
+#include "hdr_nse.hpp"
 #include "hdr_util.hpp"
 
 static PS::U64 convertF64ToU64(PS::F64 val) {
@@ -238,45 +238,22 @@ public:
     void calcReleasedNuclearEnergy() {
         if(this->temp > 1e6) {
             //********************* A. Tanikawa adds this.
-            /*
-            PS::F64 temptemp = std::min(this->temp, 1e10);
-            this->dnuc  = CalcNRH::getGeneratedEnergy(RP::Timestep,
-                                                      this->dens,
-                                                      temptemp,
-                                                      this->cmps);
-            */
-            /*
-            if(this->fnse) {
-                this->dnuc = 0.;
+            bool fnse_local = CalcNSE::IsNseConditionSatisfied(this->dens, this->temp);
+            if( fnse_local && (! this->fnse)) {
+                this->fnse = true;
+            }
+            if(!this->fnse) {
+                this->dnuc = CalcNRH::getGeneratedEnergy(RP::Timestep,
+                                                         this->dens,
+                                                         this->temp,
+                                                         this->cmps);
             } else {
-                PS::F64 cmps2[NR::NumberOfNucleon];
-                for(PS::S32 k = 0; k < NR::NumberOfNucleon; k++) {
-                    cmps2[k] = this->cmps[k];
-                }
-                this->dnuc  = CalcNRH::getGeneratedEnergy(RP::Timestep,
-                                                          this->dens,
-                                                          this->temp,
-                                                          this->cmps);
-                PS::F64 umin = CalcEquationOfState::getEnergyMin(this->dens,
-                                                                 this->abar,
-                                                                 this->zbar);
-                if(this->uene + this->dnuc < 1.1 * umin && this->temp > 5e9) {
-                    this->dnuc = 0.;
-                    for(PS::S32 k = 0; k < NR::NumberOfNucleon; k++) {
-                        this->cmps[k] = cmps2[k];
-                    }
+                if(fnse_local) {
+                    this->dnuc = CalcNSE::getGeneratedEnergy(this->dens,
+                                                             this->temp,
+                                                             this->cmps);
                 }
             }
-            */
-            this->dnuc = CalcNRH::getGeneratedEnergy(RP::Timestep,
-                                                     this->dens,
-                                                     this->temp,
-                                                     this->cmps);
-            this->dnuc = CalcNSE::getGeneratedEnergy(this->dens,
-                                                     this->temp,
-                                                     this->cmps);
-            //PS::Finalize();
-            //exit(0);
             //*********************
             this->enuc += this->dnuc;
         } else {
@@ -421,17 +398,9 @@ namespace RunParameter {
         fscanf(fp, "%llx %llx %llx %llx", &ualphamax, &ualphamin, &ualphumax, &ualphumin);
         fscanf(fp, "%llx %llx", &uksrmax, &uepsu);
         fscanf(fp, "%llx %llx", &urtime, &urtimeinv);
-//#if 0 // ???
-//        fscanf(fp, "%lld %lld %llx", &nptcl, &nmsls, &utcoeff);
-//#else
         fscanf(fp, "%lld %lld %lld %llx", &nptcl, &nmsls, &nbhns, &utcoeff);
-//#endif
         fscanf(fp, "%llx %llx %llx", &urv[0], &urv[1], &urv[2]);
-//#if 0 // ???
-//        fscanf(fp, "%llx %lld %lld", &uenuc, &fdamp, &fnuc);
-//#else
         fscanf(fp, "%llx %llx %lld %lld %lld", &uenuc, &ueabs, &fdamp, &fnuc, &fbin);
-//#endif
         Time          = cvt(utime);
         TimeEnd       = cvt(utend);
         Timestep      = cvt(udtime);
@@ -875,10 +844,6 @@ void loopSimulation(Tdinfo & dinfo,
     WT::clear();
     while(RP::Time < RP::TimeEnd) {
         //dumpOneParticle( 8338, sph);
-        //dumpOneParticle(22098, sph);
-        //dumpOneParticle(52140, sph);
-        //dumpOneParticle(73546, sph);
-        //dumpOneParticle(74703, sph);
         WT::reduceInterProcess();
         outputData(dinfo, sph, bhns, msls);
         WT::clear();
@@ -887,6 +852,9 @@ void loopSimulation(Tdinfo & dinfo,
             reduceSeparation(sph, bhns, msls);
         }
         WT::start();
+//        if(RP::Time > 0.66483) {
+//            sph.writeParticleAscii("snap/hoge.dat");
+//        }
         if(RP::FlagNuclear == 1) {
             calcReleasedNuclearEnergy(sph);
         }

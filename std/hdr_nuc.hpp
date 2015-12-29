@@ -51,11 +51,9 @@ private:
                                        PS::F64 tt,
                                        PS::F64 dd,
                                        PS::F64 * cmps) {
-#if 1
+#if 0
         PS::F64 de = 0.;
-        printf("aa\n");
         solve_aprox13_(&dt, &tt, &dd, cmps, &de);
-        printf("bb\n");
         return de;
 #else
         PS::F64 n0 = getInstance().countNumberOfNucleon(cmps);

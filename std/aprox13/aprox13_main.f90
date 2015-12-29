@@ -37,7 +37,6 @@ subroutine solve_aprox13(tstep, tin, din, xin, deout, mode)
        conserv,nok,nbad)
 
   xin(1:ionmax) = xout(1:ionmax)
-!  deout         = sdot - sneut
   deout         = eout
 
   return
