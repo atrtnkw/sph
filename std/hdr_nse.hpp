@@ -10,10 +10,23 @@ extern "C" {
 
 class CalcNuclearStatisticalEquilibrium {
 private:
+#if 0
     static const PS::S32 NumberOfNucleon = 47;
+#endif
     
     CalcNuclearStatisticalEquilibrium() {
         setup_nse_();
+        if(NR::First) {
+            using namespace NuclearReaction;
+            using namespace CodeUnit;
+            for(PS::S32 k = 0; k < NumberOfNucleon; k++) {
+                PS::F64 mion = nion[k] * MassOfNeutron + zion[k] * MassOfProton
+                    - bion[k] * MegaElectronVoltToGram;
+                winv[k]    = 1. / (mion * AvogadroConstant);
+                bionerg[k] = AvogadroConstant * (bion[k] * MegaElectronVoltToErg);
+            }        
+            NR::First = false;
+        }
     };
     ~CalcNuclearStatisticalEquilibrium() {};
     CalcNuclearStatisticalEquilibrium(const CalcNuclearStatisticalEquilibrium &c);
@@ -22,7 +35,8 @@ private:
         static CalcNuclearStatisticalEquilibrium inst;
         return inst;
     }
-    
+
+#if 0    
     static void convertComposition(PS::F64 * xout,
                                    PS::F64 * composition) {
         composition[0]  = xout[1];
@@ -47,13 +61,32 @@ private:
             composition[k] *= norminv;
         }
     }
+#endif
     
-    static void callSolveNse(PS::F64 tt,
-                             PS::F64 dd,
-                             PS::F64 * composition) {
+    static PS::F64 calcBindingEnergy(PS::F64 * cmps) {
+        using namespace NuclearReaction;
+        PS::F64 e = 0.;
+        for(PS::S32 k = 0; k < NumberOfNucleon; k++) {
+            PS::F64 ymass = cmps[k] * winv[k];
+            e += bionerg[k] * ymass;
+        }
+        return e;
+    }
+
+    static PS::F64 callSolveNse(PS::F64 tt,
+                                PS::F64 dd,
+                                PS::F64 * cmps) {
+#if 0
         PS::F64 xout[getInstance().NumberOfNucleon];
         solve_nse_(&tt, &dd, xout);
         getInstance().convertComposition(xout, composition);
+#else
+        PS::F64 e0 = getInstance().calcBindingEnergy(cmps);
+        solve_nse_(&tt, &dd, cmps);
+        PS::F64 e1 = getInstance().calcBindingEnergy(cmps);
+        PS::F64 de = e1 - e0;
+        return de;
+#endif
     }
 
 public:
@@ -65,10 +98,12 @@ public:
 
         PS::F64 dd = density * UnitOfDensity;;
         PS::F64 tt = temperature;
-        getInstance().callSolveNse(tt, dd, composition);
-        return 0.;
+        PS::F64 de = getInstance().callSolveNse(tt, dd, composition);
+        PS::F64 denergy = de * UnitOfEnergyInv;
+        return denergy;
     }
 
+#if 0
     static bool IsNseConditionSatisfied(PS::F64 density,
                                         PS::F64 temperature) {
         using namespace CodeUnit;
@@ -83,6 +118,7 @@ public:
         }
         return x;
     }
+#endif
 
 
 };

@@ -8,10 +8,16 @@ extern "C" {
 }
 
 namespace CodeUnit {
-    PS::F64 SolarRadius        = 6.9599e10; // cm
-    PS::F64 SolarMass          = 1.9891e33; // g
-    PS::F64 GravityConstant    = 6.6738480e-8;  // [cm^3 g^-1 g^-2]
-    PS::F64 SpeedOfLight       = 2.99792458e10; // cm s^-1
+    PS::F64 SolarRadius        = 6.9599e10;         // cm
+    PS::F64 SolarMass          = 1.9891e33;         // g
+    PS::F64 GravityConstant    = 6.6738480e-8;      // [cm^3 g^-1 g^-2]
+    PS::F64 SpeedOfLight       = 2.99792458e10;     // cm s^-1
+    PS::F64 MassOfNeutron      = 1.67492721184e-24; // g
+    PS::F64 MassOfProton       = 1.67262163783e-24; // g
+    PS::F64 ElectronVoltToErg  = 1.60217648740e-12;
+    PS::F64 MegaElectronVoltToErg  = ElectronVoltToErg * 1e6;
+    PS::F64 MegaElectronVoltToGram = MegaElectronVoltToErg / (SpeedOfLight * SpeedOfLight);
+    PS::F64 AvogadroConstant   = 6.0221417930e23;
 
     PS::F64 UnitOfLength       = SolarRadius * 1.0e-3d;
     PS::F64 UnitOfMass         = SolarMass   * 1.0e-6d;

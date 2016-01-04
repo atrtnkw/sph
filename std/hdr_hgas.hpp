@@ -236,6 +236,7 @@ public:
     }
 
     void calcReleasedNuclearEnergy() {
+#if 0
         if(this->temp > 1e6) {
             //********************* A. Tanikawa adds this.
             bool fnse_local = CalcNSE::IsNseConditionSatisfied(this->dens, this->temp);
@@ -259,6 +260,29 @@ public:
         } else {
             this->dnuc  = 0.;
         }
+#else
+        if(this->temp > 1e8) {
+            /*
+            if(this->temp < 5e9 || this->dens * CodeUnit::UnitOfDensity < 8e7) {
+                this->dnuc = CalcNRH::getGeneratedEnergy(RP::Timestep,
+                                                         this->dens,
+                                                         this->temp,
+                                                         this->cmps);
+            } else {
+                this->dnuc = CalcNSE::getGeneratedEnergy(this->dens,
+                                                         this->temp,
+                                                         this->cmps);
+            }
+            */
+            this->dnuc = CalcNRH::getGeneratedEnergy(RP::Timestep,
+                                                     this->dens,
+                                                     this->temp,
+                                                     this->cmps);
+        } else {
+            this->dnuc  = 0.;
+        }
+        this->enuc += this->dnuc;
+#endif
     }
 
     PS::F64 calcTimestep() {
@@ -266,6 +290,7 @@ public:
         PS::F64 tceff = RP::CoefficientOfTimestep;
         PS::F64 dth = tceff * this->ksr / (this->vsmx * SK::ksrh);
         PS::F64 dtu = RP::MaximumTimestep;
+        //PS::F64 dtu = std::min(RP::MaximumTimestep, fabs(this->uene / this->dnuc) * RP::Timestep);
         PS::F64 dtc = (this->divv < 0.) ? (- tceff / this->divv) : RP::MaximumTimestep;
         PS::F64vec grv = this->accg1 + this->accg2;
         PS::F64 dtg = tceff * sqrt(this->ksr / sqrt(grv * grv));
@@ -633,8 +658,9 @@ void outputData(Tdinfo & dinfo,
                 (etot - enuc - eabs) * UnitOfEnergy * UnitOfMass, etot * UnitOfEnergy * UnitOfMass,
                 enuc * UnitOfEnergy * UnitOfMass, eabs * UnitOfEnergy * UnitOfMass,
                 WT::getTimeTotal());
-        WT::dump(RP::Time, RP::FilePointerForTime);
         fflush(RP::FilePointerForLog);
+        WT::dump(RP::Time, RP::FilePointerForTime);
+        fflush(RP::FilePointerForTime);
     }
 }
 
@@ -686,11 +712,7 @@ void initializeSimulation() {
     using namespace RunParameter;
     //Time              = 0.;
     //TimeEnd           = 0.;
-#ifdef FOR_TUBE_TEST
     MaximumTimestep   = 1. / 256.;
-#else
-    MaximumTimestep   = 1. / 256.;
-#endif
     MinimumTimestep   = 1e-16;
     Timestep          = RP::MaximumTimestep;
     //TimeAscii         = 0.;
@@ -851,10 +873,7 @@ void loopSimulation(Tdinfo & dinfo,
         if(RP::FlagDamping == 2) {
             reduceSeparation(sph, bhns, msls);
         }
-        WT::start();
-//        if(RP::Time > 0.66483) {
-//            sph.writeParticleAscii("snap/hoge.dat");
-//        }
+        WT::start();        
         if(RP::FlagNuclear == 1) {
             calcReleasedNuclearEnergy(sph);
         }
@@ -880,7 +899,6 @@ void loopSimulation(Tdinfo & dinfo,
         correct(sph, bhns);
         WT::accumulateOthers();
         if(RP::FlagBinary == 1) {
-            //absorbParticleIntoBlackHoleNeutronStar(sph, bhns);
             absorbParticleIntoBlackHoleNeutronStar(dinfo, sph, bhns, msls, density, hydro, gravity);
         }
         RP::Time += RP::Timestep;

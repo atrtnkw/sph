@@ -329,14 +329,19 @@ void absorbParticleIntoBlackHoleNeutronStar(Tdinfo & dinfo,
     for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); ) {
         PS::F64vec dx = sph[i].pos - pbhns;
         PS::F64    r2 = dx * dx;
+        PS::F64vec dv = sph[i].vel - vbhns;
         if(r2 >= sph[i].ksr * sph[i].ksr) {
             i++;
             continue;
         }        
         fprintf(stderr, "\n");
-        fprintf(stderr, "###Absorbed %16.10f\n", RP::Time * CodeUnit::UnitOfTime);
-        fprintf(stderr, "###");
+        fprintf(stderr, "### Absorbed %16.10f\n", RP::Time * CodeUnit::UnitOfTime);
+        fprintf(stderr, "### ");
         sph[i].writeAscii(stderr);
+        fprintf(stderr, "### dx: %+e %+e %+e", dx[0] * CodeUnit::UnitOfLength,
+                dx[1] * CodeUnit::UnitOfLength, dx[2] * CodeUnit::UnitOfLength);
+        fprintf(stderr, " dv: %+e %+e %+e\n", dv[0] * CodeUnit::UnitOfVelocity,
+                dv[1] * CodeUnit::UnitOfVelocity, dv[2] * CodeUnit::UnitOfVelocity);
         ndloc++;
         ekloc += 0.5 * sph[i].mass * (sph[i].vel * sph[i].vel);
         uloc0 +=       sph[i].mass *  sph[i].uene;
