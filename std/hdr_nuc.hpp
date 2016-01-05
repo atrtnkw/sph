@@ -34,6 +34,37 @@ namespace NuclearReaction {
     PS::F64 bionerg[NumberOfNucleon] = {0., 0., 0., 0., 0., 0., 0.,
                                         0., 0., 0., 0., 0., 0.};;
     bool First = true;
+
+    class Nucleon {
+        PS::F64 val[NumberOfNucleon];
+    public:
+        Nucleon () {
+            for(PS::S32 k = 0; k < NumberOfNucleon; k++) {
+                val[k] = 0.;
+            }
+        }
+        Nucleon (const Nucleon & src) {
+            for(PS::S32 k = 0; k < NumberOfNucleon; k++) {
+                val[k] = src.val[k];
+            }
+        }
+        PS::F64 & operator [] (const PS::S32 k) {return val[k];}
+        const PS::F64 & operator [] (const PS::S32 k) const {return val[k];}
+        const Nucleon & operator = (const Nucleon & src) {
+            for(PS::S32 k = 0; k < NumberOfNucleon; k++) {
+                val[k] = src.val[k];
+            }
+            return (*this);
+        }
+        PS::F64 * getPointer() {return val;}
+        void print(const PS::S64 id = 0) {
+            printf("%10d", id);
+            for(PS::S32 k = 0; k < NumberOfNucleon; k++) {
+                printf(" %.3e", val[k]);
+            }
+            printf("\n");
+        }
+    };
 }
 
 namespace NR = NuclearReaction;

@@ -62,6 +62,7 @@ public:
     static PS::F64 getTimeTotal() {
         WallclockTime & p = getInstance();
         PS::F64 ttotal;
+#if 0
         ttotal  = p.TimeDecomposeDomain;
         ttotal += p.TimeExchangeParticle;
         ttotal += p.TimeCalcDensity;
@@ -71,6 +72,17 @@ public:
         ttotal += p.TimeIntegrateOrbit;
         ttotal += p.TimeCalcNuclearReaction;
         ttotal += p.TimeOthers;
+#else
+        ttotal  = p.TimeDecomposeDomainMax;
+        ttotal += p.TimeExchangeParticleMax;
+        ttotal += p.TimeCalcDensityMax;
+        ttotal += p.TimeCalcHydroMax;
+        ttotal += p.TimeCalcGravityMax;
+        ttotal += p.TimeReferEquationOfStateMax;
+        ttotal += p.TimeIntegrateOrbitMax;
+        ttotal += p.TimeCalcNuclearReactionMax;
+        ttotal += p.TimeOthersMax;
+#endif
         return ttotal;
     }
     

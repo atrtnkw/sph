@@ -76,6 +76,36 @@ void calcReleasedNuclearEnergy(Tsph & sph) {
 }
 
 template <class Tsph>
+void predictReleasedNuclearEnergy(Tsph & sph) {
+    for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
+        sph[i].dens0 = sph[i].dens;
+        sph[i].temp0 = sph[i].temp;
+        sph[i].cmps0 = sph[i].cmps;
+        sph[i].dnuc = GeneralSPH::calcReleasedNuclearEnergy(RP::Timestep,
+                                                            sph[i].dens,
+                                                            sph[i].temp,
+                                                            sph[i].cmps.getPointer());
+        //sph[i].enuc += sph[i].dnuc;
+    }
+}
+
+template <class Tsph>
+void correctReleasedNuclearEnergy(Tsph & sph) {
+    for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
+        sph[i].cmps  = sph[i].cmps0;
+        sph[i].dnuc  = GeneralSPH::calcReleasedNuclearEnergy(RP::Timestep*0.5,
+                                                             sph[i].dens0,
+                                                             sph[i].temp0,
+                                                             sph[i].cmps.getPointer());
+        sph[i].dnuc += GeneralSPH::calcReleasedNuclearEnergy(RP::Timestep*0.5,
+                                                             sph[i].dens,
+                                                             sph[i].temp,
+                                                             sph[i].cmps.getPointer());
+        sph[i].enuc += sph[i].dnuc;
+    }
+}
+
+template <class Tsph>
 void calcBalsaraSwitch(Tsph & sph) {
     for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
         sph[i].calcBalsaraSwitch();

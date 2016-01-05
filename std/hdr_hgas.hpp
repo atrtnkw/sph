@@ -32,11 +32,12 @@ class HelmholtzGas : public SPH {
 public:
     PS::S64 istar;
     PS::F64 temp;
-    PS::F64 cmps[NR::NumberOfNucleon];
     PS::S64 cnteos;    
     PS::F64 dnuc;
     PS::F64 enuc;
     bool    fnse;
+    PS::F64 dens0, temp0;
+    NR::Nucleon cmps, cmps0;
 
     void readAscii(FILE * fp) {
         using namespace CodeUnit;
@@ -236,31 +237,6 @@ public:
     }
 
     void calcReleasedNuclearEnergy() {
-#if 0
-        if(this->temp > 1e6) {
-            //********************* A. Tanikawa adds this.
-            bool fnse_local = CalcNSE::IsNseConditionSatisfied(this->dens, this->temp);
-            if( fnse_local && (! this->fnse)) {
-                this->fnse = true;
-            }
-            if(!this->fnse) {
-                this->dnuc = CalcNRH::getGeneratedEnergy(RP::Timestep,
-                                                         this->dens,
-                                                         this->temp,
-                                                         this->cmps);
-            } else {
-                if(fnse_local) {
-                    this->dnuc = CalcNSE::getGeneratedEnergy(this->dens,
-                                                             this->temp,
-                                                             this->cmps);
-                }
-            }
-            //*********************
-            this->enuc += this->dnuc;
-        } else {
-            this->dnuc  = 0.;
-        }
-#else
         if(this->temp > 1e8) {
             /*
             if(this->temp < 5e9 || this->dens * CodeUnit::UnitOfDensity < 8e7) {
@@ -277,12 +253,25 @@ public:
             this->dnuc = CalcNRH::getGeneratedEnergy(RP::Timestep,
                                                      this->dens,
                                                      this->temp,
-                                                     this->cmps);
+                                                     //this->cmps);
+                                                     this->cmps.getPointer());
         } else {
             this->dnuc  = 0.;
         }
         this->enuc += this->dnuc;
-#endif
+    }
+
+    static PS::F64 calcReleasedNuclearEnergy(PS::F64 dt,
+                                             PS::F64 dens,
+                                             PS::F64 temp,
+                                             PS::F64 * cmps) {
+        PS::F64 dnuc = 0.;
+        if(temp > 1e8) {
+            dnuc = CalcNRH::getGeneratedEnergy(dt, dens, temp, cmps);
+        } else {
+            dnuc  = 0.;
+        }
+        return dnuc;
     }
 
     PS::F64 calcTimestep() {
@@ -488,22 +477,13 @@ namespace RunParameter {
         fprintf(fp, "%llx %llx %llx %llx\n",
                 cvt(KernelSupportRadiusMaximum), cvt(EpsilonOfInternalEnergy),
                 cvt(ReductionTime), cvt(ReductionTimeInv));
-//#if 0 // ???
-//        fprintf(fp, "%lld %lld %llx\n", sph.getNumberOfParticleLocal(),
-//                msls.getNumberOfParticleLocal(), cvt(CoefficientOfTimestep));
-//#else
         fprintf(fp, "%lld %lld %lld %llx\n", sph.getNumberOfParticleLocal(),
                 msls.getNumberOfParticleLocal(), bhns.getNumberOfParticleLocal(),
                 cvt(CoefficientOfTimestep));
-//#endif
         fprintf(fp, "%llx %llx %llx\n", cvt(RotationalVelocity[0]),
                 cvt(RotationalVelocity[1]), cvt(RotationalVelocity[2]));
-//#if 0 // ???
-//        fprintf(fp, "%llx %lld %lld\n", cvt(NuclearEnergyTotal), FlagDamping, FlagNuclear);
-//#else
         fprintf(fp, "%llx %llx\n", cvt(NuclearEnergyTotal), cvt(AbsorbedEnergyTotal));
         fprintf(fp, "%lld %lld %lld\n", FlagDamping, FlagNuclear, FlagBinary);
-//#endif
 
         PS::S32 nproc = PS::Comm::getNumberOfProc();
         for(PS::S32 i = 0; i < nproc; i++) {
@@ -742,7 +722,9 @@ void initializeSimulation() {
         RP::FilePointerForLog  = fopen("snap/time.log", "w");
         RP::FilePointerForTime = fopen("snap/prof.log", "w");
     }
-    RP::FilePointerForDebug = fopen("snap/debug.log", "w");
+    char debugfile[64];
+    sprintf(debugfile, "snap/debug_p%06d.log", PS::Comm::getRank());
+    RP::FilePointerForDebug = fopen(debugfile, "w");
 }
 
 template <class Tdinfo,
@@ -822,16 +804,13 @@ void restartSimulation(char **argv,
     SK::setKernel(RP::KernelType, RP::NumberOfDimension);
 #ifdef FOR_TUBE_TEST
     RP::FlagGravity = 0;
-    //RP::FlagNuclear = 0;
     dinfo.setBoundaryCondition(PS::BOUNDARY_CONDITION_PERIODIC_XYZ);
     dinfo.setPosRootDomain((- 0.5e9 * CodeUnit::UnitOfLengthInv),
                            (+ 0.5e9 * CodeUnit::UnitOfLengthInv));
 #endif
     // *********************
-    //RP::CoefficientOfTimestep = 0.1;
-    //RP::CoefficientOfTimestep = 0.05;
-    //RP::CoefficientOfTimestep = 0.025;
-    //RP::CoefficientOfTimestep = 0.0125;
+    //RP::TimestepAscii   = 1. / 1024.;
+    //RP::MaximumTimestep = 1. / 1024.;
     // *********************
     RP::outputRunParameter(argv);
     return;
@@ -842,6 +821,7 @@ void dumpOneParticle(PS::S32 id,
                      Tsph & sph) {
     for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
         if(sph[i].id == id) {
+            fprintf(RP::FilePointerForDebug, "%16.10f ", RP::Time * CodeUnit::UnitOfTime);
             sph[i].writeAscii(RP::FilePointerForDebug);
         }
     }
@@ -865,7 +845,38 @@ void loopSimulation(Tdinfo & dinfo,
 
     WT::clear();
     while(RP::Time < RP::TimeEnd) {
-        //dumpOneParticle( 8338, sph);
+#if 0
+        {
+            dumpOneParticle(2523, sph);
+            dumpOneParticle(5072, sph);
+            dumpOneParticle(6649, sph);
+            dumpOneParticle(11946, sph);
+            dumpOneParticle(12919, sph);
+            dumpOneParticle(13018, sph);
+            dumpOneParticle(13304, sph);
+            dumpOneParticle(13516, sph);
+            dumpOneParticle(16447, sph);
+            dumpOneParticle(22394, sph);
+            dumpOneParticle(23866, sph);
+            dumpOneParticle(33427, sph);
+            dumpOneParticle(39105, sph);
+            dumpOneParticle(40602, sph);
+            dumpOneParticle(55541, sph);
+            dumpOneParticle(62128, sph);
+            dumpOneParticle(66475, sph);
+            dumpOneParticle(70755, sph);
+            dumpOneParticle(73647, sph);
+            dumpOneParticle(74788, sph);
+            dumpOneParticle(74962, sph);
+            dumpOneParticle(78071, sph);
+            dumpOneParticle(81812, sph);
+            dumpOneParticle(87124, sph);
+            dumpOneParticle(88378, sph);
+            dumpOneParticle(93261, sph);
+            dumpOneParticle(93466, sph);
+            dumpOneParticle(96618, sph);
+        }
+#endif
         WT::reduceInterProcess();
         outputData(dinfo, sph, bhns, msls);
         WT::clear();
@@ -875,7 +886,8 @@ void loopSimulation(Tdinfo & dinfo,
         }
         WT::start();        
         if(RP::FlagNuclear == 1) {
-            calcReleasedNuclearEnergy(sph);
+            //calcReleasedNuclearEnergy(sph);
+            predictReleasedNuclearEnergy(sph);
         }
         WT::accumulateCalcNuclearReaction();
         WT::start();
@@ -895,6 +907,16 @@ void loopSimulation(Tdinfo & dinfo,
         bhns.exchangeParticle(dinfo);
         WT::accumulateExchangeParticle();
         calcSPHKernel(dinfo, sph, bhns, msls, density, hydro, gravity);
+        WT::start();        
+        if(RP::FlagNuclear == 1) {
+            correctReleasedNuclearEnergy(sph);
+        }
+        WT::accumulateCalcNuclearReaction();
+        WT::start();        
+        if(RP::FlagNuclear == 1) {
+            correctReleasedNuclearEnergy(sph);
+        }
+        WT::accumulateCalcNuclearReaction();
         WT::start();
         correct(sph, bhns);
         WT::accumulateOthers();
