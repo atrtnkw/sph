@@ -47,6 +47,8 @@ namespace CodeUnit {
     //PS::F64 MaximumOfTemperature       = 1e10;
     PS::F64 MaximumOfTemperature       = 1e11;
     PS::F64 MinimumOfTemperature       = 1e5;
+    PS::F64 MaximumOfTemperatureNSE    = 1e10;
+    PS::F64 MinimumOfTemperatureNSE    = 5e9;
     PS::F64 BoundaryTemperature        = 1e8;
     PS::F64 TolaranceOfLowTemperature  = 1e-4;
     PS::F64 TolaranceOfHighTemperature = 1e-4;
@@ -56,6 +58,8 @@ namespace CodeUnit {
         ((UnitOfLength * UnitOfLength * UnitOfLength) * UnitOfMassInv
          * (UnitOfTimeInv * UnitOfTimeInv));
     PS::F64 SpeedOfLightInThisUnit = SpeedOfLight * UnitOfVelocityInv;
+    PS::F64 MinimumOfDensityNSEInThisUnit = 2e7 * UnitOfDensityInv;
+    //PS::F64 MinimumOfDensityNSEInThisUnit = 5e7 * UnitOfDensityInv;
 }
 
 class CalcEquationOfState {

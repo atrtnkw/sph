@@ -1,5 +1,9 @@
 #pragma once
 
+inline PS::F64 getRandomNumber() {
+    return ((PS::F64) rand() / ((PS::F64)RAND_MAX + 1.));
+}
+
 template <class Tsph>
 void calcCenterOfMass(Tsph & sph,
                       PS::F64    & mc,

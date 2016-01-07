@@ -237,30 +237,96 @@ public:
     }
 
     void calcReleasedNuclearEnergy() {
+#if 0
         if(this->temp > 1e8) {
-            /*
-            if(this->temp < 5e9 || this->dens * CodeUnit::UnitOfDensity < 8e7) {
-                this->dnuc = CalcNRH::getGeneratedEnergy(RP::Timestep,
-                                                         this->dens,
-                                                         this->temp,
-                                                         this->cmps);
-            } else {
-                this->dnuc = CalcNSE::getGeneratedEnergy(this->dens,
-                                                         this->temp,
-                                                         this->cmps);
-            }
-            */
             this->dnuc = CalcNRH::getGeneratedEnergy(RP::Timestep,
                                                      this->dens,
                                                      this->temp,
-                                                     //this->cmps);
                                                      this->cmps.getPointer());
         } else {
             this->dnuc  = 0.;
         }
         this->enuc += this->dnuc;
+#else
+        /*
+        this->temp = 6.027937e9;
+        this->dens = 5e7 * CodeUnit::UnitOfDensityInv;
+        this->cmps[0]  = 1.413e-01;
+        this->cmps[1]  = 6.076e-06;
+        this->cmps[2]  = 1.831e-05;
+        this->cmps[3]  = 4.359e-07;
+        this->cmps[4]  = 6.354e-05;
+        this->cmps[5]  = 3.135e-02;
+        this->cmps[6]  = 4.262e-02;
+        this->cmps[7]  = 3.085e-02;
+        this->cmps[8]  = 4.665e-02;
+        this->cmps[9]  = 1.721e-03;
+        this->cmps[10] = 8.772e-03;
+        this->cmps[11] = 7.073e-02;
+        this->cmps[12] = 6.259e-01;
+        {
+            PS::F64 dd = this->dens * CodeUnit::UnitOfDensity;
+            PS::F64 pp, uu, du, cs;
+            bool eosfail;
+            this->calcAbarZbar();
+            helmeos2_(&this->temp, &dd, &this->abar, &this->zbar, &pp, &uu, &du, &cs, &eosfail);
+            if(PS::Comm::getRank() == 0) {
+                printf("##### %+e %+e %+e\n", this->abar, this->zbar, uu);
+            }
+            this->uene = uu * CodeUnit::UnitOfEnergyInv;
+        }
+        */
+        if(this->temp > 1e8) {
+//            if(this->temp < CodeUnit::MinimumOfTemperatureNSE) {
+            if(this->temp < CodeUnit::MinimumOfTemperatureNSE
+               || this->dens < CodeUnit::MinimumOfDensityNSEInThisUnit) {
+                this->dnuc = CalcNRH::getGeneratedEnergy(RP::Timestep,
+                                                         this->dens,
+                                                         this->temp,
+                                                         this->cmps.getPointer());
+            } else {
+                const PS::S32 nstepmax = 1000;
+                const PS::F64 tmin     = CodeUnit::MinimumOfTemperatureNSE;
+                const PS::F64 tmax     = CodeUnit::MaximumOfTemperatureNSE;
+                PS::S32 nstep   = 0;
+                PS::F64 tguess  = this->temp;
+                PS::F64 tresult, tgprev, trtent;
+                HelmholtzGas tsph;
+                do {
+                    tsph       = (*this);
+                    tsph.temp  = tguess;
+                    tsph.dnuc  = CalcNSE::getGeneratedEnergy(tsph.dens, tsph.temp,
+                                                             tsph.cmps.getPointer());
+                    tsph.uene += tsph.dnuc;
+                    tsph.calcAbarZbar();
+                    CalcEquationOfState::getThermodynamicQuantity(tsph.dens, tsph.uene, tsph.abar,
+                                                                  tsph.zbar, tsph.pres, tsph.vsnd,
+                                                                  tresult,   tsph.cnteos);
+                    tgprev = tguess;
+                    trtent = std::max(tmin, std::min(tmax, tresult));
+                    PS::F64 rn = getRandomNumber();
+                    tguess = rn * tguess + (1. - rn) * trtent;
+                } while(fabs((tresult - tgprev) / tgprev) > 0.01 && nstep < nstepmax);
+                assert(nstep < nstepmax);
+                this->dnuc = tsph.dnuc;
+                this->cmps = tsph.cmps;
+                /*
+                if(PS::Comm::getRank() == 0) {
+                    printf("### %+e\n", tsph.temp);
+                    tsph.cmps.print();
+                }
+                PS::Finalize();
+                exit(0);
+                */
+            }
+        } else {
+            this->dnuc  = 0.;
+        }
+        this->enuc += this->dnuc;
+#endif
     }
 
+#if 0
     static PS::F64 calcReleasedNuclearEnergy(PS::F64 dt,
                                              PS::F64 dens,
                                              PS::F64 temp,
@@ -273,6 +339,7 @@ public:
         }
         return dnuc;
     }
+#endif
 
     PS::F64 calcTimestep() {
         using namespace CodeUnit;
@@ -845,38 +912,6 @@ void loopSimulation(Tdinfo & dinfo,
 
     WT::clear();
     while(RP::Time < RP::TimeEnd) {
-#if 0
-        {
-            dumpOneParticle(2523, sph);
-            dumpOneParticle(5072, sph);
-            dumpOneParticle(6649, sph);
-            dumpOneParticle(11946, sph);
-            dumpOneParticle(12919, sph);
-            dumpOneParticle(13018, sph);
-            dumpOneParticle(13304, sph);
-            dumpOneParticle(13516, sph);
-            dumpOneParticle(16447, sph);
-            dumpOneParticle(22394, sph);
-            dumpOneParticle(23866, sph);
-            dumpOneParticle(33427, sph);
-            dumpOneParticle(39105, sph);
-            dumpOneParticle(40602, sph);
-            dumpOneParticle(55541, sph);
-            dumpOneParticle(62128, sph);
-            dumpOneParticle(66475, sph);
-            dumpOneParticle(70755, sph);
-            dumpOneParticle(73647, sph);
-            dumpOneParticle(74788, sph);
-            dumpOneParticle(74962, sph);
-            dumpOneParticle(78071, sph);
-            dumpOneParticle(81812, sph);
-            dumpOneParticle(87124, sph);
-            dumpOneParticle(88378, sph);
-            dumpOneParticle(93261, sph);
-            dumpOneParticle(93466, sph);
-            dumpOneParticle(96618, sph);
-        }
-#endif
         WT::reduceInterProcess();
         outputData(dinfo, sph, bhns, msls);
         WT::clear();
@@ -886,8 +921,8 @@ void loopSimulation(Tdinfo & dinfo,
         }
         WT::start();        
         if(RP::FlagNuclear == 1) {
-            //calcReleasedNuclearEnergy(sph);
-            predictReleasedNuclearEnergy(sph);
+            calcReleasedNuclearEnergy(sph);
+            //predictReleasedNuclearEnergy(sph);
         }
         WT::accumulateCalcNuclearReaction();
         WT::start();
@@ -907,16 +942,11 @@ void loopSimulation(Tdinfo & dinfo,
         bhns.exchangeParticle(dinfo);
         WT::accumulateExchangeParticle();
         calcSPHKernel(dinfo, sph, bhns, msls, density, hydro, gravity);
-        WT::start();        
-        if(RP::FlagNuclear == 1) {
-            correctReleasedNuclearEnergy(sph);
-        }
-        WT::accumulateCalcNuclearReaction();
-        WT::start();        
-        if(RP::FlagNuclear == 1) {
-            correctReleasedNuclearEnergy(sph);
-        }
-        WT::accumulateCalcNuclearReaction();
+//        WT::start();        
+//        if(RP::FlagNuclear == 1) {
+//            correctReleasedNuclearEnergy(sph);
+//        }
+//        WT::accumulateCalcNuclearReaction();
         WT::start();
         correct(sph, bhns);
         WT::accumulateOthers();

@@ -75,6 +75,7 @@ void calcReleasedNuclearEnergy(Tsph & sph) {
     }
 }
 
+#if 0
 template <class Tsph>
 void predictReleasedNuclearEnergy(Tsph & sph) {
     for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
@@ -104,6 +105,7 @@ void correctReleasedNuclearEnergy(Tsph & sph) {
         sph[i].enuc += sph[i].dnuc;
     }
 }
+#endif
 
 template <class Tsph>
 void calcBalsaraSwitch(Tsph & sph) {
