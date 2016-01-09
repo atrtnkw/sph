@@ -379,4 +379,3 @@ void absorbParticleIntoBlackHoleNeutronStar(Tdinfo & dinfo,
 }
 
 #endif
-

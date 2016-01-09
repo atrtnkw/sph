@@ -58,8 +58,7 @@ namespace CodeUnit {
         ((UnitOfLength * UnitOfLength * UnitOfLength) * UnitOfMassInv
          * (UnitOfTimeInv * UnitOfTimeInv));
     PS::F64 SpeedOfLightInThisUnit = SpeedOfLight * UnitOfVelocityInv;
-    PS::F64 MinimumOfDensityNSEInThisUnit = 2e7 * UnitOfDensityInv;
-    //PS::F64 MinimumOfDensityNSEInThisUnit = 5e7 * UnitOfDensityInv;
+    PS::F64 MinimumOfDensityNSEInThisUnit = 2e8 * UnitOfDensityInv;
 }
 
 class CalcEquationOfState {

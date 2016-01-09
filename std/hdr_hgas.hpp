@@ -236,108 +236,128 @@ public:
         this->zbar = this->abar * zbar;
     }
 
-    void calcReleasedNuclearEnergy() {
+    static PS::F64 getTemperatureImplicitlyWithNse(const HelmholtzGas sph,
+                                                   PS::F64 & dnuc,
+                                                   NR::Nucleon & cmps) {
+        const PS::S32 nstepmax = 1000;
+        const PS::F64 tmin     = CodeUnit::MinimumOfTemperatureNSE;
+        const PS::F64 tmax     = CodeUnit::MaximumOfTemperatureNSE;
+        PS::S32 nstep   = 0;
+        PS::F64 tguess  = sph.temp;
+        PS::F64 tresult, tgprev, trtent;
+        HelmholtzGas tsph;
+        do {
+            tsph       = sph;
+            tsph.temp  = tguess;
+            tresult    = tguess;
+            tsph.dnuc  = CalcNSE::getGeneratedEnergy(tsph.dens, tsph.temp,
+                                                     tsph.cmps.getPointer());
+            tsph.uene += tsph.dnuc;
+            tsph.calcAbarZbar();
+            CalcEquationOfState::getThermodynamicQuantity(tsph.dens, tsph.uene, tsph.abar,
+                                                          tsph.zbar, tsph.pres, tsph.vsnd,
+                                                          tresult,   tsph.cnteos);
+            tgprev = tguess;
+            trtent = std::max(tmin, std::min(tmax, tresult));
+            PS::F64 rn = getRandomNumber();
+            tguess = rn * tguess + (1. - rn) * trtent;
+        } while(fabs((tresult - tgprev) / tgprev) > 0.01 && nstep < nstepmax);
+        assert(nstep < nstepmax);
+        dnuc = tsph.dnuc;
+        cmps = tsph.cmps;
+        return tresult;
+    }
+
+    static PS::F64 getTemperatureImplicitlyWithNrh(const PS::F64 dt,
+                                                   const HelmholtzGas sph,
+                                                   PS::F64 & dnuc,
+                                                   NR::Nucleon & cmps) {
+        const PS::S32 nstepmax = 1000;
+        const PS::F64 tmin     = CodeUnit::MinimumOfTemperatureNSE;
+        const PS::F64 tmax     = CodeUnit::MaximumOfTemperatureNSE;
+        PS::S32 nstep   = 0;
+        PS::F64 tguess  = sph.temp;
+        PS::F64 tresult, tgprev, trtent;
+        HelmholtzGas tsph;
+        do {
+            tsph       = sph;
+            tsph.temp  = tguess;
+            tresult    = tguess;
+            tsph.dnuc  = CalcNRH::getGeneratedEnergy(dt, tsph.dens, tsph.temp,
+                                                     tsph.cmps.getPointer());
+            tsph.uene += tsph.dnuc;
+            tsph.calcAbarZbar();
+            CalcEquationOfState::getThermodynamicQuantity(tsph.dens, tsph.uene, tsph.abar,
+                                                          tsph.zbar, tsph.pres, tsph.vsnd,
+                                                          tresult,   tsph.cnteos);
+            tgprev = tguess;
+            trtent = std::max(tmin, std::min(tmax, tresult));
+            PS::F64 rn = getRandomNumber();
+            tguess = rn * tguess + (1. - rn) * trtent;
+        } while(fabs((tresult - tgprev) / tgprev) > 0.01 && nstep < nstepmax);
+        assert(nstep < nstepmax);
+        dnuc = tsph.dnuc;
+        cmps = tsph.cmps;
+        return tresult;
+    }
+
 #if 0
+    void calcReleasedNuclearEnergy() {
         if(this->temp > 1e8) {
-            this->dnuc = CalcNRH::getGeneratedEnergy(RP::Timestep,
-                                                     this->dens,
-                                                     this->temp,
-                                                     this->cmps.getPointer());
-        } else {
-            this->dnuc  = 0.;
-        }
-        this->enuc += this->dnuc;
-#else
-        /*
-        this->temp = 6.027937e9;
-        this->dens = 5e7 * CodeUnit::UnitOfDensityInv;
-        this->cmps[0]  = 1.413e-01;
-        this->cmps[1]  = 6.076e-06;
-        this->cmps[2]  = 1.831e-05;
-        this->cmps[3]  = 4.359e-07;
-        this->cmps[4]  = 6.354e-05;
-        this->cmps[5]  = 3.135e-02;
-        this->cmps[6]  = 4.262e-02;
-        this->cmps[7]  = 3.085e-02;
-        this->cmps[8]  = 4.665e-02;
-        this->cmps[9]  = 1.721e-03;
-        this->cmps[10] = 8.772e-03;
-        this->cmps[11] = 7.073e-02;
-        this->cmps[12] = 6.259e-01;
-        {
-            PS::F64 dd = this->dens * CodeUnit::UnitOfDensity;
-            PS::F64 pp, uu, du, cs;
-            bool eosfail;
-            this->calcAbarZbar();
-            helmeos2_(&this->temp, &dd, &this->abar, &this->zbar, &pp, &uu, &du, &cs, &eosfail);
-            if(PS::Comm::getRank() == 0) {
-                printf("##### %+e %+e %+e\n", this->abar, this->zbar, uu);
-            }
-            this->uene = uu * CodeUnit::UnitOfEnergyInv;
-        }
-        */
-        if(this->temp > 1e8) {
-//            if(this->temp < CodeUnit::MinimumOfTemperatureNSE) {
             if(this->temp < CodeUnit::MinimumOfTemperatureNSE
                || this->dens < CodeUnit::MinimumOfDensityNSEInThisUnit) {
+                const PS::F64 dtsm = 1. / (PS::F64)(((PS::S64)1) << 25);
+                if(this->temp < CodeUnit::MinimumOfTemperatureNSE) {
+                    this->dnuc = CalcNRH::getGeneratedEnergy(RP::Timestep,
+                                                             this->dens,
+                                                             this->temp,
+                                                             this->cmps.getPointer());
+                } else {
+                    PS::F64 tguess = getTemperatureImplicitlyWithNrh(RP::Timestep, *this,
+                                                                     this->dnuc, this->cmps);
+                }
+            } else {
+                PS::F64 tguess = getTemperatureImplicitlyWithNse(*this,
+                                                                 this->dnuc, this->cmps);
+            }
+        } else {
+            this->dnuc = 0.;
+        }
+        this->enuc += this->dnuc;
+    }
+#else
+    void calcReleasedNuclearEnergy() {
+        if(this->temp > 1e8) {
+            if(this->temp < CodeUnit::MinimumOfTemperatureNSE) {
                 this->dnuc = CalcNRH::getGeneratedEnergy(RP::Timestep,
                                                          this->dens,
                                                          this->temp,
                                                          this->cmps.getPointer());
             } else {
-                const PS::S32 nstepmax = 1000;
-                const PS::F64 tmin     = CodeUnit::MinimumOfTemperatureNSE;
-                const PS::F64 tmax     = CodeUnit::MaximumOfTemperatureNSE;
-                PS::S32 nstep   = 0;
-                PS::F64 tguess  = this->temp;
-                PS::F64 tresult, tgprev, trtent;
-                HelmholtzGas tsph;
-                do {
-                    tsph       = (*this);
-                    tsph.temp  = tguess;
-                    tsph.dnuc  = CalcNSE::getGeneratedEnergy(tsph.dens, tsph.temp,
-                                                             tsph.cmps.getPointer());
-                    tsph.uene += tsph.dnuc;
-                    tsph.calcAbarZbar();
-                    CalcEquationOfState::getThermodynamicQuantity(tsph.dens, tsph.uene, tsph.abar,
-                                                                  tsph.zbar, tsph.pres, tsph.vsnd,
-                                                                  tresult,   tsph.cnteos);
-                    tgprev = tguess;
-                    trtent = std::max(tmin, std::min(tmax, tresult));
-                    PS::F64 rn = getRandomNumber();
-                    tguess = rn * tguess + (1. - rn) * trtent;
-                } while(fabs((tresult - tgprev) / tgprev) > 0.01 && nstep < nstepmax);
-                assert(nstep < nstepmax);
-                this->dnuc = tsph.dnuc;
-                this->cmps = tsph.cmps;
-                /*
-                if(PS::Comm::getRank() == 0) {
-                    printf("### %+e\n", tsph.temp);
-                    tsph.cmps.print();
+                if(this->dens < CodeUnit::MinimumOfDensityNSEInThisUnit) {
+                    PS::F64     dum_dnuc;
+                    NR::Nucleon dum_cmps;
+                    PS::F64 tguess = getTemperatureImplicitlyWithNse(*this, dum_dnuc, dum_cmps);
+                    this->dnuc = CalcNRH::getGeneratedEnergy(RP::Timestep, this->dens, tguess,
+                                                             this->cmps.getPointer());
+                } else {
+                    PS::F64 tguess = getTemperatureImplicitlyWithNse(*this,
+                                                                     this->dnuc, this->cmps);
                 }
-                PS::Finalize();
-                exit(0);
-                */
             }
         } else {
-            this->dnuc  = 0.;
+            this->dnuc = 0.;
         }
         this->enuc += this->dnuc;
-#endif
     }
 
-#if 0
-    static PS::F64 calcReleasedNuclearEnergy(PS::F64 dt,
-                                             PS::F64 dens,
-                                             PS::F64 temp,
-                                             PS::F64 * cmps) {
-        PS::F64 dnuc = 0.;
-        if(temp > 1e8) {
-            dnuc = CalcNRH::getGeneratedEnergy(dt, dens, temp, cmps);
-        } else {
-            dnuc  = 0.;
+    bool whetherIsParticleHotAndDiffuse() {
+        bool val = false;
+        if(this->temp >= CodeUnit::MinimumOfTemperatureNSE
+           && this->dens < CodeUnit::MinimumOfDensityNSEInThisUnit) {
+            val = true;
         }
-        return dnuc;
+        return val;
     }
 #endif
 
@@ -755,6 +775,80 @@ void correct(Tsph & sph,
     }
 }
 
+template <class Tsph>
+void calcReleasedNuclearEnergyWithLoadBalance(Tsph & sph) {
+    PS::S64 nproc = PS::Comm::getNumberOfProc();
+    PS::S64 nptcl = sph.getNumberOfParticleLocal();
+    PS::S64 nhnrh = 0;
+    
+    for(PS::S64 i = 0; i < nptcl; i++) {
+        nhnrh += sph[i].whetherIsParticleHotAndDiffuse();
+    }
+    
+    /////////////////////////
+    // Load balancing or not
+    /////////////////////////
+        
+    PS::S32 *nsend, *nsenddisp;
+    PS::S32 *nrecv, *nrecvdisp;
+    HelmholtzGas *psend, *precv, *prtrn;
+    nsend     = new PS::S32[nproc];
+    nsenddisp = new PS::S32[nproc+1];
+    nrecv     = new PS::S32[nproc];
+    nrecvdisp = new PS::S32[nproc+1];
+    psend     = new HelmholtzGas[nptcl];
+    precv     = new HelmholtzGas[nptcl];
+    prtrn     = new HelmholtzGas[nptcl];
+
+    bool manyhnrh = (nhnrh / (PS::F64)nptcl > 0.1);
+    if(manyhnrh) {
+        for(PS::S32 i = 0; i < nptcl; i++) {
+            psend[i] = sph[i];
+        }
+        nsenddisp[0] = 0;
+        for(PS::S32 i = 0; i < nproc; i++) {
+            nsend[i]       = ((i + 1) * nptcl) / nproc - (i * nptcl) / nproc;
+            nsenddisp[i+1] = nsenddisp[i] + nsend[i];
+        }
+    } else {
+        for(PS::S32 i = 0; i < nproc; i++) {
+            nsend[i] = 0;
+        }
+        for(PS::S32 i = 0; i < nptcl; i++) {
+            sph[i].calcReleasedNuclearEnergy();
+        }
+    }
+
+    PS::Comm::allToAll(nsend, 1, nrecv);
+    nrecvdisp[0] = 0;
+    for(PS::S64 i = 0; i < nproc; i++) {
+        nrecvdisp[i+1] = nrecvdisp[i] + nrecv[i];
+    }
+    assert(nrecvdisp[nproc] <= nptcl);
+    PS::Comm::allToAllV(psend, nsend, nsenddisp, precv, nrecv, nrecvdisp);
+
+    for(PS::S32 i = 0; i < nrecvdisp[nproc]; i++) {
+        precv[i].calcReleasedNuclearEnergy();
+    }
+
+    PS::Comm::allToAllV(precv, nrecv, nrecvdisp, prtrn, nsend, nsenddisp);
+
+    if(manyhnrh) {
+        for(PS::S32 i = 0; i < nptcl; i++) {
+            sph[i] = prtrn[i];
+        }
+    }
+
+    delete [] nsend;
+    delete [] nsenddisp;
+    delete [] nrecv;
+    delete [] nrecvdisp;
+    delete [] psend;
+    delete [] precv;
+    delete [] prtrn;
+
+}
+
 void initializeSimulation() {
     using namespace RunParameter;
     //Time              = 0.;
@@ -921,8 +1015,8 @@ void loopSimulation(Tdinfo & dinfo,
         }
         WT::start();        
         if(RP::FlagNuclear == 1) {
-            calcReleasedNuclearEnergy(sph);
-            //predictReleasedNuclearEnergy(sph);
+            //calcReleasedNuclearEnergy(sph);
+            calcReleasedNuclearEnergyWithLoadBalance(sph);
         }
         WT::accumulateCalcNuclearReaction();
         WT::start();
@@ -942,11 +1036,6 @@ void loopSimulation(Tdinfo & dinfo,
         bhns.exchangeParticle(dinfo);
         WT::accumulateExchangeParticle();
         calcSPHKernel(dinfo, sph, bhns, msls, density, hydro, gravity);
-//        WT::start();        
-//        if(RP::FlagNuclear == 1) {
-//            correctReleasedNuclearEnergy(sph);
-//        }
-//        WT::accumulateCalcNuclearReaction();
         WT::start();
         correct(sph, bhns);
         WT::accumulateOthers();
