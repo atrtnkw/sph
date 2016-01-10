@@ -59,6 +59,9 @@ namespace CodeUnit {
          * (UnitOfTimeInv * UnitOfTimeInv));
     PS::F64 SpeedOfLightInThisUnit = SpeedOfLight * UnitOfVelocityInv;
     PS::F64 MinimumOfDensityNSEInThisUnit = 2e8 * UnitOfDensityInv;
+
+    // temporary
+    PS::F64 BlackHoleMassInThisUnit = 500. * SolarMass * UnitOfMassInv;
 }
 
 class CalcEquationOfState {

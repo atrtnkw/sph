@@ -373,6 +373,21 @@ public:
         return std::min(std::min(dth, dtu), std::min(dtg, dtc));
     }
 
+#ifdef TIDAL_DISRUPTION_EVENT
+    inline PS::F64vec calcGravityFromBlackHole() {
+        PS::F64    rinv  = 1. / sqrt(this->pos * this->pos);
+        PS::F64vec accg3 = (- CodeUnit::GravityConstantInThisUnit
+                            * CodeUnit::BlackHoleMassInThisUnit * rinv * rinv * rinv) * this->pos;
+        return accg3;
+    }
+
+    inline void addAdditionalForce() {
+        PS::F64vec accg3  = this->calcGravityFromBlackHole();
+        this->accg1 += accg3;
+        this->acc   += accg3;
+    }
+#endif
+
     inline void addAdditionalForceDamping2() {
         this->acc  -= RP::RotationalVelocity ^ (RP::RotationalVelocity ^ this->pos)
             + 2.d * (RP::RotationalVelocity ^ this->vel);

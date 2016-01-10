@@ -8,10 +8,7 @@ use_mpi = yes
 use_omp = yes
 ###########################
 ###### AT_FLAGS ##############################
-#CFLAGS += -DNUCLEAR_REACTION
-#CFLAGS += -DWD_DAMPING1
-#CFLAGS += -DWD_DAMPING2
-#CFLAGS += -DWD_DAMPINGB
+CFLAGS += -DTIDAL_DISRUPTION_EVENT
 ##############################################
 ##############################################
 
