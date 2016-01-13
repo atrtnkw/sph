@@ -36,6 +36,7 @@ namespace RunParameter {
     PS::S64    FlagDamping; // 0: normal, 1: single, 2: binary
     PS::S64    FlagNuclear; // 0: off, 1: on
     PS::S64    FlagBinary;  // 0: WDWD, 1: NSWD/BHWD
+    PS::S64    FlagPotential;  // 0: Newton, 1: Paczynski-Wiita
 
     //PS::F64    InnerRadiusBlackHoleNeutronStar = 2e8; // [cm] (m=0.1/1k)
     //PS::F64    MassStandardPerParticle         = 1.9891e32 / 1024.; // [g] (0.1Msun/1k)

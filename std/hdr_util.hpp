@@ -58,8 +58,12 @@ PS::F64 calcSystemSize(Tsph & sph,
     PS::F64vec x0, x1, v0, v1;
     if(RP::FlagBinary == 0) {
         calcCenterOfMass(sph, m0, x0, v0, 0);
-    } else {
+    } else if(RP::FlagBinary == 1) {
         calcCenterOfMass(bhns, m0, x0, v0, 0);
+    } else if(RP::FlagBinary == 2) {
+        calcCenterOfMass(sph, m0, x0, v0, 0);
+    } else {
+        ;
     }
     calcCenterOfMass(sph, m1, x1, v1, 1);
     PS::F64vec dx = x0 - x1;
@@ -77,8 +81,10 @@ void calcRotationalVelocity(Tsph & sph,
     PS::F64vec v0, v1;
     if(RP::FlagBinary == 0) {
         calcCenterOfMass(sph, m0, x0, v0, 0);
-    } else {
+    } else if(RP::FlagBinary == 1) {
         calcCenterOfMass(bhns, m0, x0, v0, 0);
+    } else {
+        ;
     }
     calcCenterOfMass(sph, m1, x1, v1, 1);
 
@@ -128,8 +134,10 @@ void reduceSeparation(Tsph & sph,
         PS::F64vec v0, v1;
         if(RP::FlagBinary == 0) {
             calcCenterOfMass(sph, m0, x0, v0, 0);
-        } else {
+        } else if (RP::FlagBinary == 1) {
             calcCenterOfMass(bhns, m0, x0, v0, 0);
+        } else {
+            ;
         }
         calcCenterOfMass(sph, m1, x1, v1, 1);
 
@@ -139,8 +147,10 @@ void reduceSeparation(Tsph & sph,
             PS::F64vec vc;
             if(RP::FlagBinary == 0) {
                 calcCenterOfMass(sph, mc, xc, vc);
-            } else {
+            } else if(RP::FlagBinary == 1) {
                 calcCenterOfMass(sph, bhns, mc, xc, vc);
+            } else {
+                ;
             }
             for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
                 sph[i].pos -= xc;
@@ -173,8 +183,10 @@ void reduceSeparation(Tsph & sph,
         PS::F64vec vc;
         if(RP::FlagBinary == 0) {
             calcCenterOfMass(sph, mc, xc, vc);
-        } else {
+        } else if (RP::FlagBinary == 1) {
             calcCenterOfMass(sph, bhns, mc, xc, vc);
+        } else {
+            ;
         }
         for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
             sph[i].pos -= xc;
@@ -364,8 +376,19 @@ void absorbParticleIntoBlackHoleNeutronStar(Tdinfo & dinfo,
     PS::F64vec mmglb = PS::Comm::getSum(mmloc);
 
     if(ndglb > 0) {
-        //correctBlackHoleNeutronStar(bhns, msglb, mmglb);
+        // A. Tanikawa changes this 160110.
+#if 0
         correctBlackHoleNeutronStar(bhns, msglb, mxglb, mmglb);
+#else
+        if(RP::FlagBinary == 1) {
+            correctBlackHoleNeutronStar(bhns, msglb, mxglb, mmglb);
+        } else if (RP::FlagBinary == 2) {
+            ;
+        } else {
+            fprintf(stderr, "Something wrong happens!\n");
+            PS::Abort();
+        }
+#endif
 
         calcSPHKernel(dinfo, sph, bhns, msls, density, hydro, gravity);
 
@@ -379,3 +402,39 @@ void absorbParticleIntoBlackHoleNeutronStar(Tdinfo & dinfo,
 }
 
 #endif
+
+
+template <class Tdinfo,
+          class Tsph,
+          class Tbhns,
+          class Tmsls,
+          class Tdensity,
+          class Thydro,
+          class Tgravity>
+void absorbParticleIntoIntermediateMassBlackHole(Tdinfo & dinfo,
+                                                 Tsph & sph,
+                                                 Tbhns & bhns,
+                                                 Tmsls & msls,
+                                                 Tdensity & density,
+                                                 Thydro & hydro,
+                                                 Tgravity & gravity) {
+    static __thread Tbhns imbh;
+    static __thread bool first = true;
+    if(first) {
+        imbh.initialize();
+        imbh.createParticle(0);
+        first = false;
+    }
+    if(PS::Comm::getRank() == 0) {
+        imbh.setNumberOfParticleLocal(1);
+        imbh[0].mass = 0.;
+        imbh[0].pos  = 0.;
+        imbh[0].vel  = 0.;
+        imbh[0].pot  = 0.;
+        imbh[0].eps  = 1.;
+    } else {
+        imbh.setNumberOfParticleLocal(0);
+    }
+    absorbParticleIntoBlackHoleNeutronStar(dinfo, sph, imbh, msls, density, hydro, gravity);
+}
+

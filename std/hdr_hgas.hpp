@@ -373,20 +373,57 @@ public:
         return std::min(std::min(dth, dtu), std::min(dtg, dtc));
     }
 
-#ifdef TIDAL_DISRUPTION_EVENT
-    inline PS::F64vec calcGravityFromBlackHole() {
+    inline void calcNewtonGravity(PS::F64vec & accg3,
+                                  PS::F64 & pot3) {
         PS::F64    rinv  = 1. / sqrt(this->pos * this->pos);
-        PS::F64vec accg3 = (- CodeUnit::GravityConstantInThisUnit
-                            * CodeUnit::BlackHoleMassInThisUnit * rinv * rinv * rinv) * this->pos;
-        return accg3;
+        accg3 = (- CodeUnit::GravityConstantInThisUnit
+                 * CodeUnit::BlackHoleMassInThisUnit * rinv * rinv * rinv) * this->pos;
+        pot3  = - CodeUnit::GravityConstantInThisUnit * CodeUnit::BlackHoleMassInThisUnit * rinv;
+    }
+
+    inline void calcPaczynskiWiitaGravity(PS::F64vec & accg3,
+                                          PS::F64 & pot3) {
+        static __thread const PS::F64 rs = 2. * CodeUnit::GravityConstantInThisUnit
+            * CodeUnit::BlackHoleMassInThisUnit
+            / (CodeUnit::SpeedOfLightInThisUnit * CodeUnit::SpeedOfLightInThisUnit);
+        static __thread const PS::F64 rt = 1.5 * rs;
+        PS::F64    r2    = (this->pos * this->pos);
+        PS::F64    r1 = sqrt(r2);
+        PS::F64    rinv  = 1. / sqrt(r2);
+        accg3 = 0.;
+        pot3  = 0.;
+        if(r2 < rt * rt) {
+            static __thread const PS::F64 rtinv = 1. / rt;
+            static __thread const PS::F64 rs2rt = rs - 2. * rt;
+            static __thread const PS::F64 rsrtinv3 = 1. / ((rs - rt) * (rs - rt) * (rs - rt));
+            static __thread const PS::F64 onethird = 1. / 3.;
+            accg3 = (- rsrtinv3 * (rtinv * r2 + rs2rt) * rinv) * this->pos;
+            PS::F64 rt3 = rt * rt * rt;
+            PS::F64 r3  = r1 * r1 * r1;
+            pot3  = - rsrtinv3 * (onethird * rtinv * (rt3 - r3) + rs2rt * (rt - r1))
+                - 1. / (rt - rs);
+        } else {
+            accg3 = (- rinv / ((r1 - rs) * (r1 - rs))) * this->pos;
+            pot3  =  - 1. / (r1 - rs);
+        }
+        accg3 *= (CodeUnit::GravityConstantInThisUnit * CodeUnit::BlackHoleMassInThisUnit);
+        pot3  *= (CodeUnit::GravityConstantInThisUnit * CodeUnit::BlackHoleMassInThisUnit);
     }
 
     inline void addAdditionalForce() {
-        PS::F64vec accg3  = this->calcGravityFromBlackHole();
-        this->accg1 += accg3;
-        this->acc   += accg3;
+        if(RP::FlagBinary == 2) {
+            PS::F64vec accg3;
+            PS::F64    pot3;
+            if(RP::FlagPotential == 0) {
+                calcNewtonGravity(accg3, pot3);
+            } else {
+                calcPaczynskiWiitaGravity(accg3, pot3);
+            }
+            this->accg1 += accg3;
+            this->acc   += accg3;
+            this->pot   += (2. * pot3);
+        }
     }
-#endif
 
     inline void addAdditionalForceDamping2() {
         this->acc  -= RP::RotationalVelocity ^ (RP::RotationalVelocity ^ this->pos)
@@ -507,8 +544,9 @@ namespace RunParameter {
         PS::U64 uksrmax, uepsu, uenuc, ueabs;
         PS::U64 urtime, urtimeinv, utcoeff;
         PS::U64 urv[3];
-        PS::S64 nstep, nptcl, nmsls, nbhns, fdamp, fnuc, fbin;
+        PS::S64 nstep, nptcl, nmsls, nbhns, fdamp, fnuc, fbin, fpot;
         PS::S64 nascii, nhexa;
+        PS::U64 umbh, umbhunit;
         fscanf(fp, "%llx %llx %llx %llx %llx %lld", &utime, &utend, &udtime, &udta, &udth, &nstep);
         fscanf(fp, "%lld %lld", &nascii, &nhexa);
         fscanf(fp, "%llx %llx %llx %llx", &ualphamax, &ualphamin, &ualphumax, &ualphumin);
@@ -516,7 +554,11 @@ namespace RunParameter {
         fscanf(fp, "%llx %llx", &urtime, &urtimeinv);
         fscanf(fp, "%lld %lld %lld %llx", &nptcl, &nmsls, &nbhns, &utcoeff);
         fscanf(fp, "%llx %llx %llx", &urv[0], &urv[1], &urv[2]);
-        fscanf(fp, "%llx %llx %lld %lld %lld", &uenuc, &ueabs, &fdamp, &fnuc, &fbin);
+        // A. Tanikawa should correct this soon.
+        //fscanf(fp, "%llx %llx %lld %lld %lld", &uenuc, &ueabs, &fdamp, &fnuc, &fbin);
+        fscanf(fp, "%llx %llx %lld %lld %lld %lld", &uenuc, &ueabs, &fdamp, &fnuc, &fbin, &fpot);
+        fscanf(fp, "%llx %llx", &umbh, &umbhunit);
+        ///////////////////////////////////////
         Time          = cvt(utime);
         TimeEnd       = cvt(utend);
         Timestep      = cvt(udtime);
@@ -545,6 +587,9 @@ namespace RunParameter {
         FlagDamping           = fdamp;
         FlagNuclear           = fnuc;
         FlagBinary            = fbin;
+        FlagPotential         = fpot;
+        CodeUnit::BlackHoleMass           = cvt(umbh);
+        CodeUnit::BlackHoleMassInThisUnit = cvt(umbhunit);
 
         for(PS::S32 i = 0; i < PS::Comm::getNumberOfProc(); i++) {
             PS::F64ort domain;
@@ -585,7 +630,12 @@ namespace RunParameter {
         fprintf(fp, "%llx %llx %llx\n", cvt(RotationalVelocity[0]),
                 cvt(RotationalVelocity[1]), cvt(RotationalVelocity[2]));
         fprintf(fp, "%llx %llx\n", cvt(NuclearEnergyTotal), cvt(AbsorbedEnergyTotal));
-        fprintf(fp, "%lld %lld %lld\n", FlagDamping, FlagNuclear, FlagBinary);
+        // A. Tanikawa adds this 16/01/11
+        //fprintf(fp, "%lld %lld %lld\n", FlagDamping, FlagNuclear, FlagBinary);
+        fprintf(fp, "%lld %lld %lld %lld\n", FlagDamping, FlagNuclear, FlagBinary, FlagPotential);
+        fprintf(fp, " %llx %llx\n", cvt(CodeUnit::BlackHoleMass),
+                cvt(CodeUnit::BlackHoleMassInThisUnit));
+        ///////
 
         PS::S32 nproc = PS::Comm::getNumberOfProc();
         for(PS::S32 i = 0; i < nproc; i++) {
@@ -812,7 +862,8 @@ void calcReleasedNuclearEnergyWithLoadBalance(Tsph & sph) {
     nrecv     = new PS::S32[nproc];
     nrecvdisp = new PS::S32[nproc+1];
     psend     = new HelmholtzGas[nptcl];
-    precv     = new HelmholtzGas[nptcl];
+    //precv     = new HelmholtzGas[nptcl];
+    precv     = new HelmholtzGas[2*nptcl];
     prtrn     = new HelmholtzGas[nptcl];
 
     bool manyhnrh = (nhnrh / (PS::F64)nptcl > 0.1);
@@ -839,7 +890,11 @@ void calcReleasedNuclearEnergyWithLoadBalance(Tsph & sph) {
     for(PS::S64 i = 0; i < nproc; i++) {
         nrecvdisp[i+1] = nrecvdisp[i] + nrecv[i];
     }
-    assert(nrecvdisp[nproc] <= nptcl);
+    if(nrecvdisp[nproc] > 2 * nptcl) {
+        printf("hoge %8d %8d\n", nrecvdisp[nproc], nptcl);
+    }
+    //assert(nrecvdisp[nproc] <= nptcl);
+    assert(nrecvdisp[nproc] <= 2 * nptcl);
     PS::Comm::allToAllV(psend, nsend, nsenddisp, precv, nrecv, nrecvdisp);
 
     for(PS::S32 i = 0; i < nrecvdisp[nproc]; i++) {
@@ -934,6 +989,20 @@ void startSimulation(char **argv,
         } else {
             RP::FlagBinary = 0;
         }
+//////////////////////////////////////////////////////////////
+///// A.Tanikawa adds this 160110.
+//////////////////////////////////////////////////////////////
+        sprintf(filename, "%s.imbh", argv[3]);
+        fp = fopen(filename, "r");
+        if(fp != NULL) {
+            using namespace CodeUnit;
+            RP::FlagBinary = 2;
+            fscanf(fp, "%lf%lld", &BlackHoleMass, &RP::FlagPotential);
+            fclose(fp);
+            BlackHoleMassInThisUnit = BlackHoleMass * SolarMass * UnitOfMassInv;
+        }
+//////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////
     } else {
         sph.readParticleAscii(argv[3], "%s_p%06d_i%06d.data");    
     }
@@ -985,6 +1054,8 @@ void restartSimulation(char **argv,
                            (+ 0.5e9 * CodeUnit::UnitOfLengthInv));
 #endif
     // *********************
+    //RP::CoefficientOfTimestep = 1e-2;
+    //RP::CoefficientOfTimestep = 1e-1;
     //RP::TimestepAscii   = 1. / 1024.;
     //RP::MaximumTimestep = 1. / 1024.;
     // *********************
@@ -1056,6 +1127,9 @@ void loopSimulation(Tdinfo & dinfo,
         WT::accumulateOthers();
         if(RP::FlagBinary == 1) {
             absorbParticleIntoBlackHoleNeutronStar(dinfo, sph, bhns, msls, density, hydro, gravity);
+        } else if (RP::FlagBinary == 2) {
+            absorbParticleIntoIntermediateMassBlackHole(dinfo, sph, bhns, msls,
+                                                        density, hydro, gravity);
         }
         RP::Time += RP::Timestep;
         RP::NumberOfStep++;
@@ -1081,8 +1155,10 @@ void finalizeSimulation(Tdinfo & dinfo,
     PS::F64vec vc;
     if(RP::FlagBinary == 0) {
         calcCenterOfMass(sph, mc, xc, vc);
-    } else {
+    } else if(RP::FlagBinary == 1) {
         calcCenterOfMass(sph, bhns, mc, xc, vc);
+    } else {
+        ;
     }
     PS::S32 nloc = sph.getNumberOfParticleLocal();
     for(PS::S32 i = 0; i < nloc; i++) {
