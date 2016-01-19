@@ -301,34 +301,10 @@ public:
         return tresult;
     }
 
-#if 0
     void calcReleasedNuclearEnergy() {
         if(this->temp > 1e8) {
             if(this->temp < CodeUnit::MinimumOfTemperatureNSE
-               || this->dens < CodeUnit::MinimumOfDensityNSEInThisUnit) {
-                const PS::F64 dtsm = 1. / (PS::F64)(((PS::S64)1) << 25);
-                if(this->temp < CodeUnit::MinimumOfTemperatureNSE) {
-                    this->dnuc = CalcNRH::getGeneratedEnergy(RP::Timestep,
-                                                             this->dens,
-                                                             this->temp,
-                                                             this->cmps.getPointer());
-                } else {
-                    PS::F64 tguess = getTemperatureImplicitlyWithNrh(RP::Timestep, *this,
-                                                                     this->dnuc, this->cmps);
-                }
-            } else {
-                PS::F64 tguess = getTemperatureImplicitlyWithNse(*this,
-                                                                 this->dnuc, this->cmps);
-            }
-        } else {
-            this->dnuc = 0.;
-        }
-        this->enuc += this->dnuc;
-    }
-#else
-    void calcReleasedNuclearEnergy() {
-        if(this->temp > 1e8) {
-            if(this->temp < CodeUnit::MinimumOfTemperatureNSE) {
+               || this->dens < 3e7 * CodeUnit::UnitOfDensityInv) {
                 this->dnuc = CalcNRH::getGeneratedEnergy(RP::Timestep,
                                                          this->dens,
                                                          this->temp,
@@ -348,6 +324,14 @@ public:
         } else {
             this->dnuc = 0.;
         }
+        /*
+        if(this->id == 500) {
+            using namespace CodeUnit;
+            printf("hoge %+e %+e %+e", RP::Time, this->dens * UnitOfDensity, this->temp);
+            printf(" %+e %+e %+e %+e\n", this->uene * UnitOfEnergy, this->enuc * UnitOfEnergy,
+                   this->dnuc * UnitOfEnergy, this->cmps[1]);
+        }
+        */
         this->enuc += this->dnuc;
     }
 
@@ -359,7 +343,6 @@ public:
         }
         return val;
     }
-#endif
 
     PS::F64 calcTimestep() {
         using namespace CodeUnit;
@@ -893,7 +876,6 @@ void calcReleasedNuclearEnergyWithLoadBalance(Tsph & sph) {
     if(nrecvdisp[nproc] > 2 * nptcl) {
         printf("hoge %8d %8d\n", nrecvdisp[nproc], nptcl);
     }
-    //assert(nrecvdisp[nproc] <= nptcl);
     assert(nrecvdisp[nproc] <= 2 * nptcl);
     PS::Comm::allToAllV(psend, nsend, nsenddisp, precv, nrecv, nrecvdisp);
 
@@ -923,7 +905,11 @@ void initializeSimulation() {
     using namespace RunParameter;
     //Time              = 0.;
     //TimeEnd           = 0.;
+#ifdef FOR_TUBE_TEST
+    MaximumTimestep   = 1. / 131072.;
+#else
     MaximumTimestep   = 1. / 256.;
+#endif
     MinimumTimestep   = 1e-16;
     Timestep          = RP::MaximumTimestep;
     //TimeAscii         = 0.;
@@ -1014,12 +1000,25 @@ void startSimulation(char **argv,
     RP::KernelSupportRadiusMaximum = calcSystemSize(sph, bhns);
     RP::EpsilonOfInternalEnergy    = RP::setEpsilonOfInternalEnergy(sph);
 #ifdef FOR_TUBE_TEST
-    RP::FlagGravity = 0;
-    RP::Timestep    = 1. / pow(2., 30.);
-    dinfo.setBoundaryCondition(PS::BOUNDARY_CONDITION_PERIODIC_XYZ);
-    dinfo.setPosRootDomain((- 0.5e9 * CodeUnit::UnitOfLengthInv),
-                           (+ 0.5e9 * CodeUnit::UnitOfLengthInv));
-    sph.adjustPositionIntoRootDomain(dinfo);
+    {
+        char filename[64];
+        PS::F64 length;
+        sprintf(filename, "%s.oned", argv[3]);
+        FILE * fp = fopen(filename, "r");
+        assert(fp);
+        fscanf(fp, "%lf", &length);
+        fclose(fp);
+        RP::FlagGravity = 0;
+        RP::Timestep    = 1. / pow(2., 30.);
+        dinfo.setBoundaryCondition(PS::BOUNDARY_CONDITION_PERIODIC_XYZ);
+        /*
+          dinfo.setPosRootDomain((- 0.5e9 * CodeUnit::UnitOfLengthInv),
+          (+ 0.5e9 * CodeUnit::UnitOfLengthInv));
+        */
+        dinfo.setPosRootDomain((- 0.5 * length * CodeUnit::UnitOfLengthInv),
+                               (+ 0.5 * length * CodeUnit::UnitOfLengthInv));
+        sph.adjustPositionIntoRootDomain(dinfo);
+    }
 #endif
     RP::outputRunParameter(argv);
     PS::MT::init_genrand(0);
@@ -1048,10 +1047,13 @@ void restartSimulation(char **argv,
     ND::setDimension(RP::NumberOfDimension);
     SK::setKernel(RP::KernelType, RP::NumberOfDimension);
 #ifdef FOR_TUBE_TEST
+    PS::Abort();
+    /*
     RP::FlagGravity = 0;
     dinfo.setBoundaryCondition(PS::BOUNDARY_CONDITION_PERIODIC_XYZ);
     dinfo.setPosRootDomain((- 0.5e9 * CodeUnit::UnitOfLengthInv),
                            (+ 0.5e9 * CodeUnit::UnitOfLengthInv));
+    */
 #endif
     // *********************
     //RP::CoefficientOfTimestep = 1e-2;
@@ -1101,8 +1103,11 @@ void loopSimulation(Tdinfo & dinfo,
         }
         WT::start();        
         if(RP::FlagNuclear == 1) {
-            //calcReleasedNuclearEnergy(sph);
+#ifdef FOR_TUBE_TEST
+            calcReleasedNuclearEnergy(sph);
+#else
             calcReleasedNuclearEnergyWithLoadBalance(sph);
+#endif
         }
         WT::accumulateCalcNuclearReaction();
         WT::start();
