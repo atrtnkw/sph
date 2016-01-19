@@ -79,7 +79,8 @@ private:
             for(PS::S32 k = 0; k < NumberOfNucleon; k++) {
                 PS::F64 mion = nion[k] * MassOfNeutron + zion[k] * MassOfProton
                     - bion[k] * MegaElectronVoltToGram;
-                winv[k]    = 1. / (mion * AvogadroConstant);
+                //winv[k]    = 1. / (mion * AvogadroConstant);
+                winv[k]    = ainv[k];
                 bionerg[k] = AvogadroConstant * (bion[k] * MegaElectronVoltToErg);
             }        
             NR::First = false;
