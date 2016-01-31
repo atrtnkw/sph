@@ -22,6 +22,9 @@ namespace CodeUnit {
     PS::F64 UnitOfLength       = SolarRadius * 1.0e-3d;
     PS::F64 UnitOfMass         = SolarMass   * 1.0e-6d;
     PS::F64 UnitOfTime         = 1.0d;
+    //PS::F64 UnitOfLength       = 1.;
+    //PS::F64 UnitOfMass         = 1.;
+    //PS::F64 UnitOfTime         = 1.;
 
     PS::F64 UnitOfVelocity     = UnitOfLength / UnitOfTime;
 #ifdef FOR_TUBE_TEST
@@ -44,11 +47,14 @@ namespace CodeUnit {
     PS::F64 UnitOfEnergyInv    = 1.d / UnitOfEnergy;
     PS::F64 UnitOfPressureInv  = 1.d / UnitOfPressure;
 
-    //PS::F64 MaximumOfTemperature       = 1e10;
     PS::F64 MaximumOfTemperature       = 1e11;
     PS::F64 MinimumOfTemperature       = 1e5;
     PS::F64 MaximumOfTemperatureNSE    = 1e10;
+#ifdef FOR_TUBE_TEST
+    PS::F64 MinimumOfTemperatureNSE    = 1e10;
+#else
     PS::F64 MinimumOfTemperatureNSE    = 5e9;
+#endif
     PS::F64 BoundaryTemperature        = 1e8;
     PS::F64 TolaranceOfLowTemperature  = 1e-4;
     PS::F64 TolaranceOfHighTemperature = 1e-4;

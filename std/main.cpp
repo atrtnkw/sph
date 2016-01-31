@@ -70,9 +70,13 @@ void referEquationOfState(Tsph & sph) {
 
 template <class Tsph>
 void calcReleasedNuclearEnergy(Tsph & sph) {
+    //RP::Timestep = 1e-10;
     for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
-        sph[i].calcReleasedNuclearEnergy();
+        sph[i].calcReleasedNuclearEnergy();        
     }
+    //sph.writeParticleAscii("snap/hoge.log");
+    //PS::Finalize();
+    //exit(0);
 }
 
 #if 0
@@ -281,9 +285,6 @@ void calcSPHKernel(Tdinfo & dinfo,
     WT::accumulateCalcDensity();
     WT::start();
     calcAbarZbar(sph);
-    //***********************
-    //dumpHighEnergyParticle(sph);
-    //***********************
     referEquationOfState(sph);
     calcBalsaraSwitch(sph);
     WT::accumulateOthers();

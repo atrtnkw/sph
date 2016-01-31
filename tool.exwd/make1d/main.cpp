@@ -51,6 +51,20 @@ public:
     }
 };
 
+PS::F64 getTemperatureTopHat(PS::F64 x) {
+    using namespace HotSpot;
+    PS::F64 xmax = width * 0.5;
+
+    PS::F64 xabs = fabs(x);
+    PS::F64 temp = 0.;
+    if(xabs < xmax) {
+        temp = tmax;
+    } else {
+        temp = tmin;
+    }
+    return temp;
+}
+
 PS::F64 getTemperatureLinear(PS::F64 x) {
     /*
     const PS::F64 tmax  = 3e9;
@@ -73,6 +87,7 @@ PS::F64 getTemperatureLinear(PS::F64 x) {
 
 int main(int argc, char ** argv) {
     PS::S64 tnptcl;
+    PS::S64 typeperb;
     PS::F64 tlength;
     PS::F64 tdensity;
     char filetype[64];
@@ -81,6 +96,7 @@ int main(int argc, char ** argv) {
         FILE *fin = fopen(argv[1], "r");
         fscanf(fin, "%lf%lf",    &tlength, &tdensity);
         fscanf(fin, "%lf%lf%lf", &HotSpot::tmax, &HotSpot::tmin, &HotSpot::width);
+        fscanf(fin, "%lld", &typeperb);
         fscanf(fin, "%lld", &tnptcl);
         fscanf(fin, "%s", filetype);
         fclose(fin);
@@ -90,7 +106,12 @@ int main(int argc, char ** argv) {
     const PS::F64 length  = tlength;
     const PS::F64 density = tdensity;
 
-    PS::F64 (*func)(PS::F64) = getTemperatureLinear;
+    PS::F64 (*func)(PS::F64);
+    if(typeperb == 0) {
+        func = getTemperatureLinear;
+    } else {
+        func = getTemperatureTopHat;
+    }
 
     NR::Nucleon cmps;
     cmps[1] = cmps[2] = 0.5;

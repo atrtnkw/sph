@@ -438,3 +438,38 @@ void absorbParticleIntoIntermediateMassBlackHole(Tdinfo & dinfo,
     absorbParticleIntoBlackHoleNeutronStar(dinfo, sph, imbh, msls, density, hydro, gravity);
 }
 
+template <class Tsph>
+PS::F64 calcDetonationVelocity(Tsph & sph) {
+    static PS::F64 vdet = 0.;
+#ifdef FOR_TUBE_TEST
+    static PS::F64 xdet_prev = 0.;
+    static PS::F64 time_prev = 0.;
+    static PS::F64 tout      = 0.;
+    static PS::F64 dtout     = RP::TimestepAscii / 4.;
+    if(RP::Time >= tout) {
+        PS::F64 tmax_loc = 0.;
+        PS::F64 xdet_loc = 0.;
+        for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
+            if(sph[i].pos[0] < 0.) {
+                continue;
+            }
+            if(sph[i].temp > tmax_loc) {
+                tmax_loc = sph[i].temp;
+                xdet_loc = sph[i].pos[0];
+            }
+        }
+        PS::F64 tmax_glb;
+        PS::S32 irank;
+        PS::Comm::getMaxValue(tmax_loc, PS::Comm::getRank(), tmax_glb, irank);
+        PS::F64 xdet_glb = xdet_loc;
+        PS::Comm::broadcast(&xdet_glb, 1, irank);
+        vdet = ((xdet_glb - xdet_prev) / (RP::Time - time_prev)) * CodeUnit::UnitOfVelocity;
+        xdet_prev = xdet_glb;
+        time_prev = RP::Time;
+        tout     += dtout;
+    }
+#else
+    assert(NULL);
+#endif
+    return vdet;
+}

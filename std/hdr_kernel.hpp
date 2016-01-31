@@ -135,6 +135,7 @@ namespace SmoothingKernel {
 #ifdef FOR_TUBE_TEST
 
     const PS::F64 eta     = 1.6;
+    //const PS::F64 eta     = 3.2;
     const PS::F64 ksrh    = 1.620185;
     const PS::F64 ksrhinv = 1. / ksrh;
     const PS::F64 dim     = 1.;

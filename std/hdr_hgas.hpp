@@ -87,7 +87,8 @@ public:
         fprintf(fp, " %+e",         tenuc);                          // 28
         fprintf(fp, " %+e %+e %+e", tvsmx, tudot, tdnuc);            // 31
         for(PS::S32 k = 0; k < NuclearReaction::NumberOfNucleon; k++) { // 32 -- 44
-            fprintf(fp, " %+.3e", this->cmps[k]);
+            //fprintf(fp, " %+.3e", this->cmps[k]);
+            fprintf(fp, " %+.8e", this->cmps[k]);
         }
         if(RP::FlagDamping == 2) {
             PS::F64vec tomg = RP::RotationalVelocity * UnitOfTimeInv;
@@ -95,6 +96,7 @@ public:
             fprintf(fp, " %+e", tpot - 0.5 * (tvec * tvec));         // 45
         }
         fprintf(fp, " %d", this->fnse);
+        //fprintf(fp, " %+e", this->grdh);
         fprintf(fp, "\n");
     }
 
@@ -310,6 +312,7 @@ public:
                                                          this->temp,
                                                          this->cmps.getPointer());
             } else {
+                //assert(NULL);
                 if(this->dens < CodeUnit::MinimumOfDensityNSEInThisUnit) {
                     PS::F64     dum_dnuc;
                     NR::Nucleon dum_cmps;
@@ -324,14 +327,6 @@ public:
         } else {
             this->dnuc = 0.;
         }
-        /*
-        if(this->id == 500) {
-            using namespace CodeUnit;
-            printf("hoge %+e %+e %+e", RP::Time, this->dens * UnitOfDensity, this->temp);
-            printf(" %+e %+e %+e %+e\n", this->uene * UnitOfEnergy, this->enuc * UnitOfEnergy,
-                   this->dnuc * UnitOfEnergy, this->cmps[1]);
-        }
-        */
         this->enuc += this->dnuc;
     }
 
@@ -348,8 +343,10 @@ public:
         using namespace CodeUnit;
         PS::F64 tceff = RP::CoefficientOfTimestep;
         PS::F64 dth = tceff * this->ksr / (this->vsmx * SK::ksrh);
-        PS::F64 dtu = RP::MaximumTimestep;
-        //PS::F64 dtu = std::min(RP::MaximumTimestep, fabs(this->uene / this->dnuc) * RP::Timestep);
+        //PS::F64 dtu = RP::MaximumTimestep;
+        //PS::F64 dtu = 1. / (PS::F64)(((PS::S64)1) << 30);
+        PS::F64 dtu = std::min(RP::MaximumTimestep,
+                               tceff * fabs(this->uene / this->dnuc) * RP::Timestep);
         PS::F64 dtc = (this->divv < 0.) ? (- tceff / this->divv) : RP::MaximumTimestep;
         PS::F64vec grv = this->accg1 + this->accg2;
         PS::F64 dtg = tceff * sqrt(this->ksr / sqrt(grv * grv));
@@ -765,14 +762,15 @@ void outputData(Tdinfo & dinfo,
     }
     PS::F64 etot = calcEnergy(sph, bhns);
     PS::F64 enuc = calcReleasedNuclearEnergyTotal(sph);
+    PS::F64 vdet = calcDetonationVelocity(sph);
     if(PS::Comm::getRank() == 0) {
         using namespace CodeUnit;
         PS::F64 eabs = RP::AbsorbedEnergyTotal;
-        fprintf(RP::FilePointerForLog, "time: %8d %16.10f %+e %+e %+e %+e %+e %+e\n",
+        fprintf(RP::FilePointerForLog, "time: %8d %16.10f %+e %+e %+e %+e %+e %+e %+e\n",
                 RP::NumberOfStep, RP::Time * UnitOfTime, RP::Timestep * UnitOfTime,
                 (etot - enuc - eabs) * UnitOfEnergy * UnitOfMass, etot * UnitOfEnergy * UnitOfMass,
                 enuc * UnitOfEnergy * UnitOfMass, eabs * UnitOfEnergy * UnitOfMass,
-                WT::getTimeTotal());
+                vdet, WT::getTimeTotal());
         fflush(RP::FilePointerForLog);
         WT::dump(RP::Time, RP::FilePointerForTime);
         fflush(RP::FilePointerForTime);
@@ -921,7 +919,11 @@ void initializeSimulation() {
     //NumberOfHexa      = 0;
     ComputationalBox.high_ = 0;
     ComputationalBox.low_  = 0;
+#ifdef FOR_TUBE_TEST
+    NumberOfDimension = 1;
+#else
     NumberOfDimension = 3;
+#endif
     //KernelType        = 1;
     //CoefficientOfTimestep      = 0.1;
     GravitationalSoftening     = 3e6 * CodeUnit::UnitOfLengthInv;
@@ -1011,10 +1013,6 @@ void startSimulation(char **argv,
         RP::FlagGravity = 0;
         RP::Timestep    = 1. / pow(2., 30.);
         dinfo.setBoundaryCondition(PS::BOUNDARY_CONDITION_PERIODIC_XYZ);
-        /*
-          dinfo.setPosRootDomain((- 0.5e9 * CodeUnit::UnitOfLengthInv),
-          (+ 0.5e9 * CodeUnit::UnitOfLengthInv));
-        */
         dinfo.setPosRootDomain((- 0.5 * length * CodeUnit::UnitOfLengthInv),
                                (+ 0.5 * length * CodeUnit::UnitOfLengthInv));
         sph.adjustPositionIntoRootDomain(dinfo);
@@ -1097,6 +1095,15 @@ void loopSimulation(Tdinfo & dinfo,
         WT::reduceInterProcess();
         outputData(dinfo, sph, bhns, msls);
         WT::clear();
+        ///////////////
+#if 0
+        if(RP::Time > 2e-6) {
+            sph.writeParticleAscii("snap/hoge.dat");
+            PS::Finalize();
+            exit(0);
+        }
+#endif
+        ///////////////
         RP::Timestep = calcTimestep(sph);
         if(RP::FlagDamping == 2) {
             reduceSeparation(sph, bhns, msls);
