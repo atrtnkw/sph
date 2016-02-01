@@ -64,6 +64,7 @@ namespace CodeUnit {
         ((UnitOfLength * UnitOfLength * UnitOfLength) * UnitOfMassInv
          * (UnitOfTimeInv * UnitOfTimeInv));
     PS::F64 SpeedOfLightInThisUnit = SpeedOfLight * UnitOfVelocityInv;
+    PS::F64 MinimumOfDensityExplicitInThisUnit = 3e7 * CodeUnit::UnitOfDensityInv;
     PS::F64 MinimumOfDensityNSEInThisUnit = 2e8 * UnitOfDensityInv;
 
     // for imbh
