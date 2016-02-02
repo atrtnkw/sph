@@ -87,8 +87,7 @@ public:
         fprintf(fp, " %+e",         tenuc);                          // 28
         fprintf(fp, " %+e %+e %+e", tvsmx, tudot, tdnuc);            // 31
         for(PS::S32 k = 0; k < NuclearReaction::NumberOfNucleon; k++) { // 32 -- 44
-            //fprintf(fp, " %+.3e", this->cmps[k]);
-            fprintf(fp, " %+.8e", this->cmps[k]);
+            fprintf(fp, " %+.3e", this->cmps[k]);
         }
         if(RP::FlagDamping == 2) {
             PS::F64vec tomg = RP::RotationalVelocity * UnitOfTimeInv;
@@ -96,7 +95,6 @@ public:
             fprintf(fp, " %+e", tpot - 0.5 * (tvec * tvec));         // 45
         }
         fprintf(fp, " %d", this->fnse);
-        //fprintf(fp, " %+e", this->grdh);
         fprintf(fp, "\n");
     }
 

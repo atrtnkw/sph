@@ -78,6 +78,8 @@ public:
     void calcBalsaraSwitch() {
         this->bswt = fabs(this->divv)
             / (fabs(this->divv) + fabs(this->rotv) + 1e-4 * this->vsnd * SK::ksrh / this->ksr);
+//        this->bswt = fabs(this->divv)
+//            / (fabs(this->divv) + fabs(this->rotv) + 1e-6 * this->vsnd * SK::ksrh / this->ksr);
     }
 
     void copyAcceleration() {

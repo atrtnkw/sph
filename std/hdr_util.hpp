@@ -469,7 +469,7 @@ PS::F64 calcDetonationVelocity(Tsph & sph) {
         tout     += dtout;
     }
 #else
-    assert(NULL);
+    //assert(NULL);
 #endif
     return vdet;
 }

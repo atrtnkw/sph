@@ -90,11 +90,12 @@ int main(int argc, char ** argv) {
     PS::S64 typeperb;
     PS::F64 tlength;
     PS::F64 tdensity;
+    PS::F64 talph;
     char filetype[64];
 
     {
         FILE *fin = fopen(argv[1], "r");
-        fscanf(fin, "%lf%lf",    &tlength, &tdensity);
+        fscanf(fin, "%lf%lf%lf",    &tlength, &tdensity, &talph);
         fscanf(fin, "%lf%lf%lf", &HotSpot::tmax, &HotSpot::tmin, &HotSpot::width);
         fscanf(fin, "%lld", &typeperb);
         fscanf(fin, "%lld", &tnptcl);
@@ -105,6 +106,7 @@ int main(int argc, char ** argv) {
     const PS::S64 nptcl   = tnptcl;
     const PS::F64 length  = tlength;
     const PS::F64 density = tdensity;
+    const PS::F64 alph    = talph;
 
     PS::F64 (*func)(PS::F64);
     if(typeperb == 0) {
@@ -125,7 +127,7 @@ int main(int argc, char ** argv) {
         sph.mass   = length * density / nptcl;
         sph.dens   = density;
         sph.pos[0] = i  * length / nptcl - 0.5 * length;
-        sph.alph   = 1.;
+        sph.alph   = alph;
         sph.ksr    = 5. * length / nptcl;
         sph.cmps   = cmps;
         {
