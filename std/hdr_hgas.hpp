@@ -304,13 +304,13 @@ public:
     void calcReleasedNuclearEnergy() {
         if(this->temp > 1e8) {
             if(this->temp < CodeUnit::MinimumOfTemperatureNSE
-               || this->dens < 3e7 * CodeUnit::UnitOfDensityInv) {
+//               || this->dens < 3e7 * CodeUnit::UnitOfDensityInv) {
+               || this->dens < CodeUnit::MinimumOfDensityExplicitInThisUnit) {
                 this->dnuc = CalcNRH::getGeneratedEnergy(RP::Timestep,
                                                          this->dens,
                                                          this->temp,
                                                          this->cmps.getPointer());
             } else {
-                //assert(NULL);
                 if(this->dens < CodeUnit::MinimumOfDensityNSEInThisUnit) {
                     PS::F64     dum_dnuc;
                     NR::Nucleon dum_cmps;
