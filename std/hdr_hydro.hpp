@@ -55,7 +55,8 @@ public:
         this->vsnd  = sph.vsnd;
         this->alph  = sph.alph;
         this->alphu = sph.alphu;        
-        PS::F64 ene = sph.uene - CalcEquationOfState::getEnergyMin(sph.dens, sph.abar, sph.zbar);
+        //PS::F64 ene = sph.uene - CalcEquationOfState::getEnergyMin(sph.dens, sph.abar, sph.zbar);
+        PS::F64 ene = sph.uene - sph.umin;
         this->thrm  = std::max(ene, 0.);
         this->eta   = sph.eta;
     }
@@ -105,7 +106,8 @@ public:
         this->vsnd  = sph.vsnd;
         this->alph  = sph.alph;
         this->alphu = sph.alphu;
-        PS::F64 ene = sph.uene - CalcEquationOfState::getEnergyMin(sph.dens, sph.abar, sph.zbar);
+        //PS::F64 ene = sph.uene - CalcEquationOfState::getEnergyMin(sph.dens, sph.abar, sph.zbar);
+        PS::F64 ene = sph.uene - sph.umin;
         this->thrm  = std::max(ene, 0.);
         this->eta   = sph.eta;
     }

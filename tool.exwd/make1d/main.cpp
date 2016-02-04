@@ -3,6 +3,7 @@
 #include <cassert>
 #include <cstring>
 #include <limits>
+#include <mpi.h>
 
 enum KernelType {CubicSpline = 0, WendlandC2 = 1, WendlandC4 = 2};
 
@@ -86,6 +87,9 @@ PS::F64 getTemperatureLinear(PS::F64 x) {
 }
 
 int main(int argc, char ** argv) {
+//    PS::Initialize(argc, argv);
+    MPI_Init(&argc, &argv);
+
     PS::S64 tnptcl;
     PS::S64 typeperb;
     PS::F64 tlength;
@@ -118,6 +122,10 @@ int main(int argc, char ** argv) {
     NR::Nucleon cmps;
     cmps[1] = cmps[2] = 0.5;
 
+#if 1
+    init_flash_helmholtz_();
+#endif
+
     char filename[64];
     sprintf(filename, "%s.data", filetype);
     FILE * fp = fopen(filename, "w");
@@ -134,8 +142,12 @@ int main(int argc, char ** argv) {
             PS::F64 pp, du, cs;
             bool eosfail;
             PS::F64 temp = func(sph.pos[0]);
+#if 1
+            flash_helmholtz_e_(&sph.dens, &temp, sph.cmps.getPointer(), &sph.uene);
+#else
             sph.calcAbarZbar();
             helmeos2_(&temp, &sph.dens, &sph.abar, &sph.zbar, &pp, &sph.uene, &du, &cs, &eosfail);
+#endif
         }
         sph.print(fp);
     }
@@ -145,6 +157,9 @@ int main(int argc, char ** argv) {
     fp = fopen(filename, "w");
     fprintf(fp, "%e\n", length);
     fclose(fp);
+
+//    PS::Finalize();
+    MPI_Finalize();
 
     return 0;
 }

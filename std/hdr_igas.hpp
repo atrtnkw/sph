@@ -57,6 +57,7 @@ public:
     void referEquationOfState() {
         this->pres  = (RP::AdiabaticIndex - 1.) * this->dens * this->uene;
         this->vsnd  = sqrt(RP::AdiabaticIndex * this->pres / this->dens);
+        this->umin  = 0.;
     }
 
     void referEquationOfStateDamping1() {

@@ -1,7 +1,6 @@
 ###### AT_PLATFORM ########
 use_xc  = yes
 ###### AT_EOS #############
-use_iso7  = no
 use_ideal = no
 ###### AT_MPI_OPENMP ######
 use_mpi = yes
@@ -80,15 +79,11 @@ else
 
 FFLAGS += -I. -I./heos
 CFLAGS += -DUSE_HELMHOLTZ
-ifeq ($(use_iso7), yes)
-CFLAGS += -DUSE_ISO7
-OBJ  = main.o heos/eos.o iso7/iso7_main.o iso7/public_iso7.o
-else
-OBJ  = main.o heos/eos.o aprox13/aprox13_main.o aprox13/aprox13_input.o \
-	aprox13/aprox13.o
-endif
+CLIBS  += -L./flash -lflash
+
+OBJ  = main.o heos/eos.o flash/libflash.a 	nse/nse_main.o nse/nse.o #\
+	aprox13/aprox13_main.o aprox13/aprox13_input.o aprox13/aprox13.o
 HDR += hdr_hgas.hpp hdr_heos.hpp hdr_nuc.hpp hdr_util.hpp hdr_nse.hpp
-OBJ += nse/nse_main.o nse/nse.o
 ETC  = Makefile
 
 run: $(OBJ) $(HDR) $(ETC)
@@ -98,26 +93,23 @@ else
 	$(FCC) $(PS_PATH) $(CFLAGS) $(FFLAGS) -o run $(OBJ) $(CLIBS)
 endif
 
-main.o: main.cpp $(HDR) $(ETC)
+main.o: main.cpp $(HDR) $(LIB) $(ETC)
 	$(CCC) $(PS_PATH) $(CFLAGS) -c main.cpp
 
 heos/eos.o: heos/eos.f
 	make -C heos -f Makefile.heos FCC="$(FCC)"
 
-aprox13/aprox13_main.o: aprox13/aprox13_main.f90
-	make -C aprox13 -f Makefile.aprox13 aprox13_main.o FCC="$(FCC)"
+flash/libburner.a:
+	make -C flash -f Makefile.local
 
-aprox13/aprox13_input.o: aprox13/aprox13_input.f90
-	make -C aprox13 -f Makefile.aprox13 aprox13_input.o FCC="$(FCC)"
+#aprox13/aprox13_main.o: aprox13/aprox13_main.f90
+#	make -C aprox13 -f Makefile.aprox13 aprox13_main.o FCC="$(FCC)"
 
-aprox13/aprox13.o: aprox13/aprox13.f90
-	make -C aprox13 -f Makefile.aprox13 aprox13.o FCC="$(FCC)"
+#aprox13/aprox13_input.o: aprox13/aprox13_input.f90
+#	make -C aprox13 -f Makefile.aprox13 aprox13_input.o FCC="$(FCC)"
 
-iso7/iso7_main.o: iso7/iso7_main.f90
-	make -C iso7 -f Makefile.iso7 iso7_main.o FCC="$(FCC)"
-
-iso7/public_iso7.o: iso7/public_iso7.f90
-	make -C iso7 -f Makefile.iso7 public_iso7.o FCC="$(FCC)"
+#aprox13/aprox13.o: aprox13/aprox13.f90
+#	make -C aprox13 -f Makefile.aprox13 aprox13.o FCC="$(FCC)"
 
 nse/nse_main.o: nse/nse_main.f
 	make -C nse -f Makefile.nse nse_main.o FCC="$(FCC)"
@@ -134,22 +126,22 @@ clean:
 	rm -f core
 	rm -f *.s
 	make -C heos -f Makefile.heos clean
+	make -C flash -f Makefile.local clean
 	make -C aprox13 -f Makefile.aprox13 clean
-	make -C iso7 -f Makefile.iso7 clean
 	make -C nse -f Makefile.nse clean
 distclean:
 	make clean
 	rm -f *.o
 	make -C heos -f Makefile.heos distclean
+	make -C flash -f Makefile.local distclean
 	make -C aprox13 -f Makefile.aprox13 distclean	
-	make -C iso7 -f Makefile.iso7 distclean	
 	make -C nse -f Makefile.nse distclean
 allclean:
 	make distclean
 	rm -f run
 	make -C heos -f Makefile.heos allclean
+	make -C flash -f Makefile.local allclean
 	make -C aprox13 -f Makefile.aprox13 allclean
-	make -C iso7 -f Makefile.iso7 allclean
 	make -C nse -f Makefile.nse allclean
 
 endif

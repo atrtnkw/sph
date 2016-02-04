@@ -209,6 +209,7 @@ public:
     }
     
     void referEquationOfState() {
+        /*
         CalcEquationOfState::getThermodynamicQuantity(this->dens,
                                                       this->uene,
                                                       this->abar,
@@ -217,12 +218,21 @@ public:
                                                       this->vsnd,
                                                       this->temp,
                                                       this->cnteos);
+        */
+        CalcEquationOfState::getThermodynamicQuantity(this->dens,
+                                                      this->uene,
+                                                      this->cmps,
+                                                      this->pres,
+                                                      this->vsnd,
+                                                      this->temp);
+        this->umin = CalcEquationOfState::getEnergyMin(this->dens, this->cmps);
     }
     
     void referEquationOfStateDamping1() {
         this->pres = CalcEquationOfState::getPressure(this->dens, this->uene);
         this->vsnd = CalcEquationOfState::getSoundVelocity(this->dens, this->uene);
         this->temp = CalcEquationOfState::getTemperature(this->dens, this->uene);
+        this->umin = CalcEquationOfState::getEnergyMin(this->dens);
     }
 
     void calcAbarZbar() {
@@ -253,10 +263,15 @@ public:
             tsph.dnuc  = CalcNSE::getGeneratedEnergy(tsph.dens, tsph.temp,
                                                      tsph.cmps.getPointer());
             tsph.uene += tsph.dnuc;
-            tsph.calcAbarZbar();
+            /*
+            tsph.calcAbarZbar();            
             CalcEquationOfState::getThermodynamicQuantity(tsph.dens, tsph.uene, tsph.abar,
                                                           tsph.zbar, tsph.pres, tsph.vsnd,
                                                           tresult,   tsph.cnteos);
+            */
+            tsph.calcAbarZbar();            
+            CalcEquationOfState::getThermodynamicQuantity(tsph.dens, tsph.uene, tsph.cmps,
+                                                          tsph.pres, tsph.vsnd, tresult);
             tgprev = tguess;
             trtent = std::max(tmin, std::min(tmax, tresult));
             PS::F64 rn = getRandomNumber();
@@ -284,12 +299,16 @@ public:
             tsph.temp  = tguess;
             tresult    = tguess;
             tsph.dnuc  = CalcNRH::getGeneratedEnergy(dt, tsph.dens, tsph.temp,
-                                                     tsph.cmps.getPointer());
+                                                     tsph.cmps);
             tsph.uene += tsph.dnuc;
+            /*
             tsph.calcAbarZbar();
             CalcEquationOfState::getThermodynamicQuantity(tsph.dens, tsph.uene, tsph.abar,
                                                           tsph.zbar, tsph.pres, tsph.vsnd,
                                                           tresult,   tsph.cnteos);
+            */
+            CalcEquationOfState::getThermodynamicQuantity(tsph.dens, tsph.uene, tsph.cmps,
+                                                          tsph.pres, tsph.vsnd, tresult);
             tgprev = tguess;
             trtent = std::max(tmin, std::min(tmax, tresult));
             PS::F64 rn = getRandomNumber();
@@ -302,21 +321,53 @@ public:
     }
 
     void calcReleasedNuclearEnergy() {
+#if FOR_TUBE_TEST
+        if(this->temp > 1e8) {
+            const PS::F64 dtsub = 1. / (PS::F64)((PS::S64)1 << 40);
+//            if(this->temp < 5e9 || RP::Timestep <= dtsub) {
+            if(this->temp < 10e9 || RP::Timestep <= dtsub) {
+                this->dnuc = CalcNRH::getGeneratedEnergy(RP::Timestep,
+                                                         this->dens,
+                                                         this->temp,
+                                                         this->cmps);
+            } else {
+                assert(NULL);
+                HelmholtzGas tsph = (*this);
+                tsph.dnuc = 0.;
+                for(PS::F64 tsub = 0.; tsub < RP::Timestep; tsub += dtsub) {
+                    tsph.dnuc  = CalcNRH::getGeneratedEnergy(dtsub, tsph.dens,
+                                                             tsph.temp, tsph.cmps);
+                    tsph.uene += tsph.dnuc;
+                    /*
+                    tsph.calcAbarZbar();
+                    CalcEquationOfState::getThermodynamicQuantity(tsph.dens, tsph.uene, tsph.abar,
+                                                                  tsph.zbar, tsph.pres, tsph.vsnd,
+                                                                  tsph.temp, tsph.cnteos);
+                    */
+                    CalcEquationOfState::getThermodynamicQuantity(tsph.dens, tsph.uene, tsph.cmps,
+                                                                  tsph.pres, tsph.vsnd, tsph.temp);
+                }
+                this->dnuc = tsph.uene - this->uene;
+                this->cmps = tsph.cmps;
+            }
+        } else {
+            this->dnuc = 0.;
+        }
+#else
         if(this->temp > 1e8) {
             if(this->temp < CodeUnit::MinimumOfTemperatureNSE
-//               || this->dens < 3e7 * CodeUnit::UnitOfDensityInv) {
                || this->dens < CodeUnit::MinimumOfDensityExplicitInThisUnit) {
                 this->dnuc = CalcNRH::getGeneratedEnergy(RP::Timestep,
                                                          this->dens,
                                                          this->temp,
-                                                         this->cmps.getPointer());
+                                                         this->cmps);
             } else {
                 if(this->dens < CodeUnit::MinimumOfDensityNSEInThisUnit) {
                     PS::F64     dum_dnuc;
                     NR::Nucleon dum_cmps;
                     PS::F64 tguess = getTemperatureImplicitlyWithNse(*this, dum_dnuc, dum_cmps);
                     this->dnuc = CalcNRH::getGeneratedEnergy(RP::Timestep, this->dens, tguess,
-                                                             this->cmps.getPointer());
+                                                             this->cmps);
                 } else {
                     PS::F64 tguess = getTemperatureImplicitlyWithNse(*this,
                                                                      this->dnuc, this->cmps);
@@ -325,6 +376,7 @@ public:
         } else {
             this->dnuc = 0.;
         }
+#endif
         this->enuc += this->dnuc;
     }
 
@@ -341,8 +393,6 @@ public:
         using namespace CodeUnit;
         PS::F64 tceff = RP::CoefficientOfTimestep;
         PS::F64 dth = tceff * this->ksr / (this->vsmx * SK::ksrh);
-        //PS::F64 dtu = RP::MaximumTimestep;
-        //PS::F64 dtu = 1. / (PS::F64)(((PS::S64)1) << 30);
         PS::F64 dtu = std::min(RP::MaximumTimestep,
                                tceff * fabs(this->uene / this->dnuc) * RP::Timestep);
         PS::F64 dtc = (this->divv < 0.) ? (- tceff / this->divv) : RP::MaximumTimestep;
@@ -464,7 +514,8 @@ public:
         this->alph  = this->alph2  + 0.5 * this->adot  * dt;
         this->alphu = this->alphu2 + 0.5 * this->adotu * dt;
         PS::F64 unow = this->uene;
-        PS::F64 umin = CalcEquationOfState::getEnergyMin(this->dens, this->abar, this->zbar);
+        //PS::F64 umin = CalcEquationOfState::getEnergyMin(this->dens, this->abar, this->zbar);
+        PS::F64 umin = CalcEquationOfState::getEnergyMin(this->dens, this->cmps);
         this->uene   = (unow < umin) ? unow : ((unow - umin) * exp(-0.1 * dt) + umin);
     }
 
@@ -473,7 +524,8 @@ public:
         PS::F64 tauinv = (0.25 * SK::ksrh * this->vsnd) / this->ksr;
         this->adot     = - (this->alph - RP::AlphaMinimum) * tauinv + src;
 
-        PS::F64 uene   = std::max(this->uene - CalcEquationOfState::getEnergyMin(this->dens, this->abar, this->zbar), 0.);
+        //PS::F64 uene   = std::max(this->uene - CalcEquationOfState::getEnergyMin(this->dens, this->abar, this->zbar), 0.);
+        PS::F64 uene   = std::max(this->uene - CalcEquationOfState::getEnergyMin(this->dens, this->cmps), 0.);
         PS::F64 srcu   = this->ksr * SK::ksrhinv * fabs(this->diffu)
             / sqrt(uene + RP::EpsilonOfInternalEnergy)
             * std::max(RP::AlphuMaximum - this->alphu, 0.);
@@ -942,6 +994,7 @@ void initializeSimulation() {
     char debugfile[64];
     sprintf(debugfile, "snap/debug_p%06d.log", PS::Comm::getRank());
     RP::FilePointerForDebug = fopen(debugfile, "w");
+    init_flash_helmholtz_();
 }
 
 template <class Tdinfo,
@@ -1093,16 +1146,26 @@ void loopSimulation(Tdinfo & dinfo,
         WT::reduceInterProcess();
         outputData(dinfo, sph, bhns, msls);
         WT::clear();
-        ///////////////
-#if 0
-        if(RP::Time > 2e-6) {
-            sph.writeParticleAscii("snap/hoge.dat");
-            PS::Finalize();
-            exit(0);
-        }
-#endif
-        ///////////////
         RP::Timestep = calcTimestep(sph);
+        ////////////////////
+        /*
+        {
+            for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
+                if(sph[i].id == 0) {
+                    printf("hoge %+e %+e %+e %+e",
+                           RP::Time, sph[i].temp, sph[i].dens, sph[i].enuc);
+                    printf(" %+e %+e %+e %+e %+e", sph[i].cmps[0], sph[i].cmps[1],
+                           sph[i].cmps[2], sph[i].cmps[3], sph[i].cmps[4]);
+                    printf(" %+e %+e %+e %+e %+e", sph[i].cmps[5], sph[i].cmps[6],
+                           sph[i].cmps[7], sph[i].cmps[8], sph[i].cmps[9]);
+                    printf(" %+e %+e %+e", sph[i].cmps[10], sph[i].cmps[11],
+                           sph[i].cmps[12]);
+                    printf("\n");
+                }
+            }
+        }
+        */
+        ////////////////////
         if(RP::FlagDamping == 2) {
             reduceSeparation(sph, bhns, msls);
         }

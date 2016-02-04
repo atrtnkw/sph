@@ -2,9 +2,26 @@
 
 #include "heos/WDEOS.hpp"
 
+#if 0
 extern "C" {
     void helmeos2_(double * tt, double * dd, double * abar, double * zbar,
                    double * pp, double * u, double * du, double * cs, bool * eosfail);
+}
+#endif
+
+extern "C" {
+    void init_flash_helmholtz_();
+    void flash_helmholtz_(double * din,
+                          double * ein,
+                          double * tin,
+                          double * xin,
+                          double * pout,
+                          double * cout,
+                          double * tout);
+    void flash_helmholtz_e_(double * din,
+                            double * tin,
+                            double * xin,
+                            double * eout);
 }
 
 namespace CodeUnit {
@@ -22,9 +39,6 @@ namespace CodeUnit {
     PS::F64 UnitOfLength       = SolarRadius * 1.0e-3d;
     PS::F64 UnitOfMass         = SolarMass   * 1.0e-6d;
     PS::F64 UnitOfTime         = 1.0d;
-    //PS::F64 UnitOfLength       = 1.;
-    //PS::F64 UnitOfMass         = 1.;
-    //PS::F64 UnitOfTime         = 1.;
 
     PS::F64 UnitOfVelocity     = UnitOfLength / UnitOfTime;
 #ifdef FOR_TUBE_TEST
@@ -72,6 +86,66 @@ namespace CodeUnit {
     PS::F64 BlackHoleMassInThisUnit;
 }
 
+namespace NuclearReaction {    
+    const PS::S64 NumberOfNucleon = 13;
+    const PS::F64 ainv[NumberOfNucleon] = {1/4., 1/12., 1/16., 1/20., 1/24.,
+                                           1/28., 1/32., 1/36., 1/40.,
+                                           1/44., 1/48., 1/52., 1/56.};
+    const PS::F64 zion[NumberOfNucleon] = {2.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0,
+                                           18.0, 20.0, 22.0, 24.0, 26.0, 28.0};
+    const PS::F64 nion[NumberOfNucleon] = {2.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0,
+                                           18.0, 20.0, 22.0, 24.0, 26.0, 28.0};
+    const PS::F64 bion[NumberOfNucleon] = {28.29603, 92.16294, 127.62093, 160.64788,
+                                           198.25790, 236.53790, 271.78250, 306.72020,
+                                           342.05680, 375.47720, 411.46900, 447.70800,
+                                           484.00300};
+    const PS::F64 zaratio = 0.5;
+    const PS::F64 minv[NumberOfNucleon] = {4./4.002603, 12./12.000000, 16./15.994915,
+                                           20./19.992440, 24./23.985042, 28./27.976927,
+                                           32./31.972071, 36./35.967546, 40./39.962591,
+                                           44./43.9596901, 48./47.954032, 52./51.948114,
+                                           56./55.942132};    
+    PS::F64 enuc = 0.;
+    PS::F64 winv[NumberOfNucleon]    = {0., 0., 0., 0., 0., 0., 0.,
+                                        0., 0., 0., 0., 0., 0.};
+    PS::F64 bionerg[NumberOfNucleon] = {0., 0., 0., 0., 0., 0., 0.,
+                                        0., 0., 0., 0., 0., 0.};;
+    bool First = true;
+
+    class Nucleon {
+        PS::F64 val[NumberOfNucleon];
+    public:
+        Nucleon () {
+            for(PS::S32 k = 0; k < NumberOfNucleon; k++) {
+                val[k] = 0.;
+            }
+        }
+        Nucleon (const Nucleon & src) {
+            for(PS::S32 k = 0; k < NumberOfNucleon; k++) {
+                val[k] = src.val[k];
+            }
+        }
+        PS::F64 & operator [] (const PS::S32 k) {return val[k];}
+        const PS::F64 & operator [] (const PS::S32 k) const {return val[k];}
+        const Nucleon & operator = (const Nucleon & src) {
+            for(PS::S32 k = 0; k < NumberOfNucleon; k++) {
+                val[k] = src.val[k];
+            }
+            return (*this);
+        }
+        PS::F64 * getPointer() {return val;}
+        void print(const PS::S64 id = 0) {
+            printf("%10d", id);
+            for(PS::S32 k = 0; k < NumberOfNucleon; k++) {
+                printf(" %.3e", val[k]);
+            }
+            printf("\n");
+        }
+    };
+}
+
+namespace NR = NuclearReaction;
+
 class CalcEquationOfState {
 private:
     OTOO::EOS * eos_;
@@ -79,15 +153,16 @@ private:
         using namespace OTOO;
         using namespace CodeUnit;
         if(RP::FlagDamping != 1) {
-            eos_ = new WDEOS_D_E(UnitOfDensity, UnitOfEnergy, UnitOfVelocity,
-                                 UnitOfPressure, 1.0e6);
+//            eos_ = new WDEOS_D_E(UnitOfDensity, UnitOfEnergy, UnitOfVelocity,
+//                                 UnitOfPressure, 1.0e6);
+//            init_flash_helmholtz_();
         } else {
             eos_ = new WDEOSforDumping(UnitOfDensity, UnitOfEnergy, UnitOfVelocity,
                                        UnitOfPressure, 1.0e6);
         }
     };
     ~CalcEquationOfState() {};
-    CalcEquationOfState(const CalcEquationOfState & c);
+    CalcEquationOfState(const CalcEquationOfState & c);    
     CalcEquationOfState & operator=(const CalcEquationOfState & c);
     static CalcEquationOfState & getInstance() {
         static CalcEquationOfState inst;
@@ -113,6 +188,8 @@ public:
     static PS::F64 getEnergyMin(PS::F64 density) {
         return getInstance().eos_->GetEmin2(density);
     }
+
+#if 0
     static PS::F64 getEnergyMin(PS::F64 density,
                                 PS::F64 abar,
                                 PS::F64 zbar) {
@@ -121,8 +198,9 @@ public:
         PS::F64 uu, pp, du, cs;
         bool    eosfail;
 
-        helmeos2_(&ttmin, &dd, &abar, &zbar, &pp, &uu, &du, &cs, &eosfail);
+        helmeos2_(&ttmin, &dd, &abar, &zbar, &pp, &uu, &du, &cs, &eosfail);        
         PS::F64 eg = uu * CodeUnit::UnitOfEnergyInv;
+        
         return eg;
     }
     static PS::F64 getEnergyMax(PS::F64 density,
@@ -197,5 +275,51 @@ public:
         temperature   = ttmin;
         counteos      = cnt;
     }
+#else
+    static PS::F64 getEnergyMin(PS::F64 density,
+                                NR::Nucleon & composition) {
+//        getInstance();
+        PS::F64 din  = density * CodeUnit::UnitOfDensity;
+        PS::F64 tin  = CodeUnit::MinimumOfTemperature;
+        PS::F64 eout;
 
+        flash_helmholtz_e_(&din, &tin, composition.getPointer(), &eout);
+
+        PS::F64 eg = eout * CodeUnit::UnitOfEnergyInv;
+        
+        return eg;
+    }
+
+    static PS::F64 getEnergyMax(PS::F64 density,
+                                NR::Nucleon & composition) {
+//        getInstance();
+        PS::F64 din  = density * CodeUnit::UnitOfDensity;
+        PS::F64 tin  = CodeUnit::MaximumOfTemperature;
+        PS::F64 eout;
+
+        flash_helmholtz_e_(&din, &tin, composition.getPointer(), &eout);
+
+        PS::F64 eg = eout * CodeUnit::UnitOfEnergyInv;
+        
+        return eg;
+    }
+
+    static void getThermodynamicQuantity(PS::F64 density,
+                                         PS::F64 energy,
+                                         NR::Nucleon & composition,
+                                         PS::F64 & pressure,
+                                         PS::F64 & soundvelocity,
+                                         PS::F64 & temperature) {
+//        getInstance();
+        PS::F64 din = density * CodeUnit::UnitOfDensity;
+        PS::F64 ein = energy * CodeUnit::UnitOfEnergy;
+        PS::F64 tin = (temperature != 0.) ? temperature : 1e9;
+        PS::F64 pout, cout, tout;
+        flash_helmholtz_(&din, &ein, &tin, composition.getPointer(),
+                         &pout, &cout, &tout);
+        pressure      = pout * CodeUnit::UnitOfPressureInv;
+        soundvelocity = cout * CodeUnit::UnitOfVelocityInv;
+        temperature   = tout;
+    }
+#endif
 };

@@ -9,6 +9,17 @@ extern "C" {
                         double *deout);
 }
 
+extern "C" {
+    void init_flash_burner_();
+    void bn_burner_(double * tstep,
+                    double * tin,
+                    double * din,
+                    double * xin,
+                    double * xout,
+                    double * sdot);
+}
+
+/*
 namespace NuclearReaction {    
     const PS::S64 NumberOfNucleon = 13;
     const PS::F64 ainv[NumberOfNucleon] = {1/4., 1/12., 1/16., 1/20., 1/24.,
@@ -66,12 +77,14 @@ namespace NuclearReaction {
         }
     };
 }
+*/
 
 namespace NR = NuclearReaction;
 
 class CalcNuclearReactionHydrostatic {
 private:
     CalcNuclearReactionHydrostatic() {
+        /*
         setup_aprox13_();
         if(NR::First) {
             using namespace NuclearReaction;
@@ -84,7 +97,9 @@ private:
                 bionerg[k] = AvogadroConstant * (bion[k] * MegaElectronVoltToErg);
             }        
             NR::First = false;
-                }
+        }
+        */
+        init_flash_burner_();
     };
     ~CalcNuclearReactionHydrostatic() {};
     CalcNuclearReactionHydrostatic(const CalcNuclearReactionHydrostatic &c);
@@ -94,17 +109,7 @@ private:
         return inst;
     }
 
-#if 0
-    static PS::F64 countNumberOfNucleon(PS::F64 * cmps) {
-        using namespace NuclearReaction;
-        PS::F64 nn = 0;
-        for(PS::S32 k = 0; k < NumberOfNucleon; k++) {
-            nn += minv[k] * cmps[k];
-        }
-        return nn;
-    }
-#endif
-
+    /*
     static PS::F64 calcBindingEnergy(PS::F64 * cmps) {
         using namespace NuclearReaction;
         PS::F64 e = 0.;
@@ -119,32 +124,47 @@ private:
                                        PS::F64 tt,
                                        PS::F64 dd,
                                        PS::F64 * cmps) {
-#if 0
-        PS::F64 de = 0.;
-        solve_aprox13_(&dt, &tt, &dd, cmps, &de);
-        return de;
-#elif 0
-        PS::F64 n0 = getInstance().countNumberOfNucleon(cmps);
-        PS::F64 de = 0.;
-        solve_aprox13_(&dt, &tt, &dd, cmps, &de);
-        PS::F64 n1 = getInstance().countNumberOfNucleon(cmps);
-        de = (1. - n0 / n1) * CodeUnit::SpeedOfLight * CodeUnit::SpeedOfLight;
-        return de;
-#else
         PS::F64 e0  = getInstance().calcBindingEnergy(cmps);
         PS::F64 dum = 0.;
         solve_aprox13_(&dt, &tt, &dd, cmps, &dum);
         PS::F64 e1  = getInstance().calcBindingEnergy(cmps);
         PS::F64 de = e1 - e0;
         return de;
-#endif
+    }
+    */
+
+    static PS::F64 callNuclearReaction(PS::F64 dt,
+                                       PS::F64 tt,
+                                       PS::F64 dd,
+                                       NR::Nucleon & cmps0) {
+        NR::Nucleon cmps1;
+        PS::F64 sdot;
+        bn_burner_(&dt, &tt, &dd, cmps0.getPointer(), cmps1.getPointer(), &sdot);
+        PS::F64 de = dt * sdot;
+        cmps0 = cmps1;
+        return de;
     }
 
 public:
+    /*
     static PS::F64 getGeneratedEnergy(PS::F64 dtime,
                                       PS::F64 density,
                                       PS::F64 temperature,
                                       PS::F64 * composition) {
+        using namespace CodeUnit;
+
+        PS::F64 dt = dtime * UnitOfTime;
+        PS::F64 dd = density * UnitOfDensity;;
+        PS::F64 tt = temperature;
+        PS::F64 de = getInstance().callNuclearReaction(dt, tt, dd, composition);
+        PS::F64 denergy = de * UnitOfEnergyInv;
+        return denergy;
+    }
+    */
+    static PS::F64 getGeneratedEnergy(PS::F64 dtime,
+                                      PS::F64 density,
+                                      PS::F64 temperature,
+                                      NR::Nucleon & composition) {
         using namespace CodeUnit;
 
         PS::F64 dt = dtime * UnitOfTime;

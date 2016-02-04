@@ -14,8 +14,8 @@ CFLAGS += -DUSE_HELMHOLTZ
 
 
 ifeq ($(use_xc), yes)
-FDPS_DIR = ../../../fdps/src
-SPH_DIR = ../../std
+FDPS_DIR = /home/tanikwat/fdps/src
+SPH_DIR = /home/tanikwat/git-sph/std
 CCC = CC
 FCC = ftn
 else
@@ -29,9 +29,9 @@ PS_PATH  = -I${FDPS_DIR}
 
 CFLAGS += -O3 -march=core-avx2 -ffast-math -funroll-loops #-Wall
 CFLAGS += -I${SPH_DIR} -I${SPH_DIR}/heos -I${SPH_DIR}/aprox13
-CLIBS  += -lstdc++ -lm
+CLIBS  += -lstdc++ -lm -L../../flash/ -lflash
 
-OBJ  = main.o ${SPH_DIR}/heos/eos.o ${SPH_DIR}/aprox13/aprox13_main.o \
+OBJ  = main.o ${SPH_DIR}/heos/eos.o #${SPH_DIR}/aprox13/aprox13_main.o \
 	${SPH_DIR}/aprox13/aprox13_input.o ${SPH_DIR}/aprox13/aprox13.o \
 	${SPH_DIR}/nse/nse.o ${SPH_DIR}/nse/nse_main.o
 ETC  = Makefile

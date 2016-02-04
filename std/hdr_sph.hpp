@@ -46,6 +46,7 @@ public:
     PS::F64    eta;
     PS::F64    abar;
     PS::F64    zbar;
+    PS::F64    umin;
 
     PS::F64vec getPos() const {
         return this->pos;

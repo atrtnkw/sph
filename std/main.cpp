@@ -70,16 +70,12 @@ void referEquationOfState(Tsph & sph) {
 
 template <class Tsph>
 void calcReleasedNuclearEnergy(Tsph & sph) {
-    //RP::Timestep = 1e-10;
     for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
         sph[i].calcReleasedNuclearEnergy();        
     }
-    //sph.writeParticleAscii("snap/hoge.log");
-    //PS::Finalize();
-    //exit(0);
 }
 
-#if 0
+/*
 template <class Tsph>
 void predictReleasedNuclearEnergy(Tsph & sph) {
     for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
@@ -109,7 +105,7 @@ void correctReleasedNuclearEnergy(Tsph & sph) {
         sph[i].enuc += sph[i].dnuc;
     }
 }
-#endif
+*/
 
 template <class Tsph>
 void calcBalsaraSwitch(Tsph & sph) {
@@ -253,7 +249,8 @@ template <class Tsph>
 void dumpHighEnergyParticle(Tsph & sph) {
     bool floc = false;
     for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
-        PS::F64 umax = CalcEquationOfState::getEnergyMax(sph[i].dens, sph[i].abar, sph[i].zbar);
+        //PS::F64 umax = CalcEquationOfState::getEnergyMax(sph[i].dens, sph[i].abar, sph[i].zbar);
+        PS::F64 umax = CalcEquationOfState::getEnergyMax(sph[i].dens, sph[i].cmps);
         if(sph[i].uene > umax) {
             floc = true;
         }
