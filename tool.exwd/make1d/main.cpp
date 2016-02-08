@@ -95,11 +95,13 @@ int main(int argc, char ** argv) {
     PS::F64 tlength;
     PS::F64 tdensity;
     PS::F64 talph;
+    PS::F64 the4, tc12, to16;
     char filetype[64];
 
     {
         FILE *fin = fopen(argv[1], "r");
         fscanf(fin, "%lf%lf%lf",    &tlength, &tdensity, &talph);
+        fscanf(fin, "%lf%lf%lf",    &the4, &tc12, &to16);
         fscanf(fin, "%lf%lf%lf", &HotSpot::tmax, &HotSpot::tmin, &HotSpot::width);
         fscanf(fin, "%lld", &typeperb);
         fscanf(fin, "%lld", &tnptcl);
@@ -120,11 +122,11 @@ int main(int argc, char ** argv) {
     }
 
     NR::Nucleon cmps;
-    cmps[1] = cmps[2] = 0.5;
+    cmps[0] = the4;
+    cmps[1] = tc12;
+    cmps[2] = to16;
 
-#if 1
     init_flash_helmholtz_();
-#endif
 
     char filename[64];
     sprintf(filename, "%s.data", filetype);
@@ -142,12 +144,7 @@ int main(int argc, char ** argv) {
             PS::F64 pp, du, cs;
             bool eosfail;
             PS::F64 temp = func(sph.pos[0]);
-#if 1
             flash_helmholtz_e_(&sph.dens, &temp, sph.cmps.getPointer(), &sph.uene);
-#else
-            sph.calcAbarZbar();
-            helmeos2_(&temp, &sph.dens, &sph.abar, &sph.zbar, &pp, &sph.uene, &du, &cs, &eosfail);
-#endif
         }
         sph.print(fp);
     }

@@ -269,7 +269,6 @@ public:
                                                           tsph.zbar, tsph.pres, tsph.vsnd,
                                                           tresult,   tsph.cnteos);
             */
-            tsph.calcAbarZbar();            
             CalcEquationOfState::getThermodynamicQuantity(tsph.dens, tsph.uene, tsph.cmps,
                                                           tsph.pres, tsph.vsnd, tresult);
             tgprev = tguess;
@@ -323,38 +322,16 @@ public:
     void calcReleasedNuclearEnergy() {
 #if FOR_TUBE_TEST
         if(this->temp > 1e8) {
-            const PS::F64 dtsub = 1. / (PS::F64)((PS::S64)1 << 40);
-//            if(this->temp < 5e9 || RP::Timestep <= dtsub) {
-            if(this->temp < 10e9 || RP::Timestep <= dtsub) {
-                this->dnuc = CalcNRH::getGeneratedEnergy(RP::Timestep,
-                                                         this->dens,
-                                                         this->temp,
-                                                         this->cmps);
-            } else {
-                assert(NULL);
-                HelmholtzGas tsph = (*this);
-                tsph.dnuc = 0.;
-                for(PS::F64 tsub = 0.; tsub < RP::Timestep; tsub += dtsub) {
-                    tsph.dnuc  = CalcNRH::getGeneratedEnergy(dtsub, tsph.dens,
-                                                             tsph.temp, tsph.cmps);
-                    tsph.uene += tsph.dnuc;
-                    /*
-                    tsph.calcAbarZbar();
-                    CalcEquationOfState::getThermodynamicQuantity(tsph.dens, tsph.uene, tsph.abar,
-                                                                  tsph.zbar, tsph.pres, tsph.vsnd,
-                                                                  tsph.temp, tsph.cnteos);
-                    */
-                    CalcEquationOfState::getThermodynamicQuantity(tsph.dens, tsph.uene, tsph.cmps,
-                                                                  tsph.pres, tsph.vsnd, tsph.temp);
-                }
-                this->dnuc = tsph.uene - this->uene;
-                this->cmps = tsph.cmps;
-            }
+            this->dnuc = CalcNRH::getGeneratedEnergy(RP::Timestep,
+                                                     this->dens,
+                                                     this->temp,
+                                                     this->cmps);
         } else {
             this->dnuc = 0.;
         }
 #else
         if(this->temp > 1e8) {
+            /*
             if(this->temp < CodeUnit::MinimumOfTemperatureNSE
                || this->dens < CodeUnit::MinimumOfDensityExplicitInThisUnit) {
                 this->dnuc = CalcNRH::getGeneratedEnergy(RP::Timestep,
@@ -366,13 +343,20 @@ public:
                     PS::F64     dum_dnuc;
                     NR::Nucleon dum_cmps;
                     PS::F64 tguess = getTemperatureImplicitlyWithNse(*this, dum_dnuc, dum_cmps);
-                    this->dnuc = CalcNRH::getGeneratedEnergy(RP::Timestep, this->dens, tguess,
+                    this->dnuc = CalcNRH::getGeneratedEnergy(RP::Timestep,
+                                                             this->dens,
+                                                             tguess,
                                                              this->cmps);
                 } else {
                     PS::F64 tguess = getTemperatureImplicitlyWithNse(*this,
                                                                      this->dnuc, this->cmps);
                 }
             }
+            */
+            this->dnuc = CalcNRH::getGeneratedEnergy(RP::Timestep,
+                                                     this->dens,
+                                                     this->temp,
+                                                     this->cmps);
         } else {
             this->dnuc = 0.;
         }
@@ -393,8 +377,14 @@ public:
         using namespace CodeUnit;
         PS::F64 tceff = RP::CoefficientOfTimestep;
         PS::F64 dth = tceff * this->ksr / (this->vsmx * SK::ksrh);
+#if FOR_TUBE_TEST
         PS::F64 dtu = std::min(RP::MaximumTimestep,
                                tceff * fabs(this->uene / this->dnuc) * RP::Timestep);
+#else
+        PS::F64 dtu = std::min(RP::MaximumTimestep,
+                               tceff * fabs(this->uene / this->dnuc) * RP::Timestep);
+        //PS::F64 dtu = RP::MaximumTimestep;
+#endif
         PS::F64 dtc = (this->divv < 0.) ? (- tceff / this->divv) : RP::MaximumTimestep;
         PS::F64vec grv = this->accg1 + this->accg2;
         PS::F64 dtg = tceff * sqrt(this->ksr / sqrt(grv * grv));
@@ -1147,25 +1137,6 @@ void loopSimulation(Tdinfo & dinfo,
         outputData(dinfo, sph, bhns, msls);
         WT::clear();
         RP::Timestep = calcTimestep(sph);
-        ////////////////////
-        /*
-        {
-            for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
-                if(sph[i].id == 0) {
-                    printf("hoge %+e %+e %+e %+e",
-                           RP::Time, sph[i].temp, sph[i].dens, sph[i].enuc);
-                    printf(" %+e %+e %+e %+e %+e", sph[i].cmps[0], sph[i].cmps[1],
-                           sph[i].cmps[2], sph[i].cmps[3], sph[i].cmps[4]);
-                    printf(" %+e %+e %+e %+e %+e", sph[i].cmps[5], sph[i].cmps[6],
-                           sph[i].cmps[7], sph[i].cmps[8], sph[i].cmps[9]);
-                    printf(" %+e %+e %+e", sph[i].cmps[10], sph[i].cmps[11],
-                           sph[i].cmps[12]);
-                    printf("\n");
-                }
-            }
-        }
-        */
-        ////////////////////
         if(RP::FlagDamping == 2) {
             reduceSeparation(sph, bhns, msls);
         }
