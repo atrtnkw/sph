@@ -319,6 +319,21 @@ public:
         return tresult;
     }
 
+    bool whetherIsParticleHotAndDiffuse() {
+        bool val = false;
+        /*
+        if(this->temp >= CodeUnit::MinimumOfTemperatureNSE
+           && this->dens < CodeUnit::MinimumOfDensityNSEInThisUnit) {
+            val = true;
+        }
+        */
+        if(this->temp >= CodeUnit::MinimumOfTemperatureNSE
+           && this->dens >= CodeUnit::MinimumOfDensityExplicitInThisUnit) {
+            val = true;
+        }
+        return val;
+    }
+
     void calcReleasedNuclearEnergy() {
 #if FOR_TUBE_TEST
         if(this->temp > 1e8) {
@@ -331,46 +346,22 @@ public:
         }
 #else
         if(this->temp > 1e8) {
-            /*
-            if(this->temp < CodeUnit::MinimumOfTemperatureNSE
-               || this->dens < CodeUnit::MinimumOfDensityExplicitInThisUnit) {
+//            if(this->temp < CodeUnit::MinimumOfTemperatureNSE
+//               || this->dens < CodeUnit::MinimumOfDensityExplicitInThisUnit) {
+            if(! (this->whetherIsParticleHotAndDiffuse())) {
                 this->dnuc = CalcNRH::getGeneratedEnergy(RP::Timestep,
                                                          this->dens,
                                                          this->temp,
                                                          this->cmps);
             } else {
-                if(this->dens < CodeUnit::MinimumOfDensityNSEInThisUnit) {
-                    PS::F64     dum_dnuc;
-                    NR::Nucleon dum_cmps;
-                    PS::F64 tguess = getTemperatureImplicitlyWithNse(*this, dum_dnuc, dum_cmps);
-                    this->dnuc = CalcNRH::getGeneratedEnergy(RP::Timestep,
-                                                             this->dens,
-                                                             tguess,
-                                                             this->cmps);
-                } else {
-                    PS::F64 tguess = getTemperatureImplicitlyWithNse(*this,
-                                                                     this->dnuc, this->cmps);
-                }
+                PS::F64 tguess = getTemperatureImplicitlyWithNrh(RP::Timestep, *this,
+                                                                 this->dnuc, this->cmps);
             }
-            */
-            this->dnuc = CalcNRH::getGeneratedEnergy(RP::Timestep,
-                                                     this->dens,
-                                                     this->temp,
-                                                     this->cmps);
         } else {
             this->dnuc = 0.;
         }
 #endif
         this->enuc += this->dnuc;
-    }
-
-    bool whetherIsParticleHotAndDiffuse() {
-        bool val = false;
-        if(this->temp >= CodeUnit::MinimumOfTemperatureNSE
-           && this->dens < CodeUnit::MinimumOfDensityNSEInThisUnit) {
-            val = true;
-        }
-        return val;
     }
 
     PS::F64 calcTimestep() {
@@ -381,9 +372,9 @@ public:
         PS::F64 dtu = std::min(RP::MaximumTimestep,
                                tceff * fabs(this->uene / this->dnuc) * RP::Timestep);
 #else
-        PS::F64 dtu = std::min(RP::MaximumTimestep,
-                               tceff * fabs(this->uene / this->dnuc) * RP::Timestep);
-        //PS::F64 dtu = RP::MaximumTimestep;
+//        PS::F64 dtu = std::min(RP::MaximumTimestep,
+//                               tceff * fabs(this->uene / this->dnuc) * RP::Timestep);
+        PS::F64 dtu = RP::MaximumTimestep;
 #endif
         PS::F64 dtc = (this->divv < 0.) ? (- tceff / this->divv) : RP::MaximumTimestep;
         PS::F64vec grv = this->accg1 + this->accg2;
