@@ -1,13 +1,17 @@
-if test $# -ne 4
+if test $# -ne 6
 then
-    echo "sh $0 <BHmass[Msun]> <smallerWD> <ri/rt> <beta>"
+    echo "sh $0 <BHmass[Msun]> <smallerWD> <rwd> <ri/rt> <beta> <ofile>" >&2
     exit
 fi
 
 bhmas=$1
 ifile=$2
-irirt=$3
-ibeta=$4
+radius=$3
+irirt=$4
+ibeta=$5
+ofile=$6
+
+echo "sh $0 $bhmas $ifile $radius $irirt $ibeta $ofile" >&2
 
 bneps=1e6
 gravc=0.000000066738480
@@ -16,7 +20,10 @@ rwd=`echo "10^9" | bc`
 
 m1=`echo "$bhmas * $msn" | bc`
 m2=`awk 'BEGIN{mtot=0.0;}{mtot+=$3}END{printf("%lf\n", mtot);}' $ifile`
-rm=`awk 'BEGIN{r2max=0.0;}{r2=$4**2+$5**2+$6**2;if(r2>r2max)r2max=r2;}END{printf("%lf\n", sqrt(r2max));}' $ifile`
+#rm=`awk 'BEGIN{r2max=0.0;}{r2=$4**2+$5**2+$6**2;if(r2>r2max)r2max=r2;}END{printf("%lf\n", sqrt(r2max));}' $ifile`
+#rm=350000000
+#rm=1100000000
+rm=$radius
 rt=`echo "scale=5; 1.2 * 10^11 * e(1/3.*l($m1/(1000000.*$msn))) * ($rm/$rwd) / e(1/3.*l($m2/(0.6*$msn)))" | bc -l`
 
 rp=`echo "scale=5; $rt / $ibeta" | bc`
@@ -42,8 +49,12 @@ dvy=`awk '{print sint * (+vx) + cost * (-vy)}' cost=$cost sint=$sint vx=$vx vy=$
 
 printf "rt: %+e rp: %+e\n" $rt $rp >&2
 printf "px: %+e py: %+e vx: %+e vy: %+e\n" $dpx $dpy $dvx $dvy >&2
+awk '{printf("p/v: %+e\n", sqrt(px**2+py**2)/sqrt(vx**2+vy**2));}' px=$dpx py=$dpy vx=$dvx vy=$dvy \
+    dummy >&2
 
-awk '{printf("%10d %2d %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e\n", $1, 0, $3, $4+dpx, $5+dpy, $6, $7+dvx, $8+dvy, $9, $13, $14, 0., $17, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44);}' dpx=$dpx dpy=$dpy dvx=$dvx dvy=$dvy $ifile
+awk '{printf("%10d %2d %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e\n", $1, 0, $3, $4+dpx, $5+dpy, $6, $7+dvx, $8+dvy, $9, $13, $14, 0., $17, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44);}' dpx=$dpx dpy=$dpy dvx=$dvx dvy=$dvy $ifile > "$ofile".data
+
+echo "$bhmas 0" > "$ofile".imbh
 
 rm -f dummy
 

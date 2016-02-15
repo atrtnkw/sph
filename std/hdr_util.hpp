@@ -350,6 +350,7 @@ void absorbParticleIntoBlackHoleNeutronStar(Tdinfo & dinfo,
             i++;
             continue;
         }        
+#if 0 // A. Tanikawa changes this 160209
         fprintf(stderr, "\n");
         fprintf(stderr, "### Absorbed %16.10f\n", RP::Time * CodeUnit::UnitOfTime);
         fprintf(stderr, "### ");
@@ -358,6 +359,16 @@ void absorbParticleIntoBlackHoleNeutronStar(Tdinfo & dinfo,
                 dx[1] * CodeUnit::UnitOfLength, dx[2] * CodeUnit::UnitOfLength);
         fprintf(stderr, " dv: %+e %+e %+e\n", dv[0] * CodeUnit::UnitOfVelocity,
                 dv[1] * CodeUnit::UnitOfVelocity, dv[2] * CodeUnit::UnitOfVelocity);
+#else
+        fprintf(RP::FilePointerForDebug, "\n");
+        fprintf(RP::FilePointerForDebug, "### Absorbed %16.10f\n", RP::Time * CodeUnit::UnitOfTime);
+        fprintf(RP::FilePointerForDebug, "### ");
+        sph[i].writeAscii(RP::FilePointerForDebug);
+        fprintf(RP::FilePointerForDebug, "### dx: %+e %+e %+e", dx[0] * CodeUnit::UnitOfLength,
+                dx[1] * CodeUnit::UnitOfLength, dx[2] * CodeUnit::UnitOfLength);
+        fprintf(RP::FilePointerForDebug, " dv: %+e %+e %+e\n", dv[0] * CodeUnit::UnitOfVelocity,
+                dv[1] * CodeUnit::UnitOfVelocity, dv[2] * CodeUnit::UnitOfVelocity);
+#endif
         ndloc++;
         ekloc += 0.5 * sph[i].mass * (sph[i].vel * sph[i].vel);
         uloc0 +=       sph[i].mass *  sph[i].uene;
@@ -398,6 +409,7 @@ void absorbParticleIntoBlackHoleNeutronStar(Tdinfo & dinfo,
         PS::F64 kglb1 = 0.5 * mbhns * (vbhns * vbhns);
         PS::F64 ephi1 = calcPotentialEnergy(sph, bhns);
         RP::AbsorbedEnergyTotal += (kglb1 + ephi1) - (kglb0 + uglb0 + ephi0);
+
     }
 }
 

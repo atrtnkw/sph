@@ -161,8 +161,8 @@ namespace SmoothingKernel {
 
 #else
 
+#if 1
     const PS::F64 eta     = 1.6;
-    //const PS::F64 eta     = 1.27;
     const PS::F64 ksrh    = 1.936492;
     const PS::F64 ksrhinv = 1. / ksrh;
     const PS::F64 dim     = 3.;
@@ -187,6 +187,49 @@ namespace SmoothingKernel {
             fprintf(stderr, "set 3D WendlandC2!\n");
         }
     };
+#else
+    const PS::F64 eta     = 1.2;
+    const PS::F64 ksrh    = 2.0;
+    const PS::F64 ksrhinv = 1. / ksrh;
+    const PS::F64 dim     = 3.;
+    const PS::F64 ceff0   = +2.5464790894703255;
+    const PS::F64 ceff0x  = ceff0 * 2.d;
+    const PS::F64 ceff1   = -15.278874536821953;
+
+
+    inline v4df kernel0th(const v4df q) {
+        v4df t1 = v4df(1.)  - q;
+        v4df t2 = v4df(0.5) - q;
+        t1 = v4df::max(t1, 0.);
+        t2 = v4df::max(t2, 0.);
+        v4df t13 = t1 * t1 * t1;
+        v4df t23 = t2 * t2 * t2;
+        v4df w0  = t13 - v4df(4.) * t23;
+        w0 *= v4df(ceff0x);        
+        return w0;
+    }
+    inline v4df kernel1st(const v4df q) {
+        v4df t1 = v4df(1.)  - q;
+        v4df t2 = v4df(0.5) - q;
+        v4df t3 = v4df(0.33333333333333333) - q;
+        t1 = v4df::max(t1, 0.);
+        t2 = v4df::max(t2, 0.);
+        t3 = v4df::max(t3, 0.);
+        v4df t12 = t1 * t1;
+        v4df t22 = t2 * t2;
+        v4df t32 = t3 * t3;
+        v4df w0  = v4df::nmadd(t12, v4df(4.), t22);
+        w0  = v4df::madd(w0, v4df(3.), t32);
+        w0 *= v4df(ceff1);
+        return w0;
+    }
+    void setKernel(const KernelType kn,
+                   const PS::F64 ndim) {
+        if(PS::Comm::getRank() == 0) {
+            fprintf(stderr, "set 3D CubicSpline!\n");
+        }
+    };
+#endif
 
 #endif
 
