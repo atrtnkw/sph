@@ -32,6 +32,7 @@ class HelmholtzGas : public SPH {
 public:
     PS::S64 istar;
     PS::F64 temp;
+    PS::F64 entr;
     PS::S64 cnteos;    
     PS::F64 dnuc;
     PS::F64 enuc;
@@ -84,6 +85,7 @@ public:
         PS::F64    tvsmx = this->vsmx * UnitOfVelocity;
         PS::F64    tudot = this->udot * UnitOfEnergy * UnitOfTimeInv;
         PS::F64    tdnuc = this->dnuc * UnitOfEnergy;
+        PS::F64    tentr = this->entr * UnitOfEnergy;
         fprintf(fp, "%6d %2d %+e", this->id, this->istar, tmass);    //  3
         fprintf(fp, " %+e %+e %+e", tpos[0], tpos[1], tpos[2]);      //  6
         fprintf(fp, " %+e %+e %+e", tvel[0], tvel[1], tvel[2]);      //  9
@@ -103,6 +105,7 @@ public:
             PS::F64vec tvec = tomg ^ tpos;
             fprintf(fp, " %+e", tpot - 0.5 * (tvec * tvec));         // 45
         }
+        fprintf(fp, " %+e", tentr);
         fprintf(fp, " %+e %+e %+e", this->tempmax[0], this->tempmax[1] * UnitOfDensity,
                 this->tempmax[2]);
         fprintf(fp, "\n");
@@ -219,12 +222,21 @@ public:
     }
     
     void referEquationOfState() {
+        /*
         CalcEquationOfState::getThermodynamicQuantity(this->dens,
                                                       this->uene,
                                                       this->cmps,
                                                       this->pres,
                                                       this->vsnd,
                                                       this->temp);
+        */
+        CalcEquationOfState::getThermodynamicQuantity(this->dens,
+                                                      this->uene,
+                                                      this->cmps,
+                                                      this->pres,
+                                                      this->vsnd,
+                                                      this->temp,
+                                                      this->entr);
         this->umin = CalcEquationOfState::getEnergyMin(this->dens, this->cmps);
     }
     
@@ -263,8 +275,12 @@ public:
             tsph.dnuc  = CalcNSE::getGeneratedEnergy(tsph.dens, tsph.temp,
                                                      tsph.cmps.getPointer());
             tsph.uene += tsph.dnuc;
+            /*
             CalcEquationOfState::getThermodynamicQuantity(tsph.dens, tsph.uene, tsph.cmps,
                                                           tsph.pres, tsph.vsnd, tresult);
+            */
+            CalcEquationOfState::getThermodynamicQuantity(tsph.dens, tsph.uene, tsph.cmps,
+                                                          tsph.pres, tsph.vsnd, tresult, tsph.entr);
             tgprev = tguess;
             trtent = std::max(tmin, std::min(tmax, tresult));
             PS::F64 rn = getRandomNumber();
@@ -294,8 +310,12 @@ public:
             tsph.dnuc  = CalcNRH::getGeneratedEnergy(dt, tsph.dens, tsph.temp,
                                                      tsph.cmps);
             tsph.uene += tsph.dnuc;
+            /*
             CalcEquationOfState::getThermodynamicQuantity(tsph.dens, tsph.uene, tsph.cmps,
                                                           tsph.pres, tsph.vsnd, tresult);
+            */
+            CalcEquationOfState::getThermodynamicQuantity(tsph.dens, tsph.uene, tsph.cmps,
+                                                          tsph.pres, tsph.vsnd, tresult, tsph.entr);
             tgprev = tguess;
             trtent = std::max(tmin, std::min(tmax, tresult));
             PS::F64 rn = getRandomNumber();
@@ -1009,6 +1029,7 @@ void startSimulation(char **argv,
 //////////////////////////////////////////////////////////////
     } else {
         sph.readParticleAscii(argv[3], "%s_p%06d_i%06d.data");    
+        RP::FlagBinary = 0;
     }
     if(RP::FlagDamping == 2) {
         generateMassLessParticle(msls, sph);

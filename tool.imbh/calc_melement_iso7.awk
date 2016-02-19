@@ -17,7 +17,7 @@ END{
     printf(" %+e", mele[2]/msun);
     printf(" %+e", mele[3]/msun);
     printf(" %+e", mele[4]/msun);
-    printf(" %+e", (mele[6]+mele[7]+mele[8]+mele[9]+mele[10])/msun);
-    printf(" %+e", (mele[11]+mele[12])/msun);
+    printf(" %+e", (mele[5]+mele[6]+mele[7]+mele[8]+mele[9])/msun);
+    printf(" %+e", (mele[10]+mele[11]+mele[12])/msun);
     printf("\n");
 }

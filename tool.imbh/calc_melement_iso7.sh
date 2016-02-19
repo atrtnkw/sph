@@ -1,6 +1,6 @@
 if test $# -ne 4
 then
-    echo "sh $0 <idir> <tbgn> <tend> <dtsp>"
+    echo "sh $0 <idir> <tbgn> <tend> <dtsp>" >&2
     exit
 fi
 

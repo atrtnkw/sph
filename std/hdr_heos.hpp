@@ -17,7 +17,8 @@ extern "C" {
                           double * xin,
                           double * pout,
                           double * cout,
-                          double * tout);
+                          double * tout,
+                          double * sout);
     void flash_helmholtz_e_(double * din,
                             double * tin,
                             double * xin,
@@ -309,17 +310,19 @@ public:
                                          NR::Nucleon & composition,
                                          PS::F64 & pressure,
                                          PS::F64 & soundvelocity,
-                                         PS::F64 & temperature) {
+                                         PS::F64 & temperature,
+                                         PS::F64 & entropy) {
 //        getInstance();
         PS::F64 din = density * CodeUnit::UnitOfDensity;
         PS::F64 ein = energy * CodeUnit::UnitOfEnergy;
         PS::F64 tin = (temperature != 0.) ? temperature : 1e9;
-        PS::F64 pout, cout, tout;
+        PS::F64 pout, cout, tout, sout;
         flash_helmholtz_(&din, &ein, &tin, composition.getPointer(),
-                         &pout, &cout, &tout);
+                         &pout, &cout, &tout, &sout);
         pressure      = pout * CodeUnit::UnitOfPressureInv;
         soundvelocity = cout * CodeUnit::UnitOfVelocityInv;
         temperature   = tout;
+        entropy       = sout * CodeUnit::UnitOfEnergyInv;
     }
 #endif
 };
