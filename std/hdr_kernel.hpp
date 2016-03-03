@@ -134,8 +134,9 @@ namespace SmoothingKernel {
 
 #ifdef FOR_TUBE_TEST
 
+#if 1
     const PS::F64 eta     = 1.6;
-    //const PS::F64 eta     = 1.0;
+    //const PS::F64 eta     = 3.2;
     const PS::F64 ksrh    = 1.620185;
     const PS::F64 ksrhinv = 1. / ksrh;
     const PS::F64 dim     = 1.;
@@ -158,6 +159,33 @@ namespace SmoothingKernel {
             fprintf(stderr, "set 1D WendlandC2!\n");
         }
     };
+#else
+    const  PS::F64 eta   = 1.6;
+    const  PS::F64 dim   = +1.0;
+    const  PS::F64 ksrh  = +1.936492;
+    const  PS::F64 ksrhinv = 1. / ksrh;
+    const  PS::F64 ceff0 = +1.5;
+    inline v4df kernel0th(const v4df r) {
+        v4df rmin  = v4df::max(v4df(1.d) - r, 0.d);
+        v4df rmin2 = rmin * rmin;
+        return v4df(ceff0) * rmin2 * rmin2 * rmin
+            * (v4df(1.d) + v4df(5.d) * r + v4df(8.d) * r * r);
+    }
+    inline v4df kernel1st(const v4df r) {
+        v4df rmin  = v4df::max(v4df(1.d) - r, 0.d);
+        v4df rmin2 = rmin  * rmin;
+        v4df rmin4 = rmin2 * rmin2;
+        return v4df(ceff0) * rmin4 * (rmin * (v4df(5.d) + v4df(16.d) * r)
+                                      - (v4df(5.d) + v4df(25.d) * r + v4df(40.d) * r * r));
+    }
+    void setKernel(const KernelType kn,
+                   const PS::F64 ndim) {
+        if(PS::Comm::getRank() == 0) {
+            fprintf(stderr, "set 1D WendlandC4!\n");
+        }
+    };
+    
+#endif
 
 #else
 

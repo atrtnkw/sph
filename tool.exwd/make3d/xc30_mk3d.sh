@@ -6,9 +6,9 @@
 NPARALLEL=1
 NPROCESS=$NPARALLEL
 ifile=data/s1.15_rlx2.dat
-ofile=../init3d/s1.15_heco005.data
-iflag=0
-hefrc=0.05
+ofile=../init3d/s1.15_coex20e7_dx2e8.data
+iflag=1
+hefrc=0.02
 
 cd $PBS_O_WORKDIR
 

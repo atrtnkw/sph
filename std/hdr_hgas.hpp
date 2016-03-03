@@ -49,6 +49,15 @@ public:
         }
     }
 
+    PS::F64 densmax[3];
+    void getMaximumDensity() {
+        if(this->dens > this->densmax[0]) {
+            this->densmax[0] = this->dens;
+            this->densmax[1] = this->temp;
+            this->densmax[2] = RP::Time;
+        }
+    }
+
     void readAscii(FILE * fp) {
         using namespace CodeUnit;
         fscanf(fp, "%lld%lld%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf",
@@ -106,8 +115,12 @@ public:
             fprintf(fp, " %+e", tpot - 0.5 * (tvec * tvec));         // 45
         }
         fprintf(fp, " %+e", tentr);
+        /*
         fprintf(fp, " %+e %+e %+e", this->tempmax[0], this->tempmax[1] * UnitOfDensity,
                 this->tempmax[2]);
+        */
+        fprintf(fp, " %+e %+e %+e", this->densmax[0] * UnitOfDensity, this->densmax[1],
+                this->densmax[2]);
         fprintf(fp, "\n");
     }
 
@@ -329,26 +342,17 @@ public:
 
     bool whetherIsParticleHotAndDiffuse() {
         bool val = false;
-#if 1
+//#ifdef FOR_TUBE_TEST
+//#else
         if(this->temp >= CodeUnit::MinimumOfTemperatureNSE
            && this->dens >= CodeUnit::MinimumOfDensityExplicitInThisUnit) {
             val = true;
         }
-#endif
+//#endif
         return val;
     }
 
     void calcReleasedNuclearEnergy() {
-#if FOR_TUBE_TEST
-        if(this->temp > 1e8) {
-            this->dnuc = CalcNRH::getGeneratedEnergy(RP::Timestep,
-                                                     this->dens,
-                                                     this->temp,
-                                                     this->cmps);
-        } else {
-            this->dnuc = 0.;
-        }
-#else
         if(this->temp > 1e8) {
             if(! (this->whetherIsParticleHotAndDiffuse())) {
                 this->dnuc = CalcNRH::getGeneratedEnergy(RP::Timestep,
@@ -356,14 +360,12 @@ public:
                                                          this->temp,
                                                          this->cmps);
             } else {
-                //assert(NULL);
                 PS::F64 tguess = getTemperatureImplicitlyWithNrh(RP::Timestep, *this,
                                                                  this->dnuc, this->cmps);
             }
         } else {
             this->dnuc = 0.;
         }
-#endif
         this->enuc += this->dnuc;
     }
 
@@ -371,14 +373,9 @@ public:
         using namespace CodeUnit;
         PS::F64 tceff = RP::CoefficientOfTimestep;
         PS::F64 dth = tceff * this->ksr / (this->vsmx * SK::ksrh);
-#if FOR_TUBE_TEST
-        PS::F64 dtu = std::min(RP::MaximumTimestep,
-                               tceff * fabs(this->uene / this->dnuc) * RP::Timestep);
-#else
 //        PS::F64 dtu = std::min(RP::MaximumTimestep,
 //                               tceff * fabs(this->uene / this->dnuc) * RP::Timestep);
         PS::F64 dtu = RP::MaximumTimestep;
-#endif
         PS::F64 dtc = (this->divv < 0.) ? (- tceff / this->divv) : RP::MaximumTimestep;
         PS::F64vec grv = this->accg1 + this->accg2;
         PS::F64 dtg = tceff * sqrt(this->ksr / sqrt(grv * grv));
@@ -1140,6 +1137,17 @@ void loopSimulation(Tdinfo & dinfo,
                     sph[i].getMaximumTemperature();
                 }
             }
+            /*
+            if(RP::Time == 0) {
+                for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
+                    sph[i].densmax[0] = 0.;
+                }
+            } else {
+                for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
+                    sph[i].getMaximumDensity();
+                }
+            }
+            */
         }
         ////////////
         WT::reduceInterProcess();

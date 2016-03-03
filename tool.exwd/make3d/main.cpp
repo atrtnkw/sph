@@ -16,12 +16,6 @@ enum KernelType {CubicSpline = 0, WendlandC2 = 1, WendlandC4 = 2};
 #include "hdr_sph.hpp"
 #include "hdr_hgas.hpp"
 
-namespace HotSpot {
-    PS::F64 tmax = 1.0e9;
-    PS::F64 tmin = 1.0e7;
-    PS::F64 size = 2e8;
-}
-
 class SPH3D : public HelmholtzGas {
 public:
     SPH3D() {
@@ -70,16 +64,40 @@ public:
     }
 };
 
-PS::F64 getTemperatureLinear(SPH3D & sph) {
-    using namespace HotSpot;
-    PS::F64 temp;
-    PS::F64 rsph = sqrt(sph.pos[0] * sph.pos[0] + sph.pos[1] * sph.pos[1]);
-    if(rsph < size & sph.pos[2] > 0.) {
-        temp = tmax - (tmax - tmin) * rsph / size;
-    } else {
-        temp = tmin;
+namespace HeliumDetonation {
+    PS::F64 tmax = 1.0e9;
+    PS::F64 tmin = 1.0e7;
+    PS::F64 size = 2e8;
+
+    PS::F64 getTemperatureLinear(SPH3D & sph) {
+        PS::F64 temp;
+        PS::F64 rsph = sqrt(sph.pos[0] * sph.pos[0] + sph.pos[1] * sph.pos[1]);
+        if(rsph < size & sph.pos[2] > 0.) {
+            temp = tmax - (tmax - tmin) * rsph / size;
+        } else {
+            temp = tmin;
+        }
+        return temp;
     }
-    return temp;
+}
+
+namespace CarbonDetonation {
+    PS::F64 tmax = 3.0e9;
+    PS::F64 tmin = 1.0e7;
+    PS::F64 size = 2e8;
+    PS::F64vec hpos(2e8, 0., 0.);
+
+    PS::F64 getTemperatureLinear(SPH3D & sph) {
+        PS::F64 temp;
+        PS::F64vec dx = sph.pos - hpos;
+        PS::F64 rsph = sqrt(dx * dx);
+        if(rsph < size) {
+            temp = tmax - (tmax - tmin) * rsph / size;
+        } else {
+            temp = tmin;
+        }
+        return temp;
+    }
 }
 
 int main(int argc, char ** argv) {
@@ -113,18 +131,28 @@ int main(int argc, char ** argv) {
         assert(ifp);
         FILE * ofp = fopen(ofile, "w");
         init_flash_helmholtz_();
-        for(PS::S64 i = 0; i < nptcl; i++) {
-            SPH3D sph;
-            sph.read(ifp);
-            PS::F64 r2 = sph.pos * sph.pos;
-            if(r2 >= rmin * rmin) {
-                sph.cmps[0] = 0.9;
-                sph.cmps[1] = 0.05;
-                sph.cmps[2] = 0.05;
-                PS::F64 temp = getTemperatureLinear(sph);
-                flash_helmholtz_e_(&sph.dens, &temp, sph.cmps.getPointer(), &sph.uene);
+        if(flag == 0) {
+            for(PS::S64 i = 0; i < nptcl; i++) {
+                SPH3D sph;
+                sph.read(ifp);
+                PS::F64 r2 = sph.pos * sph.pos;
+                if(r2 >= rmin * rmin) {
+                    sph.cmps[0] = 0.9;
+                    sph.cmps[1] = 0.05;
+                    sph.cmps[2] = 0.05;
+                    PS::F64 temp = HeliumDetonation::getTemperatureLinear(sph);
+                    flash_helmholtz_e_(&sph.dens, &temp, sph.cmps.getPointer(), &sph.uene);
+                }
+                sph.write(ofp);
             }
-            sph.write(ofp);
+        } else {
+            for(PS::S64 i = 0; i < nptcl; i++) {
+                SPH3D sph;
+                sph.read(ifp);
+                PS::F64 temp = CarbonDetonation::getTemperatureLinear(sph);
+                flash_helmholtz_e_(&sph.dens, &temp, sph.cmps.getPointer(), &sph.uene);
+                sph.write(ofp);
+            }
         }
         fclose(ifp);
         fclose(ofp);
