@@ -115,12 +115,12 @@ public:
             fprintf(fp, " %+e", tpot - 0.5 * (tvec * tvec));         // 45
         }
         fprintf(fp, " %+e", tentr);
-        /*
         fprintf(fp, " %+e %+e %+e", this->tempmax[0], this->tempmax[1] * UnitOfDensity,
                 this->tempmax[2]);
-        */
+        /*
         fprintf(fp, " %+e %+e %+e", this->densmax[0] * UnitOfDensity, this->densmax[1],
                 this->densmax[2]);
+        */
         fprintf(fp, "\n");
     }
 
@@ -976,7 +976,7 @@ void initializeSimulation() {
     char debugfile[64];
     sprintf(debugfile, "snap/debug_p%06d.log", PS::Comm::getRank());
     RP::FilePointerForDebug = fopen(debugfile, "w");
-    init_flash_helmholtz_();
+    init_flash_helmholtz_(&CodeUnit::FractionOfCoulombCorrection);
 }
 
 template <class Tdinfo,

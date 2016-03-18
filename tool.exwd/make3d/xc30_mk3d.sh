@@ -5,10 +5,10 @@
 
 NPARALLEL=1
 NPROCESS=$NPARALLEL
-ifile=data/s1.15_rlx2.dat
-ofile=../init3d/s1.15_coex20e7_dx2e8.data
+ifile=../r016k/rlx2_s1.00.wocc/final.dat
+ofile=../r016k/init/s1.00_wocc_coex25e7_tmax20e8.data
 iflag=1
-hefrc=0.02
+hefrc=0.1
 
 cd $PBS_O_WORKDIR
 

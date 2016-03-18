@@ -48,7 +48,12 @@ public:
         for(PS::S32 k = 0; k < NuclearReaction::NumberOfNucleon; k++) { // 32 -- 44
             fscanf(fp, "%lf", &this->cmps[k]);
         }
+#if 0
         fscanf(fp, "%d", &this->fnse);
+#else
+        fscanf(fp, "%lf", this->entr);
+        fscanf(fp, "%lf%lf%lf", &this->tempmax[0], &this->tempmax[1], &this->tempmax[2]);
+#endif
     }
 
     void write(FILE * fp = stdout) {
@@ -82,10 +87,10 @@ namespace HeliumDetonation {
 }
 
 namespace CarbonDetonation {
-    PS::F64 tmax = 3.0e9;
+    PS::F64 tmax = 2.0e9;
     PS::F64 tmin = 1.0e7;
-    PS::F64 size = 2e8;
-    PS::F64vec hpos(2e8, 0., 0.);
+    PS::F64 size = 2.5e8;
+    PS::F64vec hpos(0., 0., 0.);
 
     PS::F64 getTemperatureLinear(SPH3D & sph) {
         PS::F64 temp;

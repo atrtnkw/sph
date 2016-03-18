@@ -10,7 +10,7 @@ extern "C" {
 #endif
 
 extern "C" {
-    void init_flash_helmholtz_();
+    void init_flash_helmholtz_(double * coulombin);
     void flash_helmholtz_(double * din,
                           double * ein,
                           double * tin,
@@ -81,6 +81,13 @@ namespace CodeUnit {
     // for imbh
     PS::F64 BlackHoleMass;
     PS::F64 BlackHoleMassInThisUnit;
+
+    // for eos
+#ifdef COULOMB_CORRECTION
+    PS::F64 FractionOfCoulombCorrection = 1.;
+#else
+    PS::F64 FractionOfCoulombCorrection = 0.;
+#endif
 }
 
 namespace NuclearReaction {    
