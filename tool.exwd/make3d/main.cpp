@@ -87,6 +87,7 @@ namespace HeliumDetonation {
 }
 
 namespace CarbonDetonation {
+#if 0
     PS::F64 tmax = 2.0e9;
     PS::F64 tmin = 1.0e7;
     PS::F64 size = 2.5e8;
@@ -103,6 +104,26 @@ namespace CarbonDetonation {
         }
         return temp;
     }
+#else
+    PS::F64 tmax = 3.5e9;
+    PS::F64 tmin = 1.0e7;
+    PS::F64 size = 0.0;
+//    PS::F64 size = 5.0e8;
+    PS::F64vec hpos(-1.419623e+08, -8.197388e+07, +1.041066e+08);   // for t0035
+//    PS::F64vec hpos(-2.260155e+08, -1.932894e+08, +1.063025e+07); // for t0036
+//    PS::F64vec hpos(+2.667679e+08, +1.413839e+08, -1.520732e+08); // for t0100
+
+    PS::F64 getTemperatureLinear(SPH3D & sph) {
+        PS::F64 temp = sph.temp;
+        PS::F64vec dx = sph.pos - hpos;
+        PS::F64 rsph = sqrt(dx * dx);
+        if(rsph < size) {
+            temp = tmax - (tmax - tmin) * rsph / size;
+            temp = std::max(temp, sph.temp);
+        }
+        return temp;
+    }
+#endif
 }
 
 int main(int argc, char ** argv) {
@@ -135,7 +156,7 @@ int main(int argc, char ** argv) {
         FILE * ifp = fopen(ifile, "r");
         assert(ifp);
         FILE * ofp = fopen(ofile, "w");
-        init_flash_helmholtz_();
+        init_flash_helmholtz_(&CodeUnit::FractionOfCoulombCorrection);
         if(flag == 0) {
             for(PS::S64 i = 0; i < nptcl; i++) {
                 SPH3D sph;
@@ -155,7 +176,18 @@ int main(int argc, char ** argv) {
                 SPH3D sph;
                 sph.read(ifp);
                 PS::F64 temp = CarbonDetonation::getTemperatureLinear(sph);
+#if 0
                 flash_helmholtz_e_(&sph.dens, &temp, sph.cmps.getPointer(), &sph.uene);
+#else
+                if(temp != sph.temp) {
+                    flash_helmholtz_e_(&sph.dens, &temp, sph.cmps.getPointer(), &sph.uene);
+                }
+                if(sph.uene < 0.) {
+                    PS::F64 temp = CodeUnit::MinimumOfTemperature;
+                    flash_helmholtz_e_(&sph.dens, &temp, sph.cmps.getPointer(), &sph.uene);
+                }
+                sph.istar = 0;
+#endif
                 sph.write(ofp);
             }
         }

@@ -5,8 +5,10 @@
 
 NPARALLEL=1
 NPROCESS=$NPARALLEL
-ifile=../r016k/rlx2_s1.00.wocc/final.dat
-ofile=../r016k/init/s1.00_wocc_coex25e7_tmax20e8.data
+#ifile=../r016k/run.b1.1-1.0/unfy/sph_t0035.dat
+#ofile=../r016k/init/t0035_b1.1-1.0.data
+ifile=../../t0035_b1.1-1.0_ph01/sph_t0064.dat
+ofile=../../t0035_b1.1-1.0_ph01/b1.1-1.0_phase01.data
 iflag=1
 hefrc=0.1
 
