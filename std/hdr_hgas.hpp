@@ -39,6 +39,7 @@ public:
     bool    fnse;
     PS::F64 dens0, temp0;
     NR::Nucleon cmps, cmps0;
+    PS::F64 pot3;
 
     PS::F64 tempmax[3];
     void getMaximumTemperature() {
@@ -95,6 +96,7 @@ public:
         PS::F64    tudot = this->udot * UnitOfEnergy * UnitOfTimeInv;
         PS::F64    tdnuc = this->dnuc * UnitOfEnergy;
         PS::F64    tentr = this->entr * UnitOfEnergy;
+        PS::F64    tpot3 = this->pot3 * UnitOfEnergy;
         fprintf(fp, "%6d %2d %+e", this->id, this->istar, tmass);    //  3
         fprintf(fp, " %+e %+e %+e", tpos[0], tpos[1], tpos[2]);      //  6
         fprintf(fp, " %+e %+e %+e", tvel[0], tvel[1], tvel[2]);      //  9
@@ -114,13 +116,9 @@ public:
             PS::F64vec tvec = tomg ^ tpos;
             fprintf(fp, " %+e", tpot - 0.5 * (tvec * tvec));         // 45
         }
-        fprintf(fp, " %+e", tentr);
+        fprintf(fp, " %+e", tpot3);                                  // 45
         fprintf(fp, " %+e %+e %+e", this->tempmax[0], this->tempmax[1] * UnitOfDensity,
-                this->tempmax[2]);
-        /*
-        fprintf(fp, " %+e %+e %+e", this->densmax[0] * UnitOfDensity, this->densmax[1],
-                this->densmax[2]);
-        */
+                this->tempmax[2]);                                   // 46 -- 48
         fprintf(fp, "\n");
     }
 
@@ -250,7 +248,11 @@ public:
                                                       this->vsnd,
                                                       this->temp,
                                                       this->entr);
+#ifdef FREE_EXPANSION
+        this->umin = 0.;
+#else
         this->umin = CalcEquationOfState::getEnergyMin(this->dens, this->cmps);
+#endif
     }
     
     void referEquationOfStateDamping1() {
@@ -431,6 +433,7 @@ public:
             this->accg1 += accg3;
             this->acc   += accg3;
             this->pot   += (2. * pot3);
+            this->pot3   = pot3;
         }
     }
 
@@ -938,7 +941,11 @@ void initializeSimulation() {
 #ifdef FOR_TUBE_TEST
     MaximumTimestep   = 1. / 131072.;
 #else
+#ifdef FREE_EXPANSION
+    MaximumTimestep   = 1. / 64.;
+#else
     MaximumTimestep   = 1. / 256.;
+#endif
 #endif
     MinimumTimestep   = 1e-16;
     Timestep          = RP::MaximumTimestep;
@@ -1033,7 +1040,11 @@ void startSimulation(char **argv,
     }
     ND::setDimension(RP::NumberOfDimension);
     SK::setKernel(RP::KernelType, RP::NumberOfDimension);
+#ifdef FREE_EXPANSION
+    RP::KernelSupportRadiusMaximum = 1e9 * CodeUnit::UnitOfLengthInv;
+#else
     RP::KernelSupportRadiusMaximum = calcSystemSize(sph, bhns);
+#endif
     RP::EpsilonOfInternalEnergy    = RP::setEpsilonOfInternalEnergy(sph);
 #ifdef FOR_TUBE_TEST
     {
@@ -1137,17 +1148,6 @@ void loopSimulation(Tdinfo & dinfo,
                     sph[i].getMaximumTemperature();
                 }
             }
-            /*
-            if(RP::Time == 0) {
-                for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
-                    sph[i].densmax[0] = 0.;
-                }
-            } else {
-                for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
-                    sph[i].getMaximumDensity();
-                }
-            }
-            */
         }
         ////////////
         WT::reduceInterProcess();

@@ -5,12 +5,10 @@
 
 NPARALLEL=1
 NPROCESS=$NPARALLEL
-#ifile=../r016k/run.b1.1-1.0/unfy/sph_t0035.dat
-#ofile=../r016k/init/t0035_b1.1-1.0.data
-ifile=../../t0035_b1.1-1.0_ph01/sph_t0064.dat
-ofile=../../t0035_b1.1-1.0_ph01/b1.1-1.0_phase01.data
-iflag=1
-hefrc=0.1
+ifile=../r064k/rlx2_s1.00/final.dat
+ofile=../r064k/init/s1.00_heco0040_r1e8.data
+iflag=0
+hefrc=0.04
 
 cd $PBS_O_WORKDIR
 

@@ -73,6 +73,7 @@ namespace HeliumDetonation {
     PS::F64 tmax = 1.0e9;
     PS::F64 tmin = 1.0e7;
     PS::F64 size = 2e8;
+//    PS::F64 size = 1e8;
 
     PS::F64 getTemperatureLinear(SPH3D & sph) {
         PS::F64 temp;
