@@ -1,4 +1,5 @@
-ifile=data/r008k/cowd1.2_pw.bh5e2.b03.00/sph_t0128.dat
+#ifile=data/r008k/cowd1.2_pw.bh5e2.b03.00/sph_t0128.dat
+ifile=preliminary/sph_t0128.dat
 tmin=2e9
 
 echo "1" > dummy.hoge
