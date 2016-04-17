@@ -71,9 +71,8 @@ public:
 
 namespace HeliumDetonation {
     PS::F64 tmax = 1.0e9;
-    PS::F64 tmin = 1.0e7;
-    PS::F64 size = 2e8;
-//    PS::F64 size = 1e8;
+    PS::F64 tmin = 1.0e8;
+    PS::F64 size = 0.;
 
     PS::F64 getTemperatureLinear(SPH3D & sph) {
         PS::F64 temp;
@@ -135,6 +134,7 @@ int main(int argc, char ** argv) {
     char ofile[64];
     PS::S64 flag;
     PS::F64 rmin;
+    PS::F64 hemf;
 
     {
         FILE * fp = fopen(argv[1], "r");
@@ -147,6 +147,10 @@ int main(int argc, char ** argv) {
             printf("Helium detonation\n");
             fscanf(fp, "%lf", &rmin);
             printf("rmin: %+e\n", rmin);
+            fscanf(fp, "%lf", &HeliumDetonation::size);
+            printf("size: %+e\n", HeliumDetonation::size);
+            fscanf(fp, "%lf", &hemf);
+            printf("He fraction: %+e\n", hemf);
         } else {
             printf("Carbon detonation\n");
         }
@@ -164,9 +168,9 @@ int main(int argc, char ** argv) {
                 sph.read(ifp);
                 PS::F64 r2 = sph.pos * sph.pos;
                 if(r2 >= rmin * rmin) {
-                    sph.cmps[0] = 0.9;
-                    sph.cmps[1] = 0.05;
-                    sph.cmps[2] = 0.05;
+                    sph.cmps[0] = hemf;
+                    sph.cmps[1] = 0.5 * (1. - sph.cmps[0]);
+                    sph.cmps[2] = 0.5 * (1. - sph.cmps[0]);
                     PS::F64 temp = HeliumDetonation::getTemperatureLinear(sph);
                     flash_helmholtz_e_(&sph.dens, &temp, sph.cmps.getPointer(), &sph.uene);
                 }

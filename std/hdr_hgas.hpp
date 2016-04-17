@@ -941,11 +941,7 @@ void initializeSimulation() {
 #ifdef FOR_TUBE_TEST
     MaximumTimestep   = 1. / 131072.;
 #else
-#ifdef FREE_EXPANSION
-    MaximumTimestep   = 1. / 64.;
-#else
     MaximumTimestep   = 1. / 256.;
-#endif
 #endif
     MinimumTimestep   = 1e-16;
     Timestep          = RP::MaximumTimestep;

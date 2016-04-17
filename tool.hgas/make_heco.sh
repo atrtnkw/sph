@@ -1,31 +1,17 @@
-if test $# -ne 2
+if test $# -ne 3
 then
-    echo "sh $0 <InputFile> <FractionOfHe>"
+    echo "sh $0 <InputFile> <FractionOfHeOverall> <MassFractionOfHePerParticle>"
     exit
 fi
 
 ifile=$1
-frche=$2
-dtool=~/git-sph/tool.hgas
+hefrc=$2
+hemfrc=$3
 
-awk -f "$dtool"/change_t2t.awk $ifile > tmp.data
+nptcl=`wc -l $ifile | awk '{print $1}'`
+nhelium=`echo "$nptcl * $hefrc / $hemfrc" | bc -l | awk '{printf("%d\n", $1);}'`
+rmin=`awk '{print $4**2+$5**2+$6**2;}' $ifile | sort -g \
+    | tail -n"$nhelium" | head -n1 | awk '{print sqrt($1);}'`
 
-awk 'BEGIN{x=y=z=0.;n=0;}{x+=$4;y+=$5;z+=$6;n++;}END{print x/n, y/n, z/n, n;}' tmp.data > tmp.cen
-x=`awk '{print $1;}' tmp.cen`
-y=`awk '{print $2;}' tmp.cen`
-z=`awk '{print $3;}' tmp.cen`
-n=`awk '{print $4;}' tmp.cen`
-
-ncrit=`echo "$n * (1. - $frche)" | bc`
-
-r2crit=`awk '{print ($4-x)**2+($5-y)**2+($6-z)**2;}' x=$x y=$y z=$z tmp.data \
-    | sort -g \
-    | awk '{if(NR>=ncrit) printf("%+e\n", $1);}' ncrit=$ncrit \
-    | head -n1`
-
-awk '{r2=($4-x)**2+($5-y)**2+($6-z)**2;if(r2>=r2crit){$14=1.;$15=0.;$16=0.;} print $0;}' \
-    x=$x y=$y z=$z r2crit=$r2crit tmp.data \
-    | awk '{printf("%8d %2d %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e\n", $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26);}'
-
-rm -f tmp.*
-
+awk '{r2=$4**2+$5**2+$6**2;if(r2>=rmin*rmin){co=0.5*(1.-he);$32=he;$33=co;$34=co;} print $0;}' \
+    rmin=$rmin he=$hemfrc $ifile
