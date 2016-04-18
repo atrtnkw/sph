@@ -36,6 +36,9 @@ namespace CodeUnit {
     PS::F64 MegaElectronVoltToErg  = ElectronVoltToErg * 1e6;
     PS::F64 MegaElectronVoltToGram = MegaElectronVoltToErg / (SpeedOfLight * SpeedOfLight);
     PS::F64 AvogadroConstant   = 6.0221417930e23;
+    PS::F64 StefanBoltzmannConstant = 5.670367e-5;
+    PS::F64 RadiationConstant       = 4. * StefanBoltzmannConstant / SpeedOfLight;
+    PS::F64 RadiationConstantInv    = 1. / RadiationConstant;
 
     PS::F64 UnitOfLength       = SolarRadius * 1.0e-3d;
     PS::F64 UnitOfMass         = SolarMass   * 1.0e-6d;
@@ -326,6 +329,26 @@ public:
         soundvelocity = cout * CodeUnit::UnitOfVelocityInv;
         temperature   = tout;
         entropy       = sout * CodeUnit::UnitOfEnergyInv;
+    }
+
+    static void getThermodynamicQuantityRadiationDominant(PS::F64 density,
+                                                          PS::F64 energy,
+                                                          PS::F64 & pressure,
+                                                          PS::F64 & soundvelocity,
+                                                          PS::F64 & temperature,
+                                                          PS::F64 & entropy) {
+        PS::F64 din = density * CodeUnit::UnitOfDensity;
+        PS::F64 ein = energy * CodeUnit::UnitOfEnergy;
+        PS::F64 tin = (temperature != 0.) ? temperature : 1e9;
+        PS::F64 pout, cout, tout, sout;
+
+        pout = 0.3333333333333333 * ein * din;
+        tout = pow(3. * pout * CodeUnit::RadiationConstantInv, 0.25);
+
+        pressure      = pout * CodeUnit::UnitOfPressureInv;
+        soundvelocity = 1. * CodeUnit::UnitOfVelocityInv;
+        temperature   = tout;
+        entropy       = 1. * CodeUnit::UnitOfEnergyInv;
     }
 #endif
 };

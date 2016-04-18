@@ -248,11 +248,6 @@ public:
                                                       this->vsnd,
                                                       this->temp,
                                                       this->entr);
-#ifdef FREE_EXPANSION
-        this->umin = 0.;
-#else
-        this->umin = CalcEquationOfState::getEnergyMin(this->dens, this->cmps);
-#endif
     }
     
     void referEquationOfStateDamping1() {
@@ -1036,11 +1031,7 @@ void startSimulation(char **argv,
     }
     ND::setDimension(RP::NumberOfDimension);
     SK::setKernel(RP::KernelType, RP::NumberOfDimension);
-#ifdef FREE_EXPANSION
-    RP::KernelSupportRadiusMaximum = 1e9 * CodeUnit::UnitOfLengthInv;
-#else
     RP::KernelSupportRadiusMaximum = calcSystemSize(sph, bhns);
-#endif
     RP::EpsilonOfInternalEnergy    = RP::setEpsilonOfInternalEnergy(sph);
 #ifdef FOR_TUBE_TEST
     {
@@ -1099,6 +1090,7 @@ void restartSimulation(char **argv,
     //RP::CoefficientOfTimestep = 1e-1;
     //RP::TimestepAscii   = 1. / 1024.;
     //RP::MaximumTimestep = 1. / 1024.;
+    //RP::KernelSupportRadiusMaximum *= 0.5;
     // *********************
     RP::outputRunParameter(argv);
     return;
