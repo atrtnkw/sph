@@ -248,6 +248,7 @@ public:
                                                       this->vsnd,
                                                       this->temp,
                                                       this->entr);
+        this->umin = CalcEquationOfState::getEnergyMin(this->dens, this->cmps);
     }
     
     void referEquationOfStateDamping1() {
