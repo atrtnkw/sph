@@ -106,12 +106,9 @@ namespace CarbonDetonation {
     }
 #else
     PS::F64 tmax = 3.5e9;
-    PS::F64 tmin = 1.0e7;
+    PS::F64 tmin = 1e7;
     PS::F64 size = 0.0;
-//    PS::F64 size = 5.0e8;
-    PS::F64vec hpos(-1.419623e+08, -8.197388e+07, +1.041066e+08);   // for t0035
-//    PS::F64vec hpos(-2.260155e+08, -1.932894e+08, +1.063025e+07); // for t0036
-//    PS::F64vec hpos(+2.667679e+08, +1.413839e+08, -1.520732e+08); // for t0100
+    PS::F64vec hpos;
 
     PS::F64 getTemperatureLinear(SPH3D & sph) {
         PS::F64 temp = sph.temp;
@@ -153,6 +150,16 @@ int main(int argc, char ** argv) {
             printf("He fraction: %+e\n", hemf);
         } else {
             printf("Carbon detonation\n");
+            fscanf(fp, "%lf", &CarbonDetonation::size);
+            printf("size: %+e\n", CarbonDetonation::size);
+            fscanf(fp, "%lf%lf%lf",
+                   &CarbonDetonation::hpos[0],
+                   &CarbonDetonation::hpos[1],
+                   &CarbonDetonation::hpos[2]);
+            printf("spot: %+e %+e %+e\n",
+                   &CarbonDetonation::hpos[0],
+                   &CarbonDetonation::hpos[1],
+                   &CarbonDetonation::hpos[2]);
         }
         fclose(fp);
     }    
