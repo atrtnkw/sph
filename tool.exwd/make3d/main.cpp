@@ -157,9 +157,9 @@ int main(int argc, char ** argv) {
                    &CarbonDetonation::hpos[1],
                    &CarbonDetonation::hpos[2]);
             printf("spot: %+e %+e %+e\n",
-                   &CarbonDetonation::hpos[0],
-                   &CarbonDetonation::hpos[1],
-                   &CarbonDetonation::hpos[2]);
+                   CarbonDetonation::hpos[0],
+                   CarbonDetonation::hpos[1],
+                   CarbonDetonation::hpos[2]);
         }
         fclose(fp);
     }    
