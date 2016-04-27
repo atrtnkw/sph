@@ -1,5 +1,8 @@
-#argv: mode (x:0 y:1 z:2), dx
+#argv: px, py, pz, dx, dy, dz
 BEGIN{
+    px = 0.;
+    py = 0.;
+    pz = 0.;
     dx = 1e30;
     dy = 1e30;
     dz = 1e30;
@@ -10,7 +13,7 @@ BEGIN{
         exit;
     }
 
-    if(- dx < $4 && $4 < dx && - dy < $5 && $5 < dy && - dz < $6 && $6 < dz) {
+    if(px - dx < $4 && $4 < px + dx && py - dy < $5 && $5 < py + dy && pz - dz < $6 && $6 < pz + dz) {
         print $0;
     }
 }
