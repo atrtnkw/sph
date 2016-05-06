@@ -5,12 +5,12 @@ BEGIN{
     ethm = 0.0;
 }
 {
-    mass = $2;
-    xvel = $6;
-    yvel = $7;
-    zvel = $8;
-    uene = $12;
-    pot  = $24;
+    mass = $3;
+    xvel = $7;
+    yvel = $8;
+    zvel = $9;
+    uene = $13;
+    pot  = $25;
 
     ikin = 0.5 * mass * (xvel**2 + yvel**2 + zvel**2);
     ipot = 0.5 * mass * pot;
