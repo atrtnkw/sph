@@ -368,6 +368,7 @@ void absorbParticleIntoBlackHoleNeutronStar(Tdinfo & dinfo,
                 dx[1] * CodeUnit::UnitOfLength, dx[2] * CodeUnit::UnitOfLength);
         fprintf(RP::FilePointerForDebug, " dv: %+e %+e %+e\n", dv[0] * CodeUnit::UnitOfVelocity,
                 dv[1] * CodeUnit::UnitOfVelocity, dv[2] * CodeUnit::UnitOfVelocity);
+        fflush(RP::FilePointerForDebug);
 #endif
         ndloc++;
         ekloc += 0.5 * sph[i].mass * (sph[i].vel * sph[i].vel);
@@ -411,6 +412,7 @@ void absorbParticleIntoBlackHoleNeutronStar(Tdinfo & dinfo,
         RP::AbsorbedEnergyTotal += (kglb1 + ephi1) - (kglb0 + uglb0 + ephi0);
 
     }
+
 }
 
 #endif
