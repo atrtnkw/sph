@@ -1,0 +1,11 @@
+8e7 1e8 1.0
+0.0 0.5 0.5
+2.5e9 1e7 4e7
+0 1600
+../init/r1e8_t2.5e9_n1600
+
+# box length, density, alpha
+# x_he, x_c, x_o
+# tempmax, tempmin, hotspot size
+# 0(linear)1(tophat), nptcl
+# filetype

@@ -126,7 +126,7 @@ int main(int argc, char ** argv) {
     cmps[1] = tc12;
     cmps[2] = to16;
 
-    init_flash_helmholtz_();
+    init_flash_helmholtz_(&CodeUnit::FractionOfCoulombCorrection);
 
     char filename[64];
     sprintf(filename, "%s.data", filetype);
