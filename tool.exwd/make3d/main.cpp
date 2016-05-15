@@ -87,26 +87,8 @@ namespace HeliumDetonation {
 }
 
 namespace CarbonDetonation {
-#if 0
-    PS::F64 tmax = 2.0e9;
-    PS::F64 tmin = 1.0e7;
-    PS::F64 size = 2.5e8;
-    PS::F64vec hpos(0., 0., 0.);
-
-    PS::F64 getTemperatureLinear(SPH3D & sph) {
-        PS::F64 temp;
-        PS::F64vec dx = sph.pos - hpos;
-        PS::F64 rsph = sqrt(dx * dx);
-        if(rsph < size) {
-            temp = tmax - (tmax - tmin) * rsph / size;
-        } else {
-            temp = tmin;
-        }
-        return temp;
-    }
-#else
     PS::F64 tmax = 3.5e9;
-    PS::F64 tmin = 1e7;
+    PS::F64 tmin = 1e9;
     PS::F64 size = 0.0;
     PS::F64vec hpos;
 
@@ -117,10 +99,11 @@ namespace CarbonDetonation {
         if(rsph < size) {
             temp = tmax - (tmax - tmin) * rsph / size;
             temp = std::max(temp, sph.temp);
+        } else {
+            temp = tmin;
         }
         return temp;
     }
-#endif
 }
 
 int main(int argc, char ** argv) {
@@ -188,9 +171,6 @@ int main(int argc, char ** argv) {
                 SPH3D sph;
                 sph.read(ifp);
                 PS::F64 temp = CarbonDetonation::getTemperatureLinear(sph);
-#if 0
-                flash_helmholtz_e_(&sph.dens, &temp, sph.cmps.getPointer(), &sph.uene);
-#else
                 if(temp != sph.temp) {
                     flash_helmholtz_e_(&sph.dens, &temp, sph.cmps.getPointer(), &sph.uene);
                 }
@@ -199,7 +179,6 @@ int main(int argc, char ** argv) {
                     flash_helmholtz_e_(&sph.dens, &temp, sph.cmps.getPointer(), &sph.uene);
                 }
                 sph.istar = 0;
-#endif
                 sph.write(ofp);
             }
         }
