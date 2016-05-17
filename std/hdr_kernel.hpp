@@ -42,27 +42,35 @@ namespace SmoothingKernel {
     }
 
     inline v4df calcWendlandC20th1D(const v4df r) {
-        v4df rmin = v4df::max(v4df(1.d) - r, 0.d);
-        return v4df(ceff0) * rmin * rmin * rmin * (v4df(1.d) + v4df(3.d) * r);
+//        v4df rmin = v4df::max(v4df(1.d) - r, 0.d);
+        v4df rmin = v4df::max(v4df(1.) - r, 0.);
+//        return v4df(ceff0) * rmin * rmin * rmin * (v4df(1.d) + v4df(3.d) * r);
+        return v4df(ceff0) * rmin * rmin * rmin * (v4df(1.) + v4df(3.) * r);
     }
     inline v4df calcWendlandC21st1D(const v4df r) {
-        v4df rmin  = v4df::max(v4df(1.d) - r, 0.d);
+//        v4df rmin  = v4df::max(v4df(1.d) - r, 0.d);
+        v4df rmin  = v4df::max(v4df(1.) - r, 0.);
         v4df rmin2 = rmin * rmin;
         v4df rmin3 = rmin * rmin2;
-        return v4df(ceff1) * (rmin3 - rmin2 * (v4df(1.d) + v4df(3.d) * r));
+//        return v4df(ceff1) * (rmin3 - rmin2 * (v4df(1.d) + v4df(3.d) * r));
+        return v4df(ceff1) * (rmin3 - rmin2 * (v4df(1.) + v4df(3.) * r));
     }
 
     inline v4df calcWendlandC20thMD(const v4df r) {
-        v4df rmin  = v4df::max(v4df(1.d) - r, 0.d);
+//        v4df rmin  = v4df::max(v4df(1.d) - r, 0.d);
+        v4df rmin  = v4df::max(v4df(1.) - r, 0.);
         v4df rmin2 = rmin * rmin;
-        return v4df(ceff0) * rmin2 * rmin2 * (v4df(1.d) + v4df(4.d) * r);
+//        return v4df(ceff0) * rmin2 * rmin2 * (v4df(1.d) + v4df(4.d) * r);
+        return v4df(ceff0) * rmin2 * rmin2 * (v4df(1.) + v4df(4.) * r);
     }
     inline v4df calcWendlandC21stMD(const v4df r) {
-        v4df rmin  = v4df::max(v4df(1.d) - r, 0.d);
+//        v4df rmin  = v4df::max(v4df(1.d) - r, 0.d);
+        v4df rmin  = v4df::max(v4df(1.) - r, 0.);
         v4df rmin2 = rmin  * rmin;
         v4df rmin3 = rmin  * rmin2;
         v4df rmin4 = rmin2 * rmin2;
-        return v4df(ceff1) * (rmin4 - rmin3 * (v4df(1.d) + v4df(4.d) * r));
+//        return v4df(ceff1) * (rmin4 - rmin3 * (v4df(1.d) + v4df(4.d) * r));
+        return v4df(ceff1) * (rmin4 - rmin3 * (v4df(1.) + v4df(4.) * r));
     }
 
     void setKernel(const KernelType kn,
@@ -144,14 +152,18 @@ namespace SmoothingKernel {
     const PS::F64 ceff1   = +3.75;
 
     inline v4df kernel0th(const v4df r) {
-        v4df rmin = v4df::max(v4df(1.d) - r, 0.d);
-        return v4df(ceff0) * rmin * rmin * rmin * (v4df(1.d) + v4df(3.d) * r);
+//        v4df rmin = v4df::max(v4df(1.d) - r, 0.d);
+        v4df rmin = v4df::max(v4df(1.) - r, 0.);
+//        return v4df(ceff0) * rmin * rmin * rmin * (v4df(1.d) + v4df(3.d) * r);
+        return v4df(ceff0) * rmin * rmin * rmin * (v4df(1.) + v4df(3.) * r);
     }
     inline v4df kernel1st(const v4df r) {
-        v4df rmin  = v4df::max(v4df(1.d) - r, 0.d);
+//        v4df rmin  = v4df::max(v4df(1.d) - r, 0.d);
+        v4df rmin  = v4df::max(v4df(1.) - r, 0.);
         v4df rmin2 = rmin * rmin;
         v4df rmin3 = rmin * rmin2;
-        return v4df(ceff1) * (rmin3 - rmin2 * (v4df(1.d) + v4df(3.d) * r));
+//        return v4df(ceff1) * (rmin3 - rmin2 * (v4df(1.d) + v4df(3.d) * r));
+        return v4df(ceff1) * (rmin3 - rmin2 * (v4df(1.) + v4df(3.) * r));
     }
     void setKernel(const KernelType kn,
                    const PS::F64 ndim) {
@@ -166,13 +178,16 @@ namespace SmoothingKernel {
     const  PS::F64 ksrhinv = 1. / ksrh;
     const  PS::F64 ceff0 = +1.5;
     inline v4df kernel0th(const v4df r) {
-        v4df rmin  = v4df::max(v4df(1.d) - r, 0.d);
+//        v4df rmin  = v4df::max(v4df(1.d) - r, 0.d);
+        v4df rmin  = v4df::max(v4df(1.) - r, 0.);
         v4df rmin2 = rmin * rmin;
         return v4df(ceff0) * rmin2 * rmin2 * rmin
-            * (v4df(1.d) + v4df(5.d) * r + v4df(8.d) * r * r);
+//            * (v4df(1.d) + v4df(5.d) * r + v4df(8.d) * r * r);
+            * (v4df(1.) + v4df(5.) * r + v4df(8.) * r * r);
     }
     inline v4df kernel1st(const v4df r) {
-        v4df rmin  = v4df::max(v4df(1.d) - r, 0.d);
+//        v4df rmin  = v4df::max(v4df(1.d) - r, 0.d);
+        v4df rmin  = v4df::max(v4df(1.) - r, 0.);
         v4df rmin2 = rmin  * rmin;
         v4df rmin4 = rmin2 * rmin2;
         return v4df(ceff0) * rmin4 * (rmin * (v4df(5.d) + v4df(16.d) * r)
@@ -198,16 +213,20 @@ namespace SmoothingKernel {
     const PS::F64 ceff1   = +1.336901521971920914e+01;
 
     inline v4df kernel0th(const v4df r) {
-        v4df rmin  = v4df::max(v4df(1.d) - r, 0.d);
+//        v4df rmin  = v4df::max(v4df(1.d) - r, 0.d);
+        v4df rmin  = v4df::max(v4df(1.) - r, 0.);
         v4df rmin2 = rmin * rmin;
-        return v4df(ceff0) * rmin2 * rmin2 * (v4df(1.d) + v4df(4.d) * r);
+//        return v4df(ceff0) * rmin2 * rmin2 * (v4df(1.d) + v4df(4.d) * r);
+        return v4df(ceff0) * rmin2 * rmin2 * (v4df(1.) + v4df(4.) * r);
     }
     inline v4df kernel1st(const v4df r) {
-        v4df rmin  = v4df::max(v4df(1.d) - r, 0.d);
+//        v4df rmin  = v4df::max(v4df(1.d) - r, 0.d);
+        v4df rmin  = v4df::max(v4df(1.) - r, 0.);
         v4df rmin2 = rmin  * rmin;
         v4df rmin3 = rmin  * rmin2;
         v4df rmin4 = rmin2 * rmin2;
-        return v4df(ceff1) * (rmin4 - rmin3 * (v4df(1.d) + v4df(4.d) * r));
+//        return v4df(ceff1) * (rmin4 - rmin3 * (v4df(1.d) + v4df(4.d) * r));
+        return v4df(ceff1) * (rmin4 - rmin3 * (v4df(1.) + v4df(4.) * r));
     }
     void setKernel(const KernelType kn,
                    const PS::F64 ndim) {

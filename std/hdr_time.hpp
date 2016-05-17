@@ -203,15 +203,15 @@ public:
 
     static void clear() {
         WallclockTime & p = getInstance();
-        p.TimeDecomposeDomain      = 0.d;
-        p.TimeExchangeParticle     = 0.d;
-        p.TimeCalcDensity          = 0.d;
-        p.TimeCalcHydro            = 0.d;
-        p.TimeCalcGravity          = 0.d;
-        p.TimeReferEquationOfState = 0.d;
-        p.TimeIntegrateOrbit       = 0.d;
-        p.TimeCalcNuclearReaction  = 0.d;
-        p.TimeOthers               = 0.d;
+        p.TimeDecomposeDomain      = 0.;
+        p.TimeExchangeParticle     = 0.;
+        p.TimeCalcDensity          = 0.;
+        p.TimeCalcHydro            = 0.;
+        p.TimeCalcGravity          = 0.;
+        p.TimeReferEquationOfState = 0.;
+        p.TimeIntegrateOrbit       = 0.;
+        p.TimeCalcNuclearReaction  = 0.;
+        p.TimeOthers               = 0.;
     }
 };
 

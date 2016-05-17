@@ -538,7 +538,8 @@ struct v4df {
     }
 
     static v4df fabs(v4df rhs) {
-        v4df signmask(-0.0d);
+//        v4df signmask(-0.0d);
+        v4df signmask(-0.0);
         return _mm256_andnot_pd(signmask, rhs);
     }
 
