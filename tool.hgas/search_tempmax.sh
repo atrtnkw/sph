@@ -12,6 +12,11 @@ for time in $(seq $tbgn 1 $tend)
 do
     ptim=`printf "%04d" $time`
     ifile="$idir"/sph_t"$ptim".dat
+    if ! test -e $ifile
+    then
+        echo "$ifile is not found" 1>&2
+        continue
+    fi
     printf "%5d" $time
     awk 'BEGIN{rhol=10**5.0;rhoh=10**5.5;}{if(rhol<=$16&&$16<rhoh) print $21;}' $ifile \
         | awk 'BEGIN{tmax=0.;}{if($1>tmax){tmax=$1;}}END{printf(" %+e", tmax);}' t=$time

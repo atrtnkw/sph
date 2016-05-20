@@ -5,12 +5,13 @@
 
 NPARALLEL=1
 NPROCESS=$NPARALLEL
-ifile=../r256k/rlx2_s1.10/final.dat
-ofile=../r256k/init/s1.10_hetot0010_hep050_r05e7.data
+ifile=../../../exwd/t002/sph_t0153.dat
+ofile=../../../exwd/init/b1.1-0.9_he0100-050_t0153.data
 iflag=0
-hefrc=0.01
-hesize=0.5e8
-hemfrc=0.5
+size=1e8
+spotx=-6.735527e+08
+spoty=+8.732118e+07
+spotz=-1.899386e+07
 
 cd $PBS_O_WORKDIR
 
@@ -21,11 +22,7 @@ echo $nptcl  > input.list
 echo $ifile >> input.list
 echo $ofile >> input.list
 echo $iflag >> input.list
-
-nhelium=`echo "$nptcl * $hefrc / $hemfrc" | bc -l | awk '{printf("%d\n", $1);}'`
-awk '{print $4**2+$5**2+$6**2;}' $ifile | sort -g \
-    | tail -n"$nhelium" | head -n1 | awk '{print sqrt($1);}' >> input.list
-echo $hesize >> input.list
-echo $hemfrc >> input.list
+echo $size  >> input.list
+echo $spotx $spoty $spotz >> input.list
 
 aprun -n $NPROCESS -d $OMP_NUM_THREADS ./run input.list
