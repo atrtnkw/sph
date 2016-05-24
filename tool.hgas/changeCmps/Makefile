@@ -9,6 +9,7 @@ use_omp = yes
 ###########################
 ###### AT_FLAGS ##############################
 CFLAGS += -DUSE_HELMHOLTZ
+CFLAGS += -DCOULOMB_CORRECTION
 #CFLAGS += -DOLD_FORMAT
 #CFLAGS += -DNEW_FORMAT
 ##############################################

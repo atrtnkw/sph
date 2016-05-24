@@ -48,9 +48,7 @@ public:
         for(PS::S32 k = 0; k < NuclearReaction::NumberOfNucleon; k++) { // 32 -- 44
             fscanf(fp, "%lf", &this->cmps[k]);
         }
-        /*
-        fscanf(fp, "%d", &this->fnse);
-        */
+        fscanf(fp, "%lf", &this->pot3);
         fscanf(fp, "%lf%lf%lf", &this->tempmax[0], &this->tempmax[1], &this->tempmax[2]);
     }
 

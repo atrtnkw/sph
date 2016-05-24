@@ -103,7 +103,7 @@ namespace HeliumDetonation {
 
 namespace CarbonDetonation {
     PS::F64 tmax = 3.5e9;
-    PS::F64 tmin = 1e9;
+    PS::F64 tmin = 1e8;
     PS::F64 size = 0.0;
     PS::F64vec hpos;
 
@@ -117,6 +117,7 @@ namespace CarbonDetonation {
         } else {
             temp = tmin;
         }
+        temp = (temp > sph.temp) ? temp : sph.temp;
         return temp;
     }
 }

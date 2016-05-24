@@ -39,7 +39,7 @@ public:
     bool    fnse;
     PS::F64 dens0, temp0;
     NR::Nucleon cmps, cmps0;
-    PS::F64 pot3;
+    PS::F64 pot3, kin3;
 
     PS::F64 tempmax[3];
     void getMaximumTemperature() {
@@ -417,19 +417,69 @@ public:
         pot3  *= (CodeUnit::GravityConstantInThisUnit * CodeUnit::BlackHoleMassInThisUnit);
     }
 
+    inline PS::F64 calcLeviCivitaTerm(PS::F64vec & pos3,
+                                      PS::F64vec & vel3) {
+        PS::F64 val = 0.0;
+        for(PS::S32 k = 0; k < 3; k++) {
+            PS::F64 valx = pos3[(k+1)%3] * vel3[(k+2)%3] - pos3[(k+2)%3] * vel3[(k+1)%3];
+            val += valx * valx;
+        }
+        return val;        
+    }
+
+    inline void calcGeneralizedNewtonianGravity(PS::F64vec & accg3,
+                                                PS::F64 & pot3,
+                                                PS::F64 & kin3) {
+        static __thread const PS::F64 rg = CodeUnit::GravityConstantInThisUnit
+            * CodeUnit::BlackHoleMassInThisUnit
+            / (CodeUnit::SpeedOfLightInThisUnit * CodeUnit::SpeedOfLightInThisUnit);
+        PS::F64 r2    = this->pos * this->pos;
+        PS::F64 r1    = sqrt(r2);
+        PS::F64 r1inv = 1. / sqrt(r2);
+        PS::F64 r2inv = r1inv * r1inv;
+        PS::F64 r3inv = r2inv * r1inv;
+        PS::F64 r5inv = r2inv * r3inv;
+        PS::F64 r2g1  = r1 - 2.0 * rg;
+        PS::F64 r2g1i = 1.0 / r2g1;
+        PS::F64 r2g2  = r2g1 * r2g1;
+        PS::F64 r2g2i = 1.0 / r2g2;
+        PS::F64 rv    = this->pos * this->vel;
+        PS::F64 lv    = calcLeviCivitaTerm(this->pos, this->vel);
+
+        accg3  = (- CodeUnit::GravityConstantInThisUnit * CodeUnit::BlackHoleMassInThisUnit
+                  * r3inv * r2g2 * r2inv) * this->pos;
+        accg3 += (2.0 * rg * r2inv * r2g1i * rv) * this->vel;
+        accg3 -= (3.0 * rg * r5inv * lv) * this->pos;
+        pot3   = - CodeUnit::GravityConstantInThisUnit * CodeUnit::BlackHoleMassInThisUnit * r1inv;
+        kin3   = 0.5 * (rv * rv * r2g2i + lv * r1inv * r2g1i);
+    }
+
     inline void addAdditionalForce() {
         if(RP::FlagBinary == 2) {
             PS::F64vec accg3;
-            PS::F64    pot3;
+            PS::F64    pot3, kin3;
+            /*
             if(RP::FlagPotential == 0) {
                 calcNewtonGravity(accg3, pot3);
             } else {
                 calcPaczynskiWiitaGravity(accg3, pot3);
             }
+            */
+            if(RP::FlagPotential == 0) {
+                calcNewtonGravity(accg3, pot3);
+            } else if (RP::FlagPotential == 1) {
+                calcPaczynskiWiitaGravity(accg3, pot3);
+            } else if (RP::FlagPotential == 2) {
+                calcGeneralizedNewtonianGravity(accg3, pot3, kin3);
+            } else {
+                fprintf(stderr, "Unknown potential!\n");
+                PS::Abort();
+            }
             this->accg1 += accg3;
             this->acc   += accg3;
             this->pot   += (2. * pot3);
             this->pot3   = pot3;
+            this->kin3   = kin3;
         }
     }
 
@@ -439,7 +489,11 @@ public:
     }
 
     PS::F64 calcEnergy() {
-        return this->mass * (0.5 * this->vel * this->vel + this->uene + 0.5 * this->pot);
+        if(RP::FlagPotential != 2) {
+            return this->mass * (0.5 * this->vel * this->vel + this->uene + 0.5 * this->pot);
+        } else {
+            return this->mass * (      this->kin3            + this->uene + 0.5 * this->pot);
+        }
     }
 
     PS::F64 calcEnergyDamping2() {
