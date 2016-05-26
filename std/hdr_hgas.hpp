@@ -40,6 +40,7 @@ public:
     PS::F64 dens0, temp0;
     NR::Nucleon cmps, cmps0;
     PS::F64 pot3;
+    PS::F64 gcor3, dgcor3;
 
     PS::F64 tempmax[3];
     void getMaximumTemperature() {
@@ -340,13 +341,10 @@ public:
 
     bool whetherIsParticleHotAndDiffuse() {
         bool val = false;
-//#ifdef FOR_TUBE_TEST
-//#else
         if(this->temp >= CodeUnit::MinimumOfTemperatureNSE
            && this->dens >= CodeUnit::MinimumOfDensityExplicitInThisUnit) {
             val = true;
         }
-//#endif
         return val;
     }
 
@@ -367,6 +365,15 @@ public:
         this->enuc += this->dnuc;
     }
 
+#ifdef NBODYLIKE
+    PS::F64 calcTimestep() {
+        PS::F64 tceff  = RP::CoefficientOfTimestep;
+        PS::F64vec grv = this->accg1 + this->accg2;
+        PS::F64 dtg    = tceff * sqrt(1e6 * CodeUnit::UnitOfLengthInv / sqrt(grv * grv));
+//        PS::F64 dtg    = tceff * sqrt(1e7 * CodeUnit::UnitOfLengthInv / sqrt(grv * grv));
+        return std::min(dtg, RP::MaximumTimestep);
+    }
+#else
     PS::F64 calcTimestep() {
         using namespace CodeUnit;
         PS::F64 tceff = RP::CoefficientOfTimestep;
@@ -379,6 +386,7 @@ public:
         PS::F64 dtg = tceff * sqrt(this->ksr / sqrt(grv * grv));
         return std::min(std::min(dth, dtu), std::min(dtg, dtc));
     }
+#endif
 
     inline void calcNewtonGravity(PS::F64vec & accg3,
                                   PS::F64 & pot3) {
@@ -428,7 +436,8 @@ public:
     }
 
     inline void calcGeneralizedNewtonianGravity(PS::F64vec & accg3,
-                                                PS::F64 & pot3) {
+                                                PS::F64 & pot3,
+                                                PS::F64 & dgcor3) {
         static __thread const PS::F64 rg = CodeUnit::GravityConstantInThisUnit
             * CodeUnit::BlackHoleMassInThisUnit
             / (CodeUnit::SpeedOfLightInThisUnit * CodeUnit::SpeedOfLightInThisUnit);
@@ -444,17 +453,29 @@ public:
         PS::F64 rv    = this->pos * this->vel;
         PS::F64 lv    = calcLeviCivitaTerm(this->pos, this->vel);
 
+        /*
         accg3  = (- CodeUnit::GravityConstantInThisUnit * CodeUnit::BlackHoleMassInThisUnit
                   * r3inv * r2g2 * r2inv) * this->pos;
         accg3 += (2.0 * rg * r2inv * r2g1i * rv) * this->vel;
         accg3 -= (3.0 * rg * r5inv * lv) * this->pos;
         pot3   = - CodeUnit::GravityConstantInThisUnit * CodeUnit::BlackHoleMassInThisUnit * r1inv;
+        */
+        PS::F64vec acccon = (- CodeUnit::GravityConstantInThisUnit
+                             * CodeUnit::BlackHoleMassInThisUnit
+                             * r3inv * r2g2 * r2inv) * this->pos;
+        PS::F64vec accnon = (2.0 * rg * r2inv * r2g1i * rv) * this->vel
+            - (3.0 * rg * r5inv * lv) * this->pos;
+        accg3  = acccon + accnon;
+        pot3   = - CodeUnit::GravityConstantInThisUnit * CodeUnit::BlackHoleMassInThisUnit * r1inv
+            * (1.0 - 2.0 * rg * r1inv + (4.0 / 3.0) * rg * rg * r2inv);
+        dgcor3 = this->vel * accnon;
     }
 
     inline void addAdditionalForce() {
         if(RP::FlagBinary == 2) {
             PS::F64vec accg3;
             PS::F64    pot3;
+            PS::F64    dgcor3 = 0.0;
             /*
             if(RP::FlagPotential == 0) {
                 calcNewtonGravity(accg3, pot3);
@@ -467,7 +488,7 @@ public:
             } else if (RP::FlagPotential == 1) {
                 calcPaczynskiWiitaGravity(accg3, pot3);
             } else if (RP::FlagPotential == 2) {
-                calcGeneralizedNewtonianGravity(accg3, pot3);
+                calcGeneralizedNewtonianGravity(accg3, pot3, dgcor3);
             } else {
                 fprintf(stderr, "Unknown potential!\n");
                 PS::Abort();
@@ -476,6 +497,7 @@ public:
             this->acc   += accg3;
             this->pot   += (2. * pot3);
             this->pot3   = pot3;
+            this->dgcor3 = dgcor3;
         }
     }
 
@@ -484,6 +506,7 @@ public:
             + 2.d * (RP::RotationalVelocity ^ this->vel);
     }
 
+/*
     inline PS::F64 calcGeneralizedKineticEnergy() {
         static __thread const PS::F64 rg = CodeUnit::GravityConstantInThisUnit
             * CodeUnit::BlackHoleMassInThisUnit
@@ -498,13 +521,12 @@ public:
         PS::F64 lv = calcLeviCivitaTerm(this->pos, this->vel);
         return 0.5 * (rv * rv * r2g2i + lv * r1i * r2g1i);
     }
+*/
 
     PS::F64 calcEnergy() {
-        if(RP::FlagPotential != 2) {
-            return this->mass * (0.5 * this->vel * this->vel + this->uene + 0.5 * this->pot);
-        } else {
-            return this->mass * (calcGeneralizedKineticEnergy() + this->uene + 0.5 * this->pot);
-        }
+//        return this->mass * (0.5 * this->vel * this->vel + this->uene + 0.5 * this->pot);
+        return this->mass * (0.5 * this->vel * this->vel + this->uene + 0.5 * this->pot
+                             - this->gcor3);
     }
 
     PS::F64 calcEnergyDamping2() {
@@ -527,6 +549,7 @@ public:
         this->alph   = this->alph  +       this->adot  * dt;
         this->alphu2 = this->alphu + 0.5 * this->adotu * dt;
         this->alphu  = this->alphu +       this->adotu * dt;
+        this->gcor3  = this->gcor3 + 0.5 * this->dgcor3 * dt;
     }
 
     void correct(PS::F64 dt) {
@@ -534,6 +557,7 @@ public:
         this->uene  = this->uene2  + 0.5 * this->udot  * dt  +       this->dnuc;
         this->alph  = this->alph2  + 0.5 * this->adot  * dt;
         this->alphu = this->alphu2 + 0.5 * this->adotu * dt;
+        this->gcor3  = this->gcor3 + 0.5 * this->dgcor3 * dt;
     }
 
     void correctDamping1(PS::F64 dt) {
@@ -859,6 +883,9 @@ void outputData(Tdinfo & dinfo,
     PS::F64 etot = calcEnergy(sph, bhns);
     PS::F64 enuc = calcReleasedNuclearEnergyTotal(sph);
     PS::F64 vdet = calcDetonationVelocity(sph);
+#ifdef NBODYLIKE
+    if(RP::Time - (PS::S64)(RP::Time * 1024.0) / 1024.0 == 0.0) {
+#endif
     if(PS::Comm::getRank() == 0) {
         using namespace CodeUnit;
         PS::F64 eabs = RP::AbsorbedEnergyTotal;
@@ -871,6 +898,9 @@ void outputData(Tdinfo & dinfo,
         WT::dump(RP::Time, RP::FilePointerForTime);
         fflush(RP::FilePointerForTime);
     }
+#ifdef NBODYLIKE
+    }
+#endif
 }
 
 template <class Tsph,

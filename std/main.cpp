@@ -280,8 +280,10 @@ void calcSPHKernel(Tdinfo & dinfo,
 //#define NBODYLIKE
 #ifdef NBODYLIKE
     for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
-        sph[i].accg1 = 0.0;
         sph[i].acc   = 0.0;
+        sph[i].acch  = 0.0;
+        sph[i].accg1 = 0.0;
+        sph[i].accg2 = 0.0;
         sph[i].pot   = 0.0;
         sph[i].pot3  = 0.0;        
     }

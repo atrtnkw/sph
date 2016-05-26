@@ -371,11 +371,7 @@ void absorbParticleIntoBlackHoleNeutronStar(Tdinfo & dinfo,
         fflush(RP::FilePointerForDebug);
 #endif
         ndloc++;
-        if(RP::FlagPotential != 2) {        
-            ekloc += 0.5 * sph[i].mass * (sph[i].vel * sph[i].vel);
-        } else {
-            ekloc +=       sph[i].mass * sph[i].calcGeneralizedKineticEnergy();
-        }
+        ekloc += 0.5 * sph[i].mass * (sph[i].vel * sph[i].vel);
         uloc0 +=       sph[i].mass *  sph[i].uene;
         msloc +=       sph[i].mass;
         mxloc +=       sph[i].mass *  sph[i].pos;
