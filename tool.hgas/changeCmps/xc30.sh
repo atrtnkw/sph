@@ -5,8 +5,8 @@
 
 NPARALLEL=1
 NPROCESS=$NPARALLEL
-ifile=../../rlx2_s1.20/final.dat
-ofile=../../rlx2_s1.20/s1.20_onemg_t100.data
+ifile=../../../imbh.2/rlx2_s1.20/final.dat
+ofile=../../../imbh.2/rlx2_s1.20/s1.20_onemg_t100.data
 iflag=0
 rmin=0.0
 fhe=0.0
