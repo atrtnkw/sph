@@ -578,6 +578,7 @@ public:
     }
 
     void correctDamping3(PS::F64 dt) {
+        this->acc  -= this->vel * 0.05;
         this->vel   = this->vel2   + 0.5 * this->acc   * dt;
         this->uene  = this->uene2  + 0.5 * this->udot  * dt;
         this->alph  = this->alph2  + 0.5 * this->adot  * dt;
@@ -758,6 +759,7 @@ namespace RunParameter {
         } else {
             fprintf(fp, "# Restart file: %s\n", argv[2]);
         }
+        fprintf(fp, "# CoulombFrc: %+e\n", CodeUnit::FractionOfCoulombCorrection);
         fprintf(fp, "# AlphaMax:   %+e\n", AlphaMaximum);
         fprintf(fp, "# AlphaMin:   %+e\n", AlphaMinimum);
         fprintf(fp, "# AlphuMax:   %+e\n", AlphuMaximum);
