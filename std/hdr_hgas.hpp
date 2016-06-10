@@ -33,12 +33,13 @@ public:
     PS::S64 istar;
     PS::F64 temp;
     PS::F64 entr;
-    PS::S64 cnteos;    
+    //PS::S64 cnteos;    
     PS::F64 dnuc;
     PS::F64 enuc;
-    bool    fnse;
-    PS::F64 dens0, temp0;
-    NR::Nucleon cmps, cmps0;
+    //bool    fnse;
+    //PS::F64 dens0, temp0;
+    //NR::Nucleon cmps, cmps0;
+    NR::Nucleon cmps;
     PS::F64 pot3;
     PS::F64 gcor3, dgcor3;
 
@@ -134,8 +135,9 @@ public:
         PS::U64 udivv, urotv, ubswt;
         PS::U64 uksr, ugrdh, uvsmx;
         PS::U64 upot, uenuc, udnuc;
-        PS::U64 uabar, uzbar;
+        PS::U64 uabar, uzbar, ugcor3;
         PS::U64 ucmps[NR::NumberOfNucleon];
+        PS::U64 utempmax[3];
 
         fscanf(fp, "%d %d %llx", &this->id, &this->istar, &umass);
         fscanf(fp, "%llx %llx %llx", &upos[0], &upos[1], &upos[2]);
@@ -151,13 +153,14 @@ public:
         fscanf(fp, "%llx %llx %llx", &udivv, &urotv, &ubswt);
         fscanf(fp, "%llx %llx %llx", &uksr,  &ugrdh, &uvsmx);
         fscanf(fp, "%llx %llx %llx", &upot, &uenuc, &udnuc);
-        fscanf(fp, "%llx %llx", &uabar, &uzbar);
+        fscanf(fp, "%llx %llx %llx", &uabar, &uzbar, &ugcor3);
         for(PS::S32 k = 0; k < NR::NumberOfNucleon; k++) {
             fscanf(fp, "%llx", &ucmps[k]);
         }
         // A. Tanikawa adds this 15/12/05
-        fscanf(fp, "%d", &this->fnse);
+        //fscanf(fp, "%d", &this->fnse);
         //////
+        fscanf(fp, "%llx %llx %llx", &utempmax[0], &utempmax[1], &utempmax[2]);
 
         this->mass = cvt(umass);
         this->pos[0] = cvt(upos[0]);
@@ -202,6 +205,10 @@ public:
         for(PS::S32 k = 0; k < NR::NumberOfNucleon; k++) {
             this->cmps[k] = cvt(ucmps[k]);
         }
+        this->gcor3      = cvt(ugcor3);
+        this->tempmax[0] = cvt(utempmax[0]);
+        this->tempmax[1] = cvt(utempmax[1]);
+        this->tempmax[2] = cvt(utempmax[2]);
     }
 
     void writeHexa(FILE *fp) const {
@@ -223,13 +230,15 @@ public:
         fprintf(fp, " %llx %llx %llx", cvt(this->divv), cvt(this->rotv), cvt(this->bswt));
         fprintf(fp, " %llx %llx %llx", cvt(this->ksr), cvt(this->grdh), cvt(this->vsmx));
         fprintf(fp, " %llx %llx %llx", cvt(this->pot), cvt(this->enuc), cvt(this->dnuc));
-        fprintf(fp, " %llx %llx", cvt(this->abar), cvt(this->zbar));
+        fprintf(fp, " %llx %llx %llx", cvt(this->abar), cvt(this->zbar), cvt(this->gcor3));
         for(PS::S32 k = 0; k < NR::NumberOfNucleon; k++) {
             fprintf(fp, " %llx", cvt(this->cmps[k]));
         }
         // A. Tanikawa adds this 15/12/05
-        fprintf(fp, " %d", this->fnse);
+        //fprintf(fp, " %d", this->fnse);
         ///////
+        fprintf(fp, " %llx %llx %llx", cvt(this->tempmax[0]), cvt(this->tempmax[1]),
+                cvt(this->tempmax[2]));
         fprintf(fp, "\n");
     }
     
