@@ -335,7 +335,10 @@ int main(int argc, char **argv)
     hydro.initialize(0);
     PS::TreeForForce<PS::SEARCH_MODE_LONG, Gravity, GravityEPI, GravityEPJ,
                      PS::GravityMonopole, PS::GravityMonopole, PS::GravitySPJ> gravity;
+//  160610 from
     gravity.initialize(0, 0.5);
+//    gravity.initialize(0, 0.4);
+//  160610 to
 
     initializeSimulation();
 
