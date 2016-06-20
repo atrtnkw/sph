@@ -32,6 +32,7 @@ namespace RunParameter {
     PS::F64    NuclearEnergyTotal;  // enuc
     PS::F64    AbsorbedEnergyTotal; //
 
+    PS::S64    FlagDivideFile; // 0: single file 1: multiple files
     PS::S64    FlagGravity; // 0: off, 1: on
     PS::S64    FlagDamping; // 0: normal, 1: single, 2: binary
     PS::S64    FlagNuclear; // 0: off, 1: on

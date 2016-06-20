@@ -654,7 +654,7 @@ namespace RunParameter {
         PS::U64 uksrmax, uepsu, uenuc, ueabs;
         PS::U64 urtime, urtimeinv, utcoeff;
         PS::U64 urv[3];
-        PS::S64 nstep, nptcl, nmsls, nbhns, fdamp, fnuc, fbin, fpot;
+        PS::S64 nstep, nptcl, nmsls, nbhns, fdivide, fdamp, fnuc, fbin, fpot;
         PS::S64 nascii, nhexa;
         PS::U64 umbh, umbhunit;
         fscanf(fp, "%llx %llx %llx %llx %llx %lld", &utime, &utend, &udtime, &udta, &udth, &nstep);
@@ -665,8 +665,7 @@ namespace RunParameter {
         fscanf(fp, "%lld %lld %lld %llx", &nptcl, &nmsls, &nbhns, &utcoeff);
         fscanf(fp, "%llx %llx %llx", &urv[0], &urv[1], &urv[2]);
         // A. Tanikawa should correct this soon.
-        //fscanf(fp, "%llx %llx %lld %lld %lld", &uenuc, &ueabs, &fdamp, &fnuc, &fbin);
-        fscanf(fp, "%llx %llx %lld %lld %lld %lld", &uenuc, &ueabs, &fdamp, &fnuc, &fbin, &fpot);
+        fscanf(fp, "%llx %llx %lld %lld %lld %lld %lld", &uenuc, &ueabs, &fdivide, &fdamp, &fnuc, &fbin, &fpot);
         fscanf(fp, "%llx %llx", &umbh, &umbhunit);
         ///////////////////////////////////////
         Time          = cvt(utime);
@@ -694,6 +693,7 @@ namespace RunParameter {
         RotationalVelocity[2] = cvt(urv[2]);
         NuclearEnergyTotal    = cvt(uenuc);
         AbsorbedEnergyTotal   = cvt(ueabs);
+        FlagDivideFile        = fdivide;
         FlagDamping           = fdamp;
         FlagNuclear           = fnuc;
         FlagBinary            = fbin;
@@ -742,6 +742,7 @@ namespace RunParameter {
         fprintf(fp, "%llx %llx\n", cvt(NuclearEnergyTotal), cvt(AbsorbedEnergyTotal));
         // A. Tanikawa adds this 16/01/11
         //fprintf(fp, "%lld %lld %lld\n", FlagDamping, FlagNuclear, FlagBinary);
+        fprintf(fp, "%lld\n", FlagDivideFile);
         fprintf(fp, "%lld %lld %lld %lld\n", FlagDamping, FlagNuclear, FlagBinary, FlagPotential);
         fprintf(fp, " %llx %llx\n", cvt(CodeUnit::BlackHoleMass),
                 cvt(CodeUnit::BlackHoleMassInThisUnit));
@@ -855,6 +856,10 @@ void outputData(Tdinfo & dinfo,
                 Tmsls & msls) {
     if(RP::Time - (PS::S64)(RP::Time / RP::TimestepAscii) * RP::TimestepAscii == 0.) {
         char filename[64];
+//////////////////////////////////////////////////////
+///////////////////// From // 160620
+//////////////////////////////////////////////////////
+#if 0
         if(RP::TimestepAscii >= 1.) {
             sprintf(filename, "snap/sph_t%04d.dat", (PS::S32)RP::Time);
         } else {
@@ -865,6 +870,34 @@ void outputData(Tdinfo & dinfo,
             RP::NumberOfAscii++;
         }
         sph.writeParticleAscii(filename);
+#else
+        if(RP::FlagDivideFile == 0) {
+            if(RP::TimestepAscii >= 1.) {
+                sprintf(filename, "snap/sph_t%04d.dat", (PS::S32)RP::Time);
+            } else {
+                if(RP::Time == 0.) {
+                    RP::NumberOfAscii = 0;
+                }
+                sprintf(filename, "snap/sph_t%04d.dat", RP::NumberOfAscii);
+                RP::NumberOfAscii++;
+            }
+            sph.writeParticleAscii(filename);
+        } else {
+            if(RP::TimestepAscii >= 1.) {
+                sprintf(filename, "snap/sph_t%04d", (PS::S32)RP::Time);
+            } else {
+                if(RP::Time == 0.) {
+                    RP::NumberOfAscii = 0;
+                }
+                sprintf(filename, "snap/sph_t%04d", RP::NumberOfAscii);
+                RP::NumberOfAscii++;
+            }
+            sph.writeParticleAscii(filename, "%s_p%06d_i%06d.dat");
+        }
+#endif
+//////////////////////////////////////////////////////
+///////////////////// To
+//////////////////////////////////////////////////////
         if(RP::FlagDamping == 2) {
             sprintf(filename, "snap/msls_t%04d.dat", (PS::S32)RP::Time);
             msls.writeParticleAscii(filename);
@@ -1106,18 +1139,21 @@ void startSimulation(char **argv,
         char filename[256];
         sprintf(filename, "%s.data", argv[3]);
         sph.readParticleAscii(filename);    
+        RP::FlagDivideFile = 0;
+    } else {
+        sph.readParticleAscii(argv[3], "%s_p%06d_i%06d.data");    
+        RP::FlagDivideFile = 1;
+    }
+    {
+        RP::FlagBinary = 0;
+        char filename[256];
         sprintf(filename, "%s.bhns", argv[3]);
         FILE *fp  = fopen(filename, "r");
         if(fp != NULL) {
             fclose(fp);
             bhns.readParticleAscii(filename);
             RP::FlagBinary = 1;
-        } else {
-            RP::FlagBinary = 0;
         }
-//////////////////////////////////////////////////////////////
-///// A.Tanikawa adds this 160110.
-//////////////////////////////////////////////////////////////
         sprintf(filename, "%s.imbh", argv[3]);
         fp = fopen(filename, "r");
         if(fp != NULL) {
@@ -1127,11 +1163,6 @@ void startSimulation(char **argv,
             fclose(fp);
             BlackHoleMassInThisUnit = BlackHoleMass * SolarMass * UnitOfMassInv;
         }
-//////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////
-    } else {
-        sph.readParticleAscii(argv[3], "%s_p%06d_i%06d.data");    
-        RP::FlagBinary = 0;
     }
     if(RP::FlagDamping == 2) {
         generateMassLessParticle(msls, sph);
@@ -1325,7 +1356,23 @@ void finalizeSimulation(Tdinfo & dinfo,
         bhns[i].pos -= xc;
         bhns[i].vel -= vc;
     }
+//////////////////////////////////////////////////////
+///////////////////// From // 160620
+//////////////////////////////////////////////////////
+#if 0
     sph.writeParticleAscii("snap/final.dat");
+#else
+    if(RP::FlagDivideFile == 0) {
+        sph.writeParticleAscii("snap/final.dat");
+    } else {
+        char filename[64];
+        sprintf(filename, "snap/final");
+        sph.writeParticleAscii(filename, "%s_p%06d_i%06d.dat");
+    }
+#endif
+//////////////////////////////////////////////////////
+///////////////////// To
+//////////////////////////////////////////////////////
     bhns.writeParticleAscii("snap/bhns_final.dat");
 }
 
