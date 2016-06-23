@@ -1,12 +1,13 @@
-if test $# -ne 1
+if test $# -ne 2
 then
-    echo "sh $0 <idir>" 1>&2
+    echo "sh $0 <idir> <dt>" 1>&2
     exit
 fi
 
 idir=$1
+dsnp=$2
 
-for time in $(seq -f "%04g" 0 1 9999)
+for time in $(seq -f "%04g" 0 $dsnp 9999)
 do
     file="$idir"/t"$time"_p000000.hexa
     if test -e $file
@@ -16,7 +17,7 @@ do
     fi
 done
 
-for time in $(seq -f "%04g" $tbgn 1 9999)
+for time in $(seq -f "%04g" $tbgn $dsnp 9999)
 do
     file="$idir"/t"$time"_p000000.hexa
     if test -e $file
@@ -31,7 +32,7 @@ done
 
 echo "tbgn: $tbgn tend: $tend" 1>&2
 
-for time in $(seq -f "%04g" $tbgn 1 $tend)
+for time in $(seq -f "%04g" $tbgn $dsnp $tend)
 do
     if test $time -ne $tbgn -a  $time -ne $tend
     then
