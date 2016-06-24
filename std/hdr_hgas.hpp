@@ -121,6 +121,7 @@ public:
         fprintf(fp, " %+e", tpot3);                                  // 45
         fprintf(fp, " %+e %+e %+e", this->tempmax[0], this->tempmax[1] * UnitOfDensity,
                 this->tempmax[2]);                                   // 46 -- 48
+        fprintf(fp, " %+e", tentr);                                  // 49
         fprintf(fp, "\n");
     }
 
