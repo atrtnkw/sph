@@ -13,6 +13,10 @@ BEGIN{
         exit;
     }
 
+    if(NR == 1) {
+        printf("# px=%e py=%e pz=%e dx=%e dy=%e dz=%e\n", px, py, pz, dx, dy, dz);
+    }
+
     if(px - dx < $4 && $4 < px + dx && py - dy < $5 && $5 < py + dy && pz - dz < $6 && $6 < pz + dz) {
         print $0;
     }
