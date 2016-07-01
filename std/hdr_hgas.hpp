@@ -781,6 +781,9 @@ namespace RunParameter {
         fprintf(fp, "# Damping: %d\n", FlagDamping);
         fprintf(fp, "# Nuclear: %d\n", FlagNuclear);        
         fprintf(fp, "# Binary:  %d\n", FlagBinary);        
+        if(FlagBinary == 2) {
+            fprintf(fp, "# BHPotential: %d\n", FlagPotential);
+        }
         fprintf(fp, "# # of Step %8d\n", NumberOfStep);
         fflush(fp);
     }
