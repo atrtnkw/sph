@@ -50,6 +50,7 @@ public:
         }
         fscanf(fp, "%lf", &this->pot3);
         fscanf(fp, "%lf%lf%lf", &this->tempmax[0], &this->tempmax[1], &this->tempmax[2]);
+        fscanf(fp, "%lf", &this->entr);
     }
 
     void write(FILE * fp = stdout) {
