@@ -860,21 +860,6 @@ void outputData(Tdinfo & dinfo,
                 Tmsls & msls) {
     if(RP::Time - (PS::S64)(RP::Time / RP::TimestepAscii) * RP::TimestepAscii == 0.) {
         char filename[64];
-//////////////////////////////////////////////////////
-///////////////////// From // 160620
-//////////////////////////////////////////////////////
-#if 0
-        if(RP::TimestepAscii >= 1.) {
-            sprintf(filename, "snap/sph_t%04d.dat", (PS::S32)RP::Time);
-        } else {
-            if(RP::Time == 0.) {
-                RP::NumberOfAscii = 0;
-            }
-            sprintf(filename, "snap/sph_t%04d.dat", RP::NumberOfAscii);
-            RP::NumberOfAscii++;
-        }
-        sph.writeParticleAscii(filename);
-#else
         if(RP::FlagDivideFile == 0) {
             if(RP::TimestepAscii >= 1.) {
                 sprintf(filename, "snap/sph_t%04d.dat", (PS::S32)RP::Time);
@@ -898,10 +883,6 @@ void outputData(Tdinfo & dinfo,
             }
             sph.writeParticleAscii(filename, "%s_p%06d_i%06d.dat");
         }
-#endif
-//////////////////////////////////////////////////////
-///////////////////// To
-//////////////////////////////////////////////////////
         if(RP::FlagDamping == 2) {
             sprintf(filename, "snap/msls_t%04d.dat", (PS::S32)RP::Time);
             msls.writeParticleAscii(filename);
@@ -917,6 +898,10 @@ void outputData(Tdinfo & dinfo,
     }
     if(RP::Time - (PS::S64)(RP::Time / RP::TimestepHexa) * RP::TimestepHexa == 0.) {
         char filename[64];
+//////////////////////////////////////////////////////
+///////////////////// From // 160710
+//////////////////////////////////////////////////////
+#if 0
         if(RP::TimestepHexa >= 1.) {
             sprintf(filename, "snap/t%04d_p%06d.hexa", (PS::S32)RP::Time, PS::Comm::getRank());
         } else {
@@ -926,6 +911,20 @@ void outputData(Tdinfo & dinfo,
             sprintf(filename, "snap/t%04d_p%06d.hexa", RP::NumberOfHexa, PS::Comm::getRank());
             RP::NumberOfHexa++;
         }
+#else
+        if(RP::Time == 0.) {
+            RP::NumberOfHexa = 0;
+        }
+        if(RP::TimestepHexa >= 1.) {
+            sprintf(filename, "snap/t%04d_p%06d.hexa", (PS::S32)RP::Time, PS::Comm::getRank());
+        } else {
+            sprintf(filename, "snap/t%04d_p%06d.hexa", RP::NumberOfHexa, PS::Comm::getRank());
+        }
+        RP::NumberOfHexa++;
+#endif
+//////////////////////////////////////////////////////
+///////////////////// To // 160710
+//////////////////////////////////////////////////////
         writeHexa(filename, dinfo, sph, bhns, msls);
     }
     PS::F64 etot = calcEnergy(sph, bhns);
