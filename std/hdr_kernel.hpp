@@ -205,7 +205,12 @@ namespace SmoothingKernel {
 #else
 
 #if 1
+///// for kernel size independent of the number of particles (FROM)
     const PS::F64 eta     = 1.6;
+//    const PS::F64 eta     = 1.6 * pow(2., 1./3.); // for r016k
+//    const PS::F64 eta     = 1.6 * pow(2., 2./3.); // for r032k
+//    const PS::F64 eta     = 1.6 * 2.0; // for r064k
+///// for kernel size independent of the number of particles (TO)
     const PS::F64 ksrh    = 1.936492;
     const PS::F64 ksrhinv = 1. / ksrh;
     const PS::F64 dim     = 3.;
