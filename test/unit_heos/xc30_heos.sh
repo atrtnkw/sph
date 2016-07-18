@@ -6,10 +6,9 @@
 NPARALLEL=1
 NPROCESS=$NPARALLEL
 fexe=run
-tin=1e9
 
 cd $PBS_O_WORKDIR
 
 export OMP_NUM_THREADS=`echo "$NPARALLEL / $NPROCESS" | bc`
 
-aprun -n $NPROCESS -d $OMP_NUM_THREADS ./"$fexe" $tin
+aprun -n $NPROCESS -d $OMP_NUM_THREADS ./"$fexe" 2
