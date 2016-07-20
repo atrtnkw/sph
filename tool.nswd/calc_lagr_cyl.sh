@@ -8,7 +8,7 @@ idir=$1
 nptcl=$2
 tbgn=$3
 tend=$4
-mlag="10 20 50 80 90"
+mlag="10 20 30 40 50 60 70 80 90"
 
 for time in $(seq $tbgn 1 $tend)
 do
@@ -28,3 +28,5 @@ do
     done
     printf "\n"
 done
+
+rm -f tmp.*
