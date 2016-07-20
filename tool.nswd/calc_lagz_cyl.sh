@@ -19,7 +19,7 @@ do
     bx=`awk '{print $4;}' $bfile`
     by=`awk '{print $5;}' $bfile`
     bz=`awk '{print $6;}' $bfile`
-    awk '{print ($4-bx)**2+($5-by)**2;}' bx=$bx by=$by bz=$bz $sfile | sort -g > tmp.r2
+    awk '{print ($6-bz)**2;}' bx=$bx by=$by bz=$bz $sfile | sort -g > tmp.r2
     printf "%4d" $time
     for ilag in $mlag
     do
