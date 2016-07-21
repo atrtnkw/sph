@@ -19,14 +19,14 @@ do
     bx=`awk '{print $4;}' $bfile`
     by=`awk '{print $5;}' $bfile`
     bz=`awk '{print $6;}' $bfile`
-    awk '{print ($6-bz)**2;}' bx=$bx by=$by bz=$bz $sfile | sort -g > tmp.r2
+    awk '{print ($6-bz)**2;}' bx=$bx by=$by bz=$bz $sfile | sort -g > tmp.z
     printf "%4d" $time
     for ilag in $mlag
     do
         nline=`echo "$nptcl * $ilag * 0.01 - $dnptcl" | bc -l`
-        awk 'BEGIN{flag=0;}{if(NR==int(nline)){printf(" %+e", sqrt($1));flag=1}}END{if(flag==0){printf(" %+e", 0.0);}}' nline=$nline tmp.r2
+        awk 'BEGIN{flag=0;}{if(NR==int(nline)){printf(" %+e", sqrt($1));flag=1}}END{if(flag==0){printf(" %+e", 0.0);}}' nline=$nline tmp.z
     done
     printf "\n"
 done
 
-rm -f tmp.*
+rm -f tmp.z

@@ -29,4 +29,4 @@ do
     printf "\n"
 done
 
-rm -f tmp.*
+rm -f tmp.r2
