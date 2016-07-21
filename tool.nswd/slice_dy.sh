@@ -17,4 +17,4 @@ py=`awk '{print $5;}' $bfile`
 pz=`awk '{print $6;}' $bfile`
 
 awk -f "$gdir"/tool.hgas/slice.awk py=$py dy=$dy $sfile \
-    | awk '{$4-=px;$5-=py;$6-=pz; print $0;}'
+    | awk '{$4-=px;$5-=py;$6-=pz; print $0;}' px=$px py=$py pz=$pz
