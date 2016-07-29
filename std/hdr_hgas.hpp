@@ -940,7 +940,8 @@ void outputData(Tdinfo & dinfo,
                 RP::NumberOfStep, RP::Time * UnitOfTime, RP::Timestep * UnitOfTime,
                 (etot - enuc - eabs) * UnitOfEnergy * UnitOfMass, etot * UnitOfEnergy * UnitOfMass,
                 enuc * UnitOfEnergy * UnitOfMass, eabs * UnitOfEnergy * UnitOfMass,
-                vdet, WT::getTimeTotal());
+//                vdet, WT::getTimeTotal());
+                RP::KernelSupportRadiusMaximum * UnitOfLength, WT::getTimeTotal());
         fflush(RP::FilePointerForLog);
         WT::dump(RP::Time, RP::FilePointerForTime);
         fflush(RP::FilePointerForTime);
