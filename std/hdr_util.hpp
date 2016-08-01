@@ -428,6 +428,7 @@ PS::F64 calcKernelSupportRadiusMaximum(Tsph & sph) {
         PS::F64 mc;
         PS::F64vec xc, vc;
         calcCenterOfMass(sph, mc, xc, vc, 1);
+#if 0
         PS::F64 r2sumloc = 0.;
         for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
             PS::F64vec dx = sph[i].pos - xc;
@@ -435,6 +436,18 @@ PS::F64 calcKernelSupportRadiusMaximum(Tsph & sph) {
         }
         PS::F64 r2sumglb = PS::Comm::getSum(r2sumloc);
         ksrmax = sqrt(r2sumglb / (PS::F64)sph.getNumberOfParticleGlobal());
+#else
+        PS::F64 r2sumloc = 0.;
+        PS::F64 dnsumloc = 0.;
+        for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
+            PS::F64vec dx = sph[i].pos - xc;
+            r2sumloc += (sph[i].dens * (dx * dx));
+            dnsumloc +=  sph[i].dens;
+        }
+        PS::F64 r2sumglb = PS::Comm::getSum(r2sumloc);
+        PS::F64 dnsumglb = PS::Comm::getSum(dnsumloc);
+        ksrmax = sqrt(r2sumglb / dnsumglb);
+#endif
     } else if(RP::FlagBinary == 2) {
         ;
     } else {

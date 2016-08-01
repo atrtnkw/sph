@@ -290,7 +290,6 @@ void calcSPHKernel(Tdinfo & dinfo,
     addAdditionalForce(sph, bhns);
 #else
     WT::start();
-    RP::KernelSupportRadiusMaximum = calcKernelSupportRadiusMaximum(sph);
     calcDensityKernel(dinfo, sph, density);
     WT::accumulateCalcDensity();
     WT::start();
@@ -308,6 +307,7 @@ void calcSPHKernel(Tdinfo & dinfo,
     sumAcceleration(sph);
     addAdditionalForce(sph, bhns);
     calcAlphaDot(sph);
+    RP::KernelSupportRadiusMaximum = calcKernelSupportRadiusMaximum(sph);
     WT::accumulateOthers();
 #endif
 }
