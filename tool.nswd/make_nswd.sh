@@ -1,6 +1,6 @@
 if test $# -ne 5
 then
-    echo "sh $0 <NSmass[Msun]> <snapWD> <rWD> <sep/Rlobe> <ofile>"
+    echo "sh $0 <NSmass[Msun]> <snapWD> <rWD> <sep/Rlobe> <ofile>" >&2
     exit
 fi
 

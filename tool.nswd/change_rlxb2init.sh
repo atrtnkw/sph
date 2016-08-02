@@ -1,6 +1,6 @@
 if test $# -ne 2
 then
-    echo "sh $0 <idir> <ofile>"
+    echo "sh $0 <idir> <ofile>" >&2
     exit
 fi
 

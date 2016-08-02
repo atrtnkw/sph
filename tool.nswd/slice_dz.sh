@@ -1,6 +1,6 @@
 if test $# -ne 3
 then
-    echo "sh $0 <idir> <time:????> <dz>"
+    echo "sh $0 <idir> <time:????> <dz>" >&2
     exit
 fi
 

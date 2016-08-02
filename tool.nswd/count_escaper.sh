@@ -1,6 +1,6 @@
 if test $# -ne 3
 then
-    echo "sh $0 <idir> <tbgn> <tend>"
+    echo "sh $0 <idir> <tbgn> <tend>" >&2
     exit
 fi
 

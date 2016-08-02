@@ -1,6 +1,6 @@
 if test $# -ne 4
 then
-    echo "sh $0 <idir> <nptcl> <tbgn> <tend>"
+    echo "sh $0 <idir> <nptcl> <tbgn> <tend>" >&2
     exit
 fi
 

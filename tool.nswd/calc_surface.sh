@@ -1,6 +1,6 @@
 if test $# -ne 2
 then
-    echo "sh $0 <idir> <time:????>"
+    echo "sh $0 <idir> <time:????>" >&2
     exit
 fi
 
