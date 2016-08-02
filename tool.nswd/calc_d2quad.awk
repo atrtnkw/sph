@@ -41,8 +41,9 @@ END{
             }
             ii = 3 * i + j;
 #            printf(" %+.16e", q[ii]);            
+            printf(" %+.16e", q[ii] * g / c**4);
         }
     }
-    printf(" %+e %+e", ceff*(q[0]-q[4]), ceff*(2.*q[1]));
+#    printf(" %+e %+e", ceff*(q[0]-q[4]), ceff*(2.*q[1]));
     printf("\n");
 }

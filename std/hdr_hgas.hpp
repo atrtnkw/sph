@@ -1115,6 +1115,7 @@ void initializeSimulation() {
     if(PS::Comm::getRank() == 0) {
         RP::FilePointerForLog  = fopen("snap/time.log", "w");
         RP::FilePointerForTime = fopen("snap/prof.log", "w");
+        RP::FilePointerForQuad = fopen("snap/quad.log", "w");
     }
     char debugfile[64];
     sprintf(debugfile, "snap/debug_p%06d.log", PS::Comm::getRank());
@@ -1340,6 +1341,7 @@ void finalizeSimulation(Tdinfo & dinfo,
     if(PS::Comm::getRank() == 0) {
         fclose(RP::FilePointerForLog);
         fclose(RP::FilePointerForTime);
+        fclose(RP::FilePointerForQuad);
     }
     fclose(RP::FilePointerForDebug);
     PS::F64    mc;

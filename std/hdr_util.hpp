@@ -76,6 +76,22 @@ void calcCenterOfMass(Tsph & sph,
 
 template <class Tsph,
           class Tbhns>
+void calcCenterOfMassOfAcceleration(Tsph & sph,
+                                    Tbhns & bhns,
+                                    PS::F64    & mc,
+                                    PS::F64vec & xc,
+                                    PS::F64vec & vc,
+                                    PS::F64vec & ac) {
+    calcCenterOfMass(sph, bhns, mc, xc, vc);
+    PS::F64    m0, m1;
+    PS::F64vec a0, a1;
+    calcCenterOfMassOfAcceleration(bhns, m0, a0);
+    calcCenterOfMassOfAcceleration(sph,  m1, a1);
+    ac = (m0 * a0 + m1 * a1) / (m0 + m1);
+}
+
+template <class Tsph,
+          class Tbhns>
 PS::F64 calcSystemSize(Tsph & sph,
                        Tbhns & bhns) {
     PS::F64    m0, m1;
@@ -502,20 +518,22 @@ template <class Tsph,
           class Tbhns>
 void calcQuadrupoleMomentDot2(Tsph & sph,
                               Tbhns & bhns) {
+    if(RP::FlagDamping != 0) {
+        return;
+    }
+
     if(RP::FlagBinary == 0) {
         ;
     } else if(RP::FlagBinary == 1) {
-        PS::F64    msph;
-        PS::F64vec xsph, vsph, asph;
-        calcCenterOfMass(sph, msph, xsph, vsph, 1);
-        calcCenterOfMassOfAcceleration(sph, msph, asph, 1);
-        PS::F64    mi = 1. / (msph + bhns[0].mass);
-        PS::F64vec xc = (msph * xsph + bhns[0].mass * bhns[0].pos) * mi;
-        PS::F64vec vc = (msph * vsph + bhns[0].mass * bhns[0].vel) * mi;
-        PS::F64vec ac = (msph * asph + bhns[0].mass * bhns[0].acc) * mi;
+        PS::F64    mc;
+        PS::F64vec xc, vc, ac;
+        calcCenterOfMassOfAcceleration(sph, bhns, mc, xc, vc, ac);
         PS::F64mat qloc = 0.;
         for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
             qloc = qloc + calcQuadrupoleMomentDot2Component(sph[i], xc, vc, ac);
+        }
+        for(PS::S64 i = 0; i < bhns.getNumberOfParticleLocal(); i++) {
+            qloc = qloc + calcQuadrupoleMomentDot2Component(bhns[i], xc, vc, ac);
         }
         PS::F64mat qglb = 0.;
         qglb.xx = PS::Comm::getSum(qloc.xx);
@@ -524,14 +542,20 @@ void calcQuadrupoleMomentDot2(Tsph & sph,
         qglb.yy = PS::Comm::getSum(qloc.yy);
         qglb.yz = PS::Comm::getSum(qloc.yz);
         qglb.zz = PS::Comm::getSum(qloc.zz);
-        {
-            qglb = qloc + calcQuadrupoleMomentDot2Component(bhns[0], xc, vc, ac);
-        }
         if(PS::Comm::getRank() == 0) {
             using namespace CodeUnit;
             PS::F64 cc = (UnitOfMass * UnitOfLength * UnitOfLength * UnitOfTimeInv * UnitOfTimeInv)
                 * (GravityConstant / (SpeedOfLight * SpeedOfLight * SpeedOfLight * SpeedOfLight));
-            printf("%16.10f %+e %+e\n", RP::Time, cc * (qglb.xx - qglb.yy), 2. * cc * qglb.xy);
+            qglb.xx *= cc;
+            qglb.xy *= cc;
+            qglb.xz *= cc;
+            qglb.yy *= cc;
+            qglb.yz *= cc;
+            qglb.zz *= cc;
+            FILE *fp = RP::FilePointerForQuad;
+            fprintf(fp, "%16.10f %+.16e %+.16e %+.16e %+.16e %+.16e %+.16e\n", RP::Time,
+                    qglb.xx, qglb.xy, qglb.xz, qglb.yy, qglb.yz, qglb.zz);
+            fflush(fp);
         }
     } else if(RP::FlagBinary == 2) {
         ;

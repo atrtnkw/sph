@@ -28,6 +28,10 @@ do
     ax=`awk '{print $7;}' tmp.cm`
     ay=`awk '{print $8;}' tmp.cm`
     az=`awk '{print $9;}' tmp.cm`
+#    printf "pos: %+e %+e %+e\n" $cx $cy $cz
+#    printf "vel: %+e %+e %+e\n" $vx $vy $vz
+#    printf "acc: %+e %+e %+e\n" $ax $ay $az
+#    exit
     awk -f "$tdir"/tool.nswd/calc_d2quad.awk time=$time cx=$cx cy=$cy cz=$cz \
         vx=$vx vy=$vy vz=$vz ax=$ax ay=$ay az=$az $sfile $bfile
 done
