@@ -949,6 +949,7 @@ void outputData(Tdinfo & dinfo,
 #ifdef NBODYLIKE
     }
 #endif
+    calcQuadrupoleMomentDot2(sph, bhns);
 }
 
 template <class Tsph,
