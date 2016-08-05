@@ -147,6 +147,7 @@ int main(int argc, char ** argv) {
     FILE * fout = fopen(ofile, "w");
     fprintf(fout, "# idir: %s\n", idir);
     fprintf(fout, "# crit: %+e\n", rcrit);
+    fprintf(fout, "# time, Ixx, Iyy, Izz, Ixx, Iyy, Izz\n");
     for(PS::S64 itime = ibgn; itime <= iend; itime++) {
         char sfile[1024], bfile[1024];
         sprintf(sfile, "%s/sph_t%04d.dat",  idir, itime);

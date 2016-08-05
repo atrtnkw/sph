@@ -5,8 +5,8 @@
 
 cd $PBS_O_WORKDIR
 
-echo "/work/tanikwat/git-sph/nswd/data/r008k/run.std/unfy"  > input.list
-echo "/work/tanikwat/git-sph/nswd/data/r008k/run.std/data" >> input.list
+echo "/work/tanikwat/git-sph/nswd/data/r016k/run.std/unfy"  > input.list
+echo "/work/tanikwat/git-sph/nswd/data/r016k/run.std/data" >> input.list
 echo "2e9" >> input.list
 echo "0 500" >> input.list
 
