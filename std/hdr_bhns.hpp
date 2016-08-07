@@ -46,7 +46,8 @@ public:
         PS::U64 upos[3], uvel[3], uacc[3];
         PS::U64 ueps;
         PS::U64 upot;
-        fscanf(fp, "%d %d %llx", &this->id, &this->istar, &umass);
+//        fscanf(fp, "%d %d %llx", &this->id, &this->istar, &umass);
+        fscanf(fp, "%lld %lld %llx", &this->id, &this->istar, &umass);
         fscanf(fp, "%llx %llx %llx", &upos[0], &upos[1], &upos[2]);
         fscanf(fp, "%llx %llx %llx", &uvel[0], &uvel[1], &uvel[2]);
         fscanf(fp, "%llx %llx %llx", &uacc[0], &uacc[1], &uacc[2]);

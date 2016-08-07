@@ -140,7 +140,8 @@ public:
         PS::U64 ucmps[NR::NumberOfNucleon];
         PS::U64 utempmax[3];
 
-        fscanf(fp, "%d %d %llx", &this->id, &this->istar, &umass);
+//        fscanf(fp, "%d %d %llx", &this->id, &this->istar, &umass);
+        fscanf(fp, "%lld %lld %llx", &this->id, &this->istar, &umass);
         fscanf(fp, "%llx %llx %llx", &upos[0], &upos[1], &upos[2]);
         fscanf(fp, "%llx %llx %llx", &uvel[0], &uvel[1], &uvel[2]);
         fscanf(fp, "%llx %llx %llx", &uacc[0], &uacc[1], &uacc[2]);
@@ -214,7 +215,8 @@ public:
 
     void writeHexa(FILE *fp) const {
         PS::U64 (*cvt)(PS::F64) = convertF64ToU64;
-        fprintf(fp, "%6d %2d %llx", this->id, this->istar, cvt(this->mass));
+//        fprintf(fp, "%6d %2d %llx", this->id, this->istar, cvt(this->mass));
+        fprintf(fp, "%6lld %2lld %llx", this->id, this->istar, cvt(this->mass));
         fprintf(fp, " %llx %llx %llx", cvt(this->pos[0]), cvt(this->pos[1]), cvt(this->pos[2]));
         fprintf(fp, " %llx %llx %llx", cvt(this->vel[0]), cvt(this->vel[1]), cvt(this->vel[2]));
         fprintf(fp, " %llx %llx %llx", cvt(this->acc[0]), cvt(this->acc[1]), cvt(this->acc[2]));

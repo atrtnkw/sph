@@ -18,18 +18,26 @@ public:
         PS::F64 (*cvt)(PS::U64) = convertU64ToF64;
         PS::U64 umass;
         PS::U64 upos[3];
+        PS::U64 upot;
         fscanf(fp, "%llx", &umass);
         fscanf(fp, "%llx %llx %llx", &upos[0], &upos[1], &upos[2]);
+        // A. Tanikawa adds this 16/08/07 FROM
+        fscanf(fp, "%llx", &upot);
+        // A. Tanikawa adds this 16/08/07 TO
         this->mass   = cvt(umass);
         this->pos[0] = cvt(upos[0]);
         this->pos[1] = cvt(upos[1]);
         this->pos[2] = cvt(upos[2]);
+        this->pot    = cvt(upot);
     }
 
     void writeHexa(FILE *fp) const {
         PS::U64 (*cvt)(PS::F64) = convertF64ToU64;
         fprintf(fp, "%llx", cvt(this->mass));
         fprintf(fp, " %llx %llx %llx", cvt(this->pos[0]), cvt(this->pos[1]), cvt(this->pos[2]));
+        // A. Tanikawa adds this 16/08/07 FROM
+        fprintf(fp, " %llx", cvt(this->pot));
+        // A. Tanikawa adds this 16/08/07 TO
         fprintf(fp, "\n");
     }
 };
