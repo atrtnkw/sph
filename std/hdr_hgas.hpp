@@ -1365,12 +1365,6 @@ void finalizeSimulation(Tdinfo & dinfo,
         bhns[i].pos -= xc;
         bhns[i].vel -= vc;
     }
-//////////////////////////////////////////////////////
-///////////////////// From // 160620
-//////////////////////////////////////////////////////
-#if 0
-    sph.writeParticleAscii("snap/final.dat");
-#else
     if(RP::FlagDivideFile == 0) {
         sph.writeParticleAscii("snap/final.dat");
     } else {
@@ -1378,10 +1372,6 @@ void finalizeSimulation(Tdinfo & dinfo,
         sprintf(filename, "snap/final");
         sph.writeParticleAscii(filename, "%s_p%06d_i%06d.dat");
     }
-#endif
-//////////////////////////////////////////////////////
-///////////////////// To
-//////////////////////////////////////////////////////
     bhns.writeParticleAscii("snap/bhns_final.dat");
 }
 

@@ -202,7 +202,23 @@ void reduceSeparation(Tsph & sph,
                 bhns[i].vel -= vc;
                 bhns[i].vel += RP::RotationalVelocity ^ bhns[i].pos;
             }    
+////////////////////////////////////////////////////////////
+///////////////////// A. Tanikawa adds this on 160809 FROM
+////////////////////////////////////////////////////////////
+#if 0
             sph.writeParticleAscii("snap/final.dat");
+#else
+            if(RP::FlagDivideFile == 0) {
+                sph.writeParticleAscii("snap/final.dat");
+            } else {
+                char filename[64];
+                sprintf(filename, "snap/final");
+                sph.writeParticleAscii(filename, "%s_p%06d_i%06d.dat");
+            }
+#endif
+////////////////////////////////////////////////////////////
+///////////////////// A. Tanikawa adds this on 160809 TO
+////////////////////////////////////////////////////////////
             msls.writeParticleAscii("snap/msls_final.dat");
             bhns.writeParticleAscii("snap/bhns_final.dat");
             PS::Finalize();
