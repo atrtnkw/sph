@@ -39,3 +39,5 @@ do
         rm -f "$idir"/t"$time"_p*.hexa
     fi
 done
+
+touch "$idir"/deleted.log

@@ -120,6 +120,77 @@ public:
     }
 };
 
+template <class Tsph,
+          class Tbhns>
+void projectOnOrbitalPlane(char * ofile,
+                           Tsph  & sph,
+                           Tbhns & bhns,
+                           PS::F64vec xmin,
+                           PS::F64    wdth,
+                           PS::S64    nmax) {
+
+    PS::F64 dx    = wdth / (PS::F64)nmax;
+    PS::F64 dxinv = 1. / dx;
+
+    PS::S64 ptcl[nmax][nmax];
+    PS::F64 dens[nmax][nmax];
+    PS::F64 temp[nmax][nmax];
+    PS::F64 entr[nmax][nmax];
+
+    for(PS::S64 i = 0; i < nmax; i++) {
+        for(PS::S64 j = 0; j < nmax; j++) {
+            ptcl[i][j] = 0;
+            dens[i][j] = 0.;
+            temp[i][j] = 0.;
+            entr[i][j] = 0.;
+        }
+    }
+
+    for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
+        if(fabs(sph[i].pos[2]) > fabs(sph[i].ksr)) {
+            continue;
+        }
+        PS::F64vec px = sph[i].pos - bhns[0].pos;
+        PS::S64 nxi = (PS::S64)((px[0] - xmin[0]) * dxinv);
+        if(nxi < 0 || nmax <= nxi) {
+            continue;
+        }
+        PS::S64 nyi = (PS::S64)((px[1] - xmin[1]) * dxinv);
+        if(nyi < 0 || nmax <= nyi) {
+            continue;
+        }
+        ptcl[nxi][nyi] += 1;
+        dens[nxi][nyi] += sph[i].dens;
+        temp[nxi][nyi] += sph[i].temp;
+        entr[nxi][nyi] += sph[i].entr;
+    }
+
+    for(PS::S64 i = 0; i < nmax; i++) {
+        for(PS::S64 j = 0; j < nmax; j++) {
+            PS::F64 pinv = ((ptcl[i][j] != 0) ? (1. / ptcl[i][j]) : 0.);
+            dens[i][j] *= pinv;
+            temp[i][j] *= pinv;
+            entr[i][j] *= pinv;
+        }
+    }
+
+    FILE * fp = fopen(ofile, "w");
+    for(PS::S64 i = 0; i < nmax; i++) {
+        for(PS::S64 j = 0; j < nmax; j++) {
+            if(ptcl[i][j] == 0) {
+                continue;
+            }
+            PS::F64 px = xmin[0] + dx * (PS::F64)i;
+            PS::F64 py = xmin[1] + dx * (PS::F64)j;
+            fprintf(fp, "%+e %+e %+e %+e %+e %8lld\n",
+                    px, py,
+                    dens[i][j], temp[i][j], entr[i][j],
+                    ptcl[i][j]);
+        }
+    }
+    fclose(fp);
+}
+
 int main(int argc, char ** argv) {
     MPI_Init(&argc, &argv);
 
@@ -132,22 +203,19 @@ int main(int argc, char ** argv) {
     bhns.createParticle(0);
     bhns.setNumberOfParticleLocal(0);
 
-    char idir[1024], odir[1024];
-    PS::F64 rcrit;
+    char idir[1024], otype[1024];
     PS::S64 ibgn, iend;
+    PS::F64vec xmin;
+    PS::F64    wdth;
+    PS::S64    nnxx;
     FILE * fp = fopen(argv[1], "r");
     fscanf(fp, "%s", idir);
-    fscanf(fp, "%s", odir);
-    fscanf(fp, "%lf", &rcrit);
+    fscanf(fp, "%s", otype);
     fscanf(fp, "%lld%lld", &ibgn, &iend);
+    fscanf(fp, "%lf%lf%lf", &xmin[0], &xmin[1], &xmin[2]);
+    fscanf(fp, "%lf%lld", &wdth, &nnxx);
     fclose(fp);
 
-    char ofile[1024];
-    sprintf(ofile, "%s/axis.dat", odir);
-    FILE * fout = fopen(ofile, "w");
-    fprintf(fout, "# idir: %s\n", idir);
-    fprintf(fout, "# crit: %+e\n", rcrit);
-    fprintf(fout, "# time, Ixx, Iyy, Izz, Ixx, Iyy, Izz\n");
     for(PS::S64 itime = ibgn; itime <= iend; itime++) {
         char sfile[1024], bfile[1024];
         sprintf(sfile, "%s/sph_t%04d.dat",  idir, itime);
@@ -161,37 +229,10 @@ int main(int argc, char ** argv) {
         bhns.readParticleAscii(bfile);
         fclose(fp);
 
-        PS::F64mat qq[2] = {0., 0.};
-        for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
-            PS::F64mat qtemp = sph[i].calcMomentOfInertia(bhns[0].pos);
-            qq[0] = qq[0] + qtemp;
-            PS::F64vec dx = sph[i].pos - bhns[0].pos;
-            PS::F64    r2 = dx * dx;
-            if(r2 < rcrit * rcrit) {
-                qq[1] = qq[1] + qtemp;
-            }
-        }
-
-        fprintf(fout, "%5d", itime);
-        Eigen::Matrix3d MomentOfInertia[2];
-        for(PS::S64 k = 0; k < 2; k++) {
-            MomentOfInertia[k] <<
-                qq[k].xx, qq[k].xy, qq[k].xz,
-                qq[k].xy, qq[k].yy, qq[k].yz,
-                qq[k].xz, qq[k].yz, qq[k].zz;
-            Eigen::EigenSolver<Eigen::Matrix3d> es(MomentOfInertia[k], false);
-            std::vector<PS::F64> ev;
-            ev.push_back(es.eigenvalues()[0].real());
-            ev.push_back(es.eigenvalues()[1].real());
-            ev.push_back(es.eigenvalues()[2].real());
-            std::sort(ev.begin(), ev.end());
-            fprintf(fout, " %+e %+e %+e", ev[0], ev[1], ev[2]);
-        }
-        fprintf(fout, "\n");
-        fflush(fout);
-
+        char ofile[1024];
+        sprintf(ofile, "%s_t%04d.dat", otype, itime);
+        projectOnOrbitalPlane(ofile, sph, bhns, xmin, wdth, nnxx);
     }
-    fclose(fout);
 
     MPI_Finalize();
 

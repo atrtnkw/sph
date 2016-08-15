@@ -120,6 +120,12 @@ public:
     }
 };
 
+template <class Tsph,
+          class Tbhns>
+void projectOnOrbitalPlane(Tsph  & sph,
+                           Tbhns & bhns) {
+}
+
 int main(int argc, char ** argv) {
     MPI_Init(&argc, &argv);
 
@@ -133,21 +139,13 @@ int main(int argc, char ** argv) {
     bhns.setNumberOfParticleLocal(0);
 
     char idir[1024], odir[1024];
-    PS::F64 rcrit;
     PS::S64 ibgn, iend;
     FILE * fp = fopen(argv[1], "r");
     fscanf(fp, "%s", idir);
     fscanf(fp, "%s", odir);
-    fscanf(fp, "%lf", &rcrit);
     fscanf(fp, "%lld%lld", &ibgn, &iend);
     fclose(fp);
 
-    char ofile[1024];
-    sprintf(ofile, "%s/axis.dat", odir);
-    FILE * fout = fopen(ofile, "w");
-    fprintf(fout, "# idir: %s\n", idir);
-    fprintf(fout, "# crit: %+e\n", rcrit);
-    fprintf(fout, "# time, Ixx, Iyy, Izz, Ixx, Iyy, Izz\n");
     for(PS::S64 itime = ibgn; itime <= iend; itime++) {
         char sfile[1024], bfile[1024];
         sprintf(sfile, "%s/sph_t%04d.dat",  idir, itime);
@@ -161,37 +159,9 @@ int main(int argc, char ** argv) {
         bhns.readParticleAscii(bfile);
         fclose(fp);
 
-        PS::F64mat qq[2] = {0., 0.};
-        for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
-            PS::F64mat qtemp = sph[i].calcMomentOfInertia(bhns[0].pos);
-            qq[0] = qq[0] + qtemp;
-            PS::F64vec dx = sph[i].pos - bhns[0].pos;
-            PS::F64    r2 = dx * dx;
-            if(r2 < rcrit * rcrit) {
-                qq[1] = qq[1] + qtemp;
-            }
-        }
-
-        fprintf(fout, "%5d", itime);
-        Eigen::Matrix3d MomentOfInertia[2];
-        for(PS::S64 k = 0; k < 2; k++) {
-            MomentOfInertia[k] <<
-                qq[k].xx, qq[k].xy, qq[k].xz,
-                qq[k].xy, qq[k].yy, qq[k].yz,
-                qq[k].xz, qq[k].yz, qq[k].zz;
-            Eigen::EigenSolver<Eigen::Matrix3d> es(MomentOfInertia[k], false);
-            std::vector<PS::F64> ev;
-            ev.push_back(es.eigenvalues()[0].real());
-            ev.push_back(es.eigenvalues()[1].real());
-            ev.push_back(es.eigenvalues()[2].real());
-            std::sort(ev.begin(), ev.end());
-            fprintf(fout, " %+e %+e %+e", ev[0], ev[1], ev[2]);
-        }
-        fprintf(fout, "\n");
-        fflush(fout);
-
+        FILE * fout = fopen(ofile, "w");
+        fclose(fout);
     }
-    fclose(fout);
 
     MPI_Finalize();
 
