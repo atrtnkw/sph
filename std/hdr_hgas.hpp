@@ -1260,7 +1260,7 @@ void restartSimulation(char **argv,
     // *********************
     //RP::CoefficientOfTimestep = 1e-2;
     //RP::CoefficientOfTimestep = 1e-1;
-    RP::TimestepAscii   = 1. / 256.;
+    //RP::TimestepAscii   = 1. / 256.;
     //RP::MaximumTimestep = 1. / 1024.;
     //RP::KernelSupportRadiusMaximum *= 0.5;
     // *********************
