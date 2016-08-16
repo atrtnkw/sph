@@ -862,6 +862,10 @@ void outputData(Tdinfo & dinfo,
                 Tmsls & msls) {
     if(RP::Time - (PS::S64)(RP::Time / RP::TimestepAscii) * RP::TimestepAscii == 0.) {
         char filename[64];
+///////////////////////////////////////////////////////////////////
+// A. Tanikawa adds this 16/08/16 FROM
+///////////////////////////////////////////////////////////////////
+#if 0
         if(RP::FlagDivideFile == 0) {
             if(RP::TimestepAscii >= 1.) {
                 sprintf(filename, "snap/sph_t%04d.dat", (PS::S32)RP::Time);
@@ -897,23 +901,49 @@ void outputData(Tdinfo & dinfo,
             }
             bhns.writeParticleAscii(filename);
         }
+#else
+        if(RP::Time == 0.) {
+            RP::NumberOfAscii = 0;
+        }
+        if(RP::FlagDivideFile == 0) {
+            if(RP::TimestepAscii >= 1.) {
+                sprintf(filename, "snap/sph_t%04d.dat", (PS::S32)RP::Time);
+            } else {
+                sprintf(filename, "snap/sph_t%04d.dat", RP::NumberOfAscii);
+            }
+            sph.writeParticleAscii(filename);
+        } else {
+            if(RP::TimestepAscii >= 1.) {
+                sprintf(filename, "snap/sph_t%04d", (PS::S32)RP::Time);
+            } else {
+                sprintf(filename, "snap/sph_t%04d", RP::NumberOfAscii);
+            }
+            sph.writeParticleAscii(filename, "%s_p%06d_i%06d.dat");
+        }
+        if(RP::FlagDamping == 2) {
+            if(RP::TimestepAscii >= 1.) {
+                sprintf(filename, "snap/msls_t%04d.dat", (PS::S32)RP::Time);
+            } else {
+                sprintf(filename, "snap/msls_t%04d.dat", RP::NumberOfAscii);
+            }
+            msls.writeParticleAscii(filename);
+        }
+        if(RP::FlagBinary == 1) {
+            if(RP::TimestepAscii >= 1.) {
+                sprintf(filename, "snap/bhns_t%04d.dat", (PS::S32)RP::Time);
+            } else {
+                sprintf(filename, "snap/bhns_t%04d.dat", RP::NumberOfAscii);
+            }
+            bhns.writeParticleAscii(filename);
+        }
+        RP::NumberOfAscii++;
+#endif
+///////////////////////////////////////////////////////////////////
+// A. Tanikawa adds this 16/08/16 TO
+///////////////////////////////////////////////////////////////////
     }
     if(RP::Time - (PS::S64)(RP::Time / RP::TimestepHexa) * RP::TimestepHexa == 0.) {
         char filename[64];
-//////////////////////////////////////////////////////
-///////////////////// From // 160710
-//////////////////////////////////////////////////////
-#if 0
-        if(RP::TimestepHexa >= 1.) {
-            sprintf(filename, "snap/t%04d_p%06d.hexa", (PS::S32)RP::Time, PS::Comm::getRank());
-        } else {
-            if(RP::Time == 0.) {
-                RP::NumberOfHexa = 0;
-            }
-            sprintf(filename, "snap/t%04d_p%06d.hexa", RP::NumberOfHexa, PS::Comm::getRank());
-            RP::NumberOfHexa++;
-        }
-#else
         if(RP::Time == 0.) {
             RP::NumberOfHexa = 0;
         }
@@ -923,10 +953,6 @@ void outputData(Tdinfo & dinfo,
             sprintf(filename, "snap/t%04d_p%06d.hexa", RP::NumberOfHexa, PS::Comm::getRank());
         }
         RP::NumberOfHexa++;
-#endif
-//////////////////////////////////////////////////////
-///////////////////// To // 160710
-//////////////////////////////////////////////////////
         writeHexa(filename, dinfo, sph, bhns, msls);
     }
     PS::F64 etot = calcEnergy(sph, bhns);
@@ -1234,7 +1260,7 @@ void restartSimulation(char **argv,
     // *********************
     //RP::CoefficientOfTimestep = 1e-2;
     //RP::CoefficientOfTimestep = 1e-1;
-    //RP::TimestepAscii   = 1. / 1024.;
+    RP::TimestepAscii   = 1. / 256.;
     //RP::MaximumTimestep = 1. / 1024.;
     //RP::KernelSupportRadiusMaximum *= 0.5;
     // *********************
