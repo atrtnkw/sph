@@ -582,7 +582,17 @@ public:
     }    
 
     void correctDamping2(PS::F64 dt) {
+///////////////////////////////////////////////////////////////////
+// A. Tanikawa adds this 16/08/16 FROM
+///////////////////////////////////////////////////////////////////
+#if 1
         this->acc  -= this->vel * RP::ReductionTimeInv;
+#else
+        this->acc  -= this->vel * 0.05;
+#endif
+///////////////////////////////////////////////////////////////////
+// A. Tanikawa adds this 16/08/16 TO
+///////////////////////////////////////////////////////////////////
         this->vel   = this->vel2   + 0.5 * this->acc  * dt;
         this->uene  = this->uene2  + 0.5 * this->udot * dt;
         this->alph  = this->alph2  + 0.5 * this->adot * dt;
@@ -1263,6 +1273,7 @@ void restartSimulation(char **argv,
     //RP::TimestepAscii   = 1. / 256.;
     //RP::MaximumTimestep = 1. / 1024.;
     //RP::KernelSupportRadiusMaximum *= 0.5;
+    //RP::ReductionTime *= 2.0;
     // *********************
     RP::outputRunParameter(argv);
     return;
