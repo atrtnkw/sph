@@ -145,7 +145,17 @@ void reduceSeparation(Tsph & sph,
                       Tmsls & msls) {
     static bool StopDamping2 = false;
 
+///////////////////////////////////////////////////////////////////
+// A. Tanikawa adds this 16/08/22 FROM
+///////////////////////////////////////////////////////////////////
+#if 0
     if(RP::Time == 0.) {
+#else
+    if(RP::Time - (PS::S64)(RP::Time / RP::MaximumTimestep) * RP::MaximumTimestep == 0.) {
+#endif
+///////////////////////////////////////////////////////////////////
+// A. Tanikawa adds this 16/08/22 TO
+///////////////////////////////////////////////////////////////////
         PS::F64    m1;
         PS::F64vec x1, v1;
         calcCenterOfMass(sph, m1, x1, v1, 1);
@@ -163,17 +173,7 @@ void reduceSeparation(Tsph & sph,
         PS::F64 rmax     = sqrt(r2maxglb);
         PS::F64 rho2     = m1 / ((4.d * M_PI / 3.d * rmax * rmax * rmax));
 
-///////////////////////////////////////////////////////////////////
-// A. Tanikawa adds this 16/08/16 FROM
-///////////////////////////////////////////////////////////////////
-#if 1
         RP::ReductionTime    = 1. / (0.05 * sqrt(CodeUnit::GravityConstantInThisUnit * rho2));
-#else
-        RP::ReductionTime    = 1. / (0.025 * sqrt(CodeUnit::GravityConstantInThisUnit * rho2));
-#endif
-///////////////////////////////////////////////////////////////////
-// A. Tanikawa adds this 16/08/16 TO
-///////////////////////////////////////////////////////////////////
         RP::ReductionTimeInv = 1. / RP::ReductionTime;
     }
 
@@ -191,84 +191,6 @@ void reduceSeparation(Tsph & sph,
         }
         calcCenterOfMass(sph, m1, x1, v1, 1);
 
-///////////////////////////////////////////////////////////////////
-// A. Tanikawa adds this 16/08/16 FROM
-///////////////////////////////////////////////////////////////////
-#if 0
-        if(StopDamping2) {
-            PS::F64 mc;
-            PS::F64vec xc;
-            PS::F64vec vc;
-            if(RP::FlagBinary == 0) {
-                calcCenterOfMass(sph, mc, xc, vc);
-            } else if(RP::FlagBinary == 1) {
-                calcCenterOfMass(sph, bhns, mc, xc, vc);
-            } else {
-                ;
-            }
-            for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
-                sph[i].pos -= xc;
-                sph[i].vel -= vc;
-                sph[i].vel += RP::RotationalVelocity ^ sph[i].pos;
-            }    
-            for(PS::S32 i = 0; i < bhns.getNumberOfParticleLocal(); i++) {
-                bhns[i].pos -= xc;
-                bhns[i].vel -= vc;
-                bhns[i].vel += RP::RotationalVelocity ^ bhns[i].pos;
-            }    
-            if(RP::FlagDivideFile == 0) {
-                sph.writeParticleAscii("snap/final.dat");
-            } else {
-                char filename[64];
-                sprintf(filename, "snap/final");
-                sph.writeParticleAscii(filename, "%s_p%06d_i%06d.dat");
-            }
-            msls.writeParticleAscii("snap/msls_final.dat");
-            bhns.writeParticleAscii("snap/bhns_final.dat");
-            PS::Finalize();
-            exit(0);
-        }
-
-        PS::F64vec dx = x1 - x0;
-        PS::F64    dr = sqrt(dx * dx);
-        PS::F64    ds = dr / RP::ReductionTime * RP::MaximumTimestep;
-        dx *= (- ds / dr);
-        for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
-            if(sph[i].istar == 1) {
-                sph[i].pos += dx;
-            }
-        }
-        PS::F64    mc;
-        PS::F64vec xc;
-        PS::F64vec vc;
-        if(RP::FlagBinary == 0) {
-            calcCenterOfMass(sph, mc, xc, vc);
-        } else if (RP::FlagBinary == 1) {
-            calcCenterOfMass(sph, bhns, mc, xc, vc);
-        } else {
-            ;
-        }
-        for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
-            sph[i].pos -= xc;
-        }
-        for(PS::S32 i = 0; i < bhns.getNumberOfParticleLocal(); i++) {
-            bhns[i].pos -= xc;
-        }
-
-        PS::F64 xlag = searchLagrange1(msls, x0[0], x1[0]);
-        bool StopDamping2Local = false;
-        for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
-            if(sph[i].istar == 0)
-                continue;
-            if(sph[i].pos[0] > xlag) {
-                StopDamping2Local = true;
-                break;
-            }
-        }
-        StopDamping2 = PS::Comm::synchronizeConditionalBranchOR(StopDamping2Local);
-
-        calcRotationalVelocity(sph, bhns);
-#else
         PS::F64 xlag = searchLagrange1(msls, x0[0], x1[0]);
         bool StopDamping2Local = false;
         for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
@@ -317,8 +239,8 @@ void reduceSeparation(Tsph & sph,
 
         PS::F64vec dx = x1 - x0;
         PS::F64    dr = sqrt(dx * dx);
-        PS::F64    ds = dr / RP::ReductionTime * RP::MaximumTimestep;
-        dx *= (- ds / dr);
+        PS::F64    ds = dr / RP::ReductionTime * RP::MaximumTimestep; // ds: Delta r
+        dx *= (- ds / dr);  // dx: Delta x
         for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
             if(sph[i].istar == 1) {
                 sph[i].pos += dx;
@@ -341,10 +263,6 @@ void reduceSeparation(Tsph & sph,
             bhns[i].pos -= xc;
         }
         calcRotationalVelocity(sph, bhns);
-#endif
-///////////////////////////////////////////////////////////////////
-// A. Tanikawa adds this 16/08/16 TO
-///////////////////////////////////////////////////////////////////
 
     }
 }
