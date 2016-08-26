@@ -145,17 +145,7 @@ void reduceSeparation(Tsph & sph,
                       Tmsls & msls) {
     static bool StopDamping2 = false;
 
-///////////////////////////////////////////////////////////////////
-// A. Tanikawa adds this 16/08/22 FROM
-///////////////////////////////////////////////////////////////////
-#if 0
-    if(RP::Time == 0.) {
-#else
     if(RP::Time - (PS::S64)(RP::Time / RP::MaximumTimestep) * RP::MaximumTimestep == 0.) {
-#endif
-///////////////////////////////////////////////////////////////////
-// A. Tanikawa adds this 16/08/22 TO
-///////////////////////////////////////////////////////////////////
         PS::F64    m1;
         PS::F64vec x1, v1;
         calcCenterOfMass(sph, m1, x1, v1, 1);
@@ -263,6 +253,21 @@ void reduceSeparation(Tsph & sph,
             bhns[i].pos -= xc;
         }
         calcRotationalVelocity(sph, bhns);
+        {
+            PS::F64    m0, m1;
+            PS::F64vec x0, x1;
+            PS::F64vec v0, v1;
+            if(RP::FlagBinary == 0) {
+                calcCenterOfMass(sph, m0, x0, v0, 0);
+            } else if (RP::FlagBinary == 1) {
+                calcCenterOfMass(bhns, m0, x0, v0, 0);
+            } else {
+                ;
+            }
+            calcCenterOfMass(sph, m1, x1, v1, 1);
+            RP::CenterOfMassOfStar0 = x0;
+            RP::CenterOfMassOfStar1 = x1;
+        }
 
     }
 }

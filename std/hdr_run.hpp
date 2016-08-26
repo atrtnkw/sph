@@ -31,6 +31,14 @@ namespace RunParameter {
     PS::F64vec RotationalVelocity;  // omega
     PS::F64    NuclearEnergyTotal;  // enuc
     PS::F64    AbsorbedEnergyTotal; //
+///////////////////////////////////////////////////////////////////
+// A. Tanikawa adds this 16/08/24 FROM
+///////////////////////////////////////////////////////////////////
+    PS::F64vec CenterOfMassOfStar0;
+    PS::F64vec CenterOfMassOfStar1;
+///////////////////////////////////////////////////////////////////
+// A. Tanikawa adds this 16/08/24 TO
+///////////////////////////////////////////////////////////////////
 
     PS::S64    FlagDivideFile; // 0: single file 1: multiple files
     PS::S64    FlagGravity; // 0: off, 1: on

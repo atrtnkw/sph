@@ -583,15 +583,16 @@ public:
 
     void correctDamping2(PS::F64 dt) {
 ///////////////////////////////////////////////////////////////////
-// A. Tanikawa adds this 16/08/16 FROM
+// A. Tanikawa adds this 16/08/24 FROM
 ///////////////////////////////////////////////////////////////////
-#if 0
-        this->acc  -= this->vel * RP::ReductionTimeInv;
+#ifdef NON_SYNCHRONIZED_BINARY
+        PS::F64vec rcm = (this->istar == 0) ? RP::CenterOfMassOfStar0 : RP::CenterOfMassOfStar1;
+        this->acc  -= (this->vel + RP::RotationalVelocity ^  (this->pos - rcm)) * 0.05;
 #else
         this->acc  -= this->vel * 0.05;
 #endif
 ///////////////////////////////////////////////////////////////////
-// A. Tanikawa adds this 16/08/16 TO
+// A. Tanikawa adds this 16/08/24 TO
 ///////////////////////////////////////////////////////////////////
         this->vel   = this->vel2   + 0.5 * this->acc  * dt;
         this->uene  = this->uene2  + 0.5 * this->udot * dt;
@@ -872,46 +873,6 @@ void outputData(Tdinfo & dinfo,
                 Tmsls & msls) {
     if(RP::Time - (PS::S64)(RP::Time / RP::TimestepAscii) * RP::TimestepAscii == 0.) {
         char filename[64];
-///////////////////////////////////////////////////////////////////
-// A. Tanikawa adds this 16/08/16 FROM
-///////////////////////////////////////////////////////////////////
-#if 0
-        if(RP::FlagDivideFile == 0) {
-            if(RP::TimestepAscii >= 1.) {
-                sprintf(filename, "snap/sph_t%04d.dat", (PS::S32)RP::Time);
-            } else {
-                if(RP::Time == 0.) {
-                    RP::NumberOfAscii = 0;
-                }
-                sprintf(filename, "snap/sph_t%04d.dat", RP::NumberOfAscii);
-                RP::NumberOfAscii++;
-            }
-            sph.writeParticleAscii(filename);
-        } else {
-            if(RP::TimestepAscii >= 1.) {
-                sprintf(filename, "snap/sph_t%04d", (PS::S32)RP::Time);
-            } else {
-                if(RP::Time == 0.) {
-                    RP::NumberOfAscii = 0;
-                }
-                sprintf(filename, "snap/sph_t%04d", RP::NumberOfAscii);
-                RP::NumberOfAscii++;
-            }
-            sph.writeParticleAscii(filename, "%s_p%06d_i%06d.dat");
-        }
-        if(RP::FlagDamping == 2) {
-            sprintf(filename, "snap/msls_t%04d.dat", (PS::S32)RP::Time);
-            msls.writeParticleAscii(filename);
-        }
-        if(RP::FlagBinary == 1) {
-            if(RP::TimestepAscii >= 1.) {
-                sprintf(filename, "snap/bhns_t%04d.dat", (PS::S32)RP::Time);
-            } else {
-                sprintf(filename, "snap/bhns_t%04d.dat", RP::NumberOfAscii - 1);
-            }
-            bhns.writeParticleAscii(filename);
-        }
-#else
         if(RP::Time == 0.) {
             RP::NumberOfAscii = 0;
         }
@@ -947,10 +908,6 @@ void outputData(Tdinfo & dinfo,
             bhns.writeParticleAscii(filename);
         }
         RP::NumberOfAscii++;
-#endif
-///////////////////////////////////////////////////////////////////
-// A. Tanikawa adds this 16/08/16 TO
-///////////////////////////////////////////////////////////////////
     }
     if(RP::Time - (PS::S64)(RP::Time / RP::TimestepHexa) * RP::TimestepHexa == 0.) {
         char filename[64];
@@ -1240,6 +1197,27 @@ void startSimulation(char **argv,
     if(RP::FlagDamping == 2) {
         msls.exchangeParticle(dinfo);
         calcRotationalVelocity(sph, bhns);
+///////////////////////////////////////////////////////////////////
+// A. Tanikawa adds this 16/08/25 FROM
+///////////////////////////////////////////////////////////////////
+        {
+            PS::F64    m0, m1;
+            PS::F64vec x0, x1;
+            PS::F64vec v0, v1;
+            if(RP::FlagBinary == 0) {
+                calcCenterOfMass(sph, m0, x0, v0, 0);
+            } else if (RP::FlagBinary == 1) {
+                calcCenterOfMass(bhns, m0, x0, v0, 0);
+            } else {
+                ;
+            }
+            calcCenterOfMass(sph, m1, x1, v1, 1);
+            RP::CenterOfMassOfStar0 = x0;
+            RP::CenterOfMassOfStar1 = x1;
+        }
+///////////////////////////////////////////////////////////////////
+// A. Tanikawa adds this 16/08/25 TO
+///////////////////////////////////////////////////////////////////
     }
     calcSPHKernel(dinfo, sph, bhns, msls, density, hydro, gravity);
 }
