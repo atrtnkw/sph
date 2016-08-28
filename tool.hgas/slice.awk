@@ -8,10 +8,10 @@ BEGIN{
     dz = 1e30;
 }
 {
-    if(ARGC < 3) {
-        printf("awk -f slice.awk <dx=1e30> <dy=1e30> <dz=1e30> <datafile>\n") | "cat 1>&2";
-        exit;
-    }
+#    if(ARGC < 3) {
+#        printf("awk -f slice.awk <dx=1e30> <dy=1e30> <dz=1e30> <datafile>\n") | "cat 1>&2";
+#        exit;
+#    }
 
     if(NR == 1) {
         printf("# px=%e py=%e pz=%e dx=%e dy=%e dz=%e\n", px, py, pz, dx, dy, dz);
