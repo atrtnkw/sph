@@ -1,4 +1,10 @@
-idir=.
+if test $# -ne 1
+then
+    echo "sh $0 <idir>"
+    exit
+fi
+
+idir=$1
 
 awk '{if($1=="###"&&NF>40){$1="";print $0;}}' "$idir"/t*/debug_p* \
     | sort -n \
