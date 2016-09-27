@@ -21,7 +21,7 @@ do
     echo "start $idir" >&2
     ifile="$idir"/quad.log
     awk '{if($1>prevt) print $0;}' prevt=$prevt $ifile >> tmp.time
-    prevt=`tail -n1 tmp.time | awk '{print $3}'`
+    prevt=`tail -n1 tmp.time | awk '{print $1}'`
 done
 
 cat tmp.time
