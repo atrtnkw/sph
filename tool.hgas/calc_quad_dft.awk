@@ -1,3 +1,4 @@
+#argv: tbgn, tend
 BEGIN{
     dndex = 8;
     nfbin = 14 * dndex + 1;
@@ -11,6 +12,10 @@ BEGIN{
     n = 0;
 }
 {
+    if($1 - int($1 * 256.) / 256. != 0.) {
+	next;
+    }
+
     if($1 < tbgn || tend < $1) {
 	next;
     }
