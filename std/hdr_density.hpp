@@ -92,14 +92,14 @@ struct calcDensity {
         for(PS::S32 i = 0; i < nip; i += nvector) {
             const PS::S64 nii = std::min(nip - i, nvector);
 
-            PS::F64 buf_id[nvector];
-            PS::F64 buf_px[nvector];
-            PS::F64 buf_py[nvector];
-            PS::F64 buf_pz[nvector];
-            PS::F64 buf_vx[nvector];
-            PS::F64 buf_vy[nvector];
-            PS::F64 buf_vz[nvector];
-            PS::F64 buf_hs[nvector];
+            PS::F64 buf_id[nvector] __attribute__((aligned(32)));
+            PS::F64 buf_px[nvector] __attribute__((aligned(32)));
+            PS::F64 buf_py[nvector] __attribute__((aligned(32)));
+            PS::F64 buf_pz[nvector] __attribute__((aligned(32)));
+            PS::F64 buf_vx[nvector] __attribute__((aligned(32)));
+            PS::F64 buf_vy[nvector] __attribute__((aligned(32)));
+            PS::F64 buf_vz[nvector] __attribute__((aligned(32)));
+            PS::F64 buf_hs[nvector] __attribute__((aligned(32)));
             for(PS::S32 ii = 0; ii < nii; ii++) {
                 buf_id[ii] = epi[i+ii].id;
                 buf_px[ii] = epi[i+ii].pos[0];
@@ -110,6 +110,7 @@ struct calcDensity {
                 buf_vz[ii] = epi[i+ii].vel[2];
                 buf_hs[ii] = epi[i+ii].ksr;
             }
+
             v4df id_i;
             v4df px_i;
             v4df py_i;
@@ -151,7 +152,8 @@ struct calcDensity {
                     nj_i += ((q_i < 1.) & v4df(1.));                    
                 }
 
-                PS::F64 buf_dens[nvector], buf_nj[nvector];
+                PS::F64 buf_dens[nvector] __attribute__((aligned(32)));
+                PS::F64 buf_nj[nvector]   __attribute__((aligned(32)));
                 rh_i.store(buf_dens);
                 nj_i.store(buf_nj);
                 for(PS::S32 ii = 0; ii < nii; ii++) {
@@ -165,7 +167,7 @@ struct calcDensity {
                 }
                 hs_i.load(buf_hs);
             }
-
+            
             v4df hi_i  = rcp(hs_i);
             v4df hi4_i = hi_i * ND::calcVolumeInverse(hi_i);
             v4df grdh_i(0.);
@@ -220,9 +222,9 @@ struct calcDensity {
             rotv_i *= deni_i * omgi_i;
             divv_i *= deni_i * omgi_i;
 
-            PS::F64 buf_divv[nvector];
-            PS::F64 buf_rotv[nvector];
-            PS::F64 buf_omgi[nvector];
+            PS::F64 buf_divv[nvector] __attribute__((aligned(32)));
+            PS::F64 buf_rotv[nvector] __attribute__((aligned(32)));
+            PS::F64 buf_omgi[nvector] __attribute__((aligned(32)));
             divv_i.store(buf_divv);
             rotv_i.store(buf_rotv);
             omgi_i.store(buf_omgi);

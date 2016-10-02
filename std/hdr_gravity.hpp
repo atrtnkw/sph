@@ -201,10 +201,10 @@ struct calcGravity {
         PS::S32 nvector = v4df::getVectorLength();
 
         for(PS::S32 i = 0; i < nip; i += nvector) {
-            PS::F64 buf_px[nvector];
-            PS::F64 buf_py[nvector];
-            PS::F64 buf_pz[nvector];
-            PS::F64 buf_e2[nvector];
+            PS::F64 buf_px[nvector] __attribute__((aligned(32)));
+            PS::F64 buf_py[nvector] __attribute__((aligned(32)));
+            PS::F64 buf_pz[nvector] __attribute__((aligned(32)));
+            PS::F64 buf_e2[nvector] __attribute__((aligned(32)));
             const PS::S32 nii = std::min(nip - i, nvector);
             for(PS::S32 ii = 0; ii < nii; ii++) {
                 buf_px[ii] = epi[i+ii].pos[0];
@@ -253,11 +253,11 @@ struct calcGravity {
             az_i *= v4df(0.5);
             pt_i *= v4df(0.5);
 
-            PS::F64 buf_ax[nvector];
-            PS::F64 buf_ay[nvector];
-            PS::F64 buf_az[nvector];
-            PS::F64 buf_pt[nvector];
-            PS::F64 buf_et[nvector];
+            PS::F64 buf_ax[nvector] __attribute__((aligned(32)));
+            PS::F64 buf_ay[nvector] __attribute__((aligned(32)));
+            PS::F64 buf_az[nvector] __attribute__((aligned(32)));
+            PS::F64 buf_pt[nvector] __attribute__((aligned(32)));
+            PS::F64 buf_et[nvector] __attribute__((aligned(32)));
 
             ax_i.store(buf_ax);
             ay_i.store(buf_ay);

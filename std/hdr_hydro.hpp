@@ -138,23 +138,23 @@ struct calcHydro {
         PS::S32 nvector = v4df::getVectorLength();
 
         for(PS::S32 i = 0; i < nip; i += nvector) {
-            PS::F64 buf_id[nvector];
-            PS::F64 buf_px[nvector];
-            PS::F64 buf_py[nvector];
-            PS::F64 buf_pz[nvector];
-            PS::F64 buf_vx[nvector];
-            PS::F64 buf_vy[nvector];
-            PS::F64 buf_vz[nvector];
-            PS::F64 buf_hi[nvector];
-            PS::F64 buf_pp[nvector];
-            PS::F64 buf_pc[nvector];
-            PS::F64 buf_bs[nvector];
-            PS::F64 buf_dn[nvector];
-            PS::F64 buf_cs[nvector];
-            PS::F64 buf_al[nvector];
-            PS::F64 buf_au[nvector];
-            PS::F64 buf_eg[nvector];
-            PS::F64 buf_et[nvector];
+            PS::F64 buf_id[nvector] __attribute__((aligned(32)));
+            PS::F64 buf_px[nvector] __attribute__((aligned(32)));
+            PS::F64 buf_py[nvector] __attribute__((aligned(32)));
+            PS::F64 buf_pz[nvector] __attribute__((aligned(32)));
+            PS::F64 buf_vx[nvector] __attribute__((aligned(32)));
+            PS::F64 buf_vy[nvector] __attribute__((aligned(32)));
+            PS::F64 buf_vz[nvector] __attribute__((aligned(32)));
+            PS::F64 buf_hi[nvector] __attribute__((aligned(32)));
+            PS::F64 buf_pp[nvector] __attribute__((aligned(32)));
+            PS::F64 buf_pc[nvector] __attribute__((aligned(32)));
+            PS::F64 buf_bs[nvector] __attribute__((aligned(32)));
+            PS::F64 buf_dn[nvector] __attribute__((aligned(32)));
+            PS::F64 buf_cs[nvector] __attribute__((aligned(32)));
+            PS::F64 buf_al[nvector] __attribute__((aligned(32)));
+            PS::F64 buf_au[nvector] __attribute__((aligned(32)));
+            PS::F64 buf_eg[nvector] __attribute__((aligned(32)));
+            PS::F64 buf_et[nvector] __attribute__((aligned(32)));
             PS::S32 nii = std::min(nip - i, nvector);
             for(PS::S32 ii = 0; ii < nii; ii++) {
                 buf_id[ii] = epi[i+ii].id;
@@ -270,15 +270,15 @@ struct calcHydro {
             g1y_i  *= v4df(0.5);
             g1z_i  *= v4df(0.5);
 
-            PS::F64 buf_ax[nvector];
-            PS::F64 buf_ay[nvector];
-            PS::F64 buf_az[nvector];
-            PS::F64 buf_du[nvector];
-            PS::F64 buf_vs[nvector];
-            PS::F64 buf_df[nvector];
-            PS::F64 buf_gx[nvector];
-            PS::F64 buf_gy[nvector];
-            PS::F64 buf_gz[nvector];
+            PS::F64 buf_ax[nvector] __attribute__((aligned(32)));
+            PS::F64 buf_ay[nvector] __attribute__((aligned(32)));
+            PS::F64 buf_az[nvector] __attribute__((aligned(32)));
+            PS::F64 buf_du[nvector] __attribute__((aligned(32)));
+            PS::F64 buf_vs[nvector] __attribute__((aligned(32)));
+            PS::F64 buf_df[nvector] __attribute__((aligned(32)));
+            PS::F64 buf_gx[nvector] __attribute__((aligned(32)));
+            PS::F64 buf_gy[nvector] __attribute__((aligned(32)));
+            PS::F64 buf_gz[nvector] __attribute__((aligned(32)));
             achx_i.store(buf_ax);
             achy_i.store(buf_ay);
             achz_i.store(buf_az);
