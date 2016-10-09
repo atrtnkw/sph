@@ -1,0 +1,9 @@
++2.0e-8 +1.2e+8 +1.6e+1
+0.00 0.00 0.60 0.35 0.05
+1000 +1.0e+7 +8.0e+7 2e8
+test1d
+
+# dn_a, dn_b, vz_c
+# x_he, x_c, x_o, x_ne, x_mg
+# nhalf, temperature, zmax, space length
+# filetype
