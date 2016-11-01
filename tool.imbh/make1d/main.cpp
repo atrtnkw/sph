@@ -134,6 +134,7 @@ int main(int argc, char ** argv) {
         PS::F64 dens = - dn_a * zp * zp + dn_b;
         if(i != 0) {
             zp    = pz[i-1];
+            dens  = - dn_a * zp * zp + dn_b;
             pz[i] = zp + m / dens;
         }
         vz[i] = - vz_c * pz[i];
@@ -153,8 +154,14 @@ int main(int argc, char ** argv) {
         fprintf(fp, " %+e %+e %+e", -vz[i], 0.0, 0.0);
         fprintf(fp, " %+e %+e %+e",  ue[i], 1.0, 0.0);
         fprintf(fp, " %+e", hs[i]);
+        /*
         fprintf(fp, " 0.0 0.6 0.35 0.05");
         for(PS::S64 k = 0; k < 9; k++) {
+            fprintf(fp, " 0.0");
+        }
+        */
+        fprintf(fp, " %+.3e %+.3e %+.3e %+.3e %+.3e", cmps[0], cmps[1], cmps[2], cmps[3], cmps[4]);
+        for(PS::S64 k = 0; k < 8; k++) {
             fprintf(fp, " 0.0");
         }
         fprintf(fp, "\n");
@@ -165,8 +172,14 @@ int main(int argc, char ** argv) {
         fprintf(fp, " %+e %+e %+e", vz[i], 0.0, 0.0);
         fprintf(fp, " %+e %+e %+e", ue[i], 1.0, 0.0);
         fprintf(fp, " %+e", hs[i]);
+        /*
         fprintf(fp, " 0.0 0.6 0.35 0.05");
         for(PS::S64 k = 0; k < 9; k++) {
+            fprintf(fp, " 0.0");
+        }
+        */
+        fprintf(fp, " %+.3e %+.3e %+.3e %+.3e %+.3e", cmps[0], cmps[1], cmps[2], cmps[3], cmps[4]);
+        for(PS::S64 k = 0; k < 8; k++) {
             fprintf(fp, " 0.0");
         }
         fprintf(fp, "\n");
