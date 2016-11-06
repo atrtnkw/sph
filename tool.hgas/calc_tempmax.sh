@@ -15,6 +15,7 @@ do
     then
         ttemp=`expr $time + 0`
         printf "%d " $ttemp
-        awk '{print $20, $17;}' $file | sort -g | tail -n1
+#        awk '{print $20, $17;}' $file | sort -g | tail -n1
+	awk 'BEGIN{tmax=0.;dmax=0.;}{if($21>tmax){tmax=$21;dmax=$16}}END{printf("%+e %+e\n", tmax, dmax);}' $file
     fi
 done
