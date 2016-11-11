@@ -1,6 +1,6 @@
-if test $# -ne 6
+if test $# -ne 7
 then
-    echo "sh $0 <NSmass[Msun]> <snapWD> <rwd> <rp> <ecc> <ofile>" >&2
+    echo "sh $0 <NSmass[Msun]> <snapWD> <rwd> <sep/Rlobe> <rp> <ecc> <ofile>" >&2
     exit
 fi
 
@@ -9,15 +9,16 @@ echo "0" > dummy
 nsmas=$1
 small=$2
 rwd=`awk '{printf("%lf\n", rwd);}' rwd=$3 dummy`
-rp=`awk '{printf("%lf\n", rp);}' rp=$4 dummy`
-ecc=$5
-ofile=$6
+clobe=$4
+rp=`awk '{printf("%lf\n", rp);}' rp=$5 dummy`
+ecc=$6
+ofile=$7
 
 bneps=1e6
 gravc=0.000000066738480
 
-echo "sh $0 $nsmas $small $rp $ecc $ofile" >&2
-echo "sh $0 $nsmas $small $rp $ecc $ofile" > "$ofile".log
+echo "sh $0 $nsmas $small $rwd $clobe $rp $ecc $ofile" >&2
+echo "sh $0 $nsmas $small $rwd $clobe $rp $ecc $ofile" > "$ofile".log
 
 m1=`echo "$nsmas * 1.9891 * 10^33" | bc -l`
 m2=`awk 'BEGIN{mtot=0.0;}{mtot+=$3}END{printf("%lf\n", mtot);}' $small`
@@ -27,7 +28,18 @@ qq=`echo "$m2 / $m1" | bc -l`
 qq13=`echo "e(1./3.*l($qq))" | bc -l`
 qq23=`echo "e(2./3.*l($qq))" | bc -l`
 
-ri=`echo "2.0 * $rwd * (0.6 * $qq23 + l(1. + $qq13)) /  (0.49 * $qq23)" | bc -l`
+ri=`echo "$clobe * $rwd * (0.6 * $qq23 + l(1. + $qq13)) /  (0.49 * $qq23)" | bc -l`
+ra=`echo "$a0 * (1 + $ecc)" | bc -l`
+bl=`echo "$ri > $ra" | bc -l`
+if test $bl -eq 1
+then
+    echo "!!!!!!!!!!!!!!!!!" >&2
+    echo "ERROR!!" >&2
+    echo "Initial binary seperation is too distant!" >&2
+    printf "ri: %+e ra: %+e\n" $ri $ra >&2
+    echo "!!!!!!!!!!!!!!!!!" >&2
+    exit
+fi
 vi=`echo "sqrt(2.0 * $gravc * ($m1 + $m2) * (1/$ri - 1/(2.0*$a0)))" | bc -l`
 nn=`echo "sqrt($gravc * ($m1 + $m2) / ($a0 * $a0 * $a0))" | bc -l`
 cosu=`echo "(1. - $ri / $a0) / $ecc" | bc -l`
