@@ -62,15 +62,19 @@ vy2=`echo "- $vyi * -1. / (1.0 + $qq)" | bc -l`
 prd=`echo "2.0 * 3.141 * sqrt($a0^3 / ($gravc * ($m1 + $m2)))" | bc -l`
 
 printf "Mass ratio: %+e\n" $qq           >&2
-printf "Pericenter distance: %+e\n" $rpp >&2
+printf "Semi-major axis: %+e\n" $a0      >&2
+printf "Eccentricity: %+e\n" $ecc        >&2
+printf "Pericenter distance: %+e\n" $rp  >&2
+printf "Binary period: %+e\n" $prd       >&2
 printf "Binary separation: %+e\n" $ri    >&2
 printf "Binary velocity: %+e\n" $vi      >&2
-printf "Binary period: %+e\n" $prd       >&2
 printf "Mass ratio: %+e\n" $qq           >> "$ofile".log
-printf "Pericenter distance: %+e\n" $rpp >> "$ofile".log
+printf "Semi-major axis: %+e\n" $a0      >> "$ofile".log
+printf "Eccentricity: %+e\n" $ecc        >> "$ofile".log
+printf "Pericenter distance: %+e\n" $rp  >> "$ofile".log
+printf "Binary period: %+e\n" $prd       >> "$ofile".log
 printf "Binary separation: %+e\n" $ri    >> "$ofile".log
 printf "Binary velocity: %+e\n" $vi      >> "$ofile".log
-printf "Binary period: %+e\n" $prd       >> "$ofile".log
 
 awk '{printf("%10d %2d %+e %+e %+e %+e %+e %+e %+e %+e\n", 0, 0, mns, px, py, 0., vx, vy, 0., eps);}' mns=$m1 px=$px1 py=$py1 vx=$vx1 vy=$vy1 eps=$bneps dummy > "$ofile".bhns
 awk '{printf("%10d %2d %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e\n", $1, 1, $3, $4+px, $5+py, $6, $7+vx, $8+vy, $9, $13, $14, $15, $17, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44);}' px=$px2 py=$py2 vx=$vx2 vy=$vy2 $small > "$ofile".data
