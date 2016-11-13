@@ -678,17 +678,29 @@ namespace RunParameter {
         fscanf(fp, "%llx %llx", &urtime, &urtimeinv);
         fscanf(fp, "%lld %lld %lld %llx", &nptcl, &nmsls, &nbhns, &utcoeff);
         fscanf(fp, "%llx %llx %llx", &urv[0], &urv[1], &urv[2]);
-        // A. Tanikawa should correct this soon.
         fscanf(fp, "%llx %llx %lld %lld %lld %lld %lld", &uenuc, &ueabs, &fdivide, &fdamp, &fnuc, &fbin, &fpot);
         fscanf(fp, "%llx %llx", &umbh, &umbhunit);
-        ///////////////////////////////////////
         Time          = cvt(utime);
         TimeEnd       = cvt(utend);
         Timestep      = cvt(udtime);
         TimestepAscii = cvt(udta);
         TimestepHexa  = cvt(udth);
         NumberOfStep  = nstep;
+// *************************************
+// A. Tanikawa change this 16/11/13 FROM
+// *************************************
+#if 0
         NumberOfAscii = nascii - 1;
+#else
+        if(RP::Time - (PS::S64)(RP::Time / RP::TimestepAscii) * RP::TimestepAscii == 0.) {
+            NumberOfAscii = nascii - 1;
+        } else {
+            NumberOfAscii = nascii;
+        }
+#endif
+// *************************************
+// A. Tanikawa change this 16/11/13 TO
+// *************************************
         NumberOfHexa  = nhexa  - 1;
         AlphaMaximum  = cvt(ualphamax);
         AlphaMinimum  = cvt(ualphamin);
@@ -797,14 +809,8 @@ namespace RunParameter {
         if(FlagBinary == 2) {
             fprintf(fp, "# BHPotential: %d\n", FlagPotential);
         }
-// *************************************
-// A. Tanikawa change this 16/10/31 FROM
-// *************************************
         fprintf(fp, "# TimestepAscii: %+e\n", TimestepAscii);
         fprintf(fp, "# TimestepHexa:  %+e\n", TimestepHexa);
-// *************************************
-// A. Tanikawa change this 16/10/31 TO
-// *************************************
         fprintf(fp, "# # of Step %8d\n", NumberOfStep);
         fflush(fp);
     }
@@ -884,43 +890,6 @@ void outputData(Tdinfo & dinfo,
         if(RP::Time == 0.) {
             RP::NumberOfAscii = 0;
         }
-// *************************************
-// A. Tanikawa change this 16/10/31 FROM
-// *************************************
-#if 0
-        if(RP::FlagDivideFile == 0) {
-            if(RP::TimestepAscii >= 1.) {
-                sprintf(filename, "snap/sph_t%04d.dat", (PS::S32)RP::Time);
-            } else {
-                sprintf(filename, "snap/sph_t%04d.dat", RP::NumberOfAscii);
-            }
-            sph.writeParticleAscii(filename);
-        } else {
-            if(RP::TimestepAscii >= 1.) {
-                sprintf(filename, "snap/sph_t%04d", (PS::S32)RP::Time);
-            } else {
-                sprintf(filename, "snap/sph_t%04d", RP::NumberOfAscii);
-            }
-            sph.writeParticleAscii(filename, "%s_p%06d_i%06d.dat");
-        }
-        if(RP::FlagDamping == 2) {
-            if(RP::TimestepAscii >= 1.) {
-                sprintf(filename, "snap/msls_t%04d.dat", (PS::S32)RP::Time);
-            } else {
-                sprintf(filename, "snap/msls_t%04d.dat", RP::NumberOfAscii);
-            }
-            msls.writeParticleAscii(filename);
-        }
-        if(RP::FlagBinary == 1) {
-            if(RP::TimestepAscii >= 1.) {
-                sprintf(filename, "snap/bhns_t%04d.dat", (PS::S32)RP::Time);
-            } else {
-                sprintf(filename, "snap/bhns_t%04d.dat", RP::NumberOfAscii);
-            }
-            bhns.writeParticleAscii(filename);
-        }
-        RP::NumberOfAscii++;
-#else
         if(RP::FlagDivideFile == 0) {
             sprintf(filename, "snap/sph_t%04d.dat", RP::NumberOfAscii);
             sph.writeParticleAscii(filename);
@@ -937,35 +906,15 @@ void outputData(Tdinfo & dinfo,
             bhns.writeParticleAscii(filename);
         }
         RP::NumberOfAscii++;
-#endif
-// *************************************
-// A. Tanikawa change this 16/10/31 TO
-// *************************************
     }
     if(RP::Time - (PS::S64)(RP::Time / RP::TimestepHexa) * RP::TimestepHexa == 0.) {
         char filename[64];
         if(RP::Time == 0.) {
             RP::NumberOfHexa = 0;
         }
-// *************************************
-// A. Tanikawa change this 16/10/31 FROM
-// *************************************
-#if 0
-        if(RP::TimestepHexa >= 1.) {
-            sprintf(filename, "snap/t%04d_p%06d.hexa", (PS::S32)RP::Time, PS::Comm::getRank());
-        } else {
-            sprintf(filename, "snap/t%04d_p%06d.hexa", RP::NumberOfHexa, PS::Comm::getRank());
-        }
-        RP::NumberOfHexa++;
-        writeHexa(filename, dinfo, sph, bhns, msls);
-#else
         sprintf(filename, "snap/t%04d_p%06d.hexa", RP::NumberOfHexa, PS::Comm::getRank());
         RP::NumberOfHexa++;
         writeHexa(filename, dinfo, sph, bhns, msls);
-#endif
-// *************************************
-// A. Tanikawa change this 16/10/31 TO
-// *************************************
     }
     PS::F64 etot = calcEnergy(sph, bhns);
     PS::F64 enuc = calcReleasedNuclearEnergyTotal(sph);
@@ -1242,9 +1191,6 @@ void startSimulation(char **argv,
     if(RP::FlagDamping == 2) {
         msls.exchangeParticle(dinfo);
         calcRotationalVelocity(sph, bhns);
-///////////////////////////////////////////////////////////////////
-// A. Tanikawa adds this 16/08/25 FROM
-///////////////////////////////////////////////////////////////////
         {
             PS::F64    m0, m1;
             PS::F64vec x0, x1;
@@ -1260,9 +1206,6 @@ void startSimulation(char **argv,
             RP::CenterOfMassOfStar0 = x0;
             RP::CenterOfMassOfStar1 = x1;
         }
-///////////////////////////////////////////////////////////////////
-// A. Tanikawa adds this 16/08/25 TO
-///////////////////////////////////////////////////////////////////
     }
     calcSPHKernel(dinfo, sph, bhns, msls, density, hydro, gravity);
 }
