@@ -12,12 +12,12 @@ sfile="$idir"/sph_t"$ptim".dat
 bfile="$idir"/bhns_t"$ptim".dat
 if ! test -e $sfile
 then
-    echo "File $sfile is not found"
+    echo "File $sfile is not found" >&2
     exit
 fi
 if ! test -e $bfile
 then
-    echo "File $bfile is not found"
+    echo "File $bfile is not found" >&2
     exit
 fi
 bx=`awk '{print $4;}' $bfile`

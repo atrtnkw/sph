@@ -13,5 +13,9 @@ echo "Directory $idir" >&2
 for time in $(seq $tbgn 1 $tend)
 do
     ptim=`printf "%04d" $time`
-    awk 'BEGIN{n=0;}{e=0.5*($7**2+$8**2+$9**2)+$25;if(e>0.)n++;}END{printf("%4d %10d\n", time, n);}' time=$time "$idir"/sph_t"$ptim".dat
+    if ! test -e "$idir"/sph_t"$ptim".dat
+    then
+	continue
+    fi
+    awk 'BEGIN{n=0;ek=0.;}{e=0.5*($7**2+$8**2+$9**2)+$25;if(e>0.){n++;ek+=e;}}END{printf("%4d %10d %+e\n", time, n, ek);}' time=$time "$idir"/sph_t"$ptim".dat
 done
