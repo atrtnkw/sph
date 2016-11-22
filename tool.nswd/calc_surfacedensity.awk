@@ -42,6 +42,7 @@ END{
 	ht = ((dc != 0.) ? 0.5 * si / (dc * ri) : 0.);
 	yi = ((ni != 0 && tc > 1e8) ? calcYcDotInv(dc, tc) : 0.);
 	printf("%+e %+e %+e %+e %+e %+e %9d\n", ri, si, dc, tc, ht, yi, sigma[i]);
+    printf("### Surface density is smaller than realisty by 4 times!!###");
     }
 }
 

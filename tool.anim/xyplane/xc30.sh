@@ -5,16 +5,11 @@
 
 cd $PBS_O_WORKDIR
 
-echo "/work/tanikwat/git-sph/nswd/data/r008k/run.bns-wd1.0_ecc.tmp/unfy"  > input.list
-echo "/work/tanikwat/git-sph/nswd/data/r008k/run.bns-wd1.0_ecc.tmp/anim/xy" >> input.list
-echo "0 200" >> input.list
+echo "/work/tanikwat/git-sph/nswd/data/r256k/run.bns-wd1.0/unfy"  > input.list
+echo "/work/tanikwat/git-sph/nswd/data/r256k/run.bns-wd1.0/anim/xy05e9" >> input.list
+echo "560 560" >> input.list
 echo "-5e9 -5e9 0." >> input.list
 echo "1e10 256" >> input.list
-#echo "/work/tanikwat/git-sph/nswd/data/r128k/run.bns-wd0.6/unfy"  > input.list
-#echo "/work/tanikwat/git-sph/nswd/data/r128k/run.bns-wd0.6/anim/xy03e09" >> input.list
-#echo "0 3000" >> input.list
-#echo "-5e9 -5e9 0." >> input.list
-#echo "10e9 256" >> input.list
 
 aprun -n 1 -d 1 ./run input.list
 
