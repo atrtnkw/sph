@@ -9,8 +9,8 @@ NTHREAD=1
 cd $PBS_O_WORKDIR
 
 echo "/work/tanikwat/git-sph/nswd/data/r256k/run.bns-wd1.0/unfy"  > input.list
-echo "/work/tanikwat/git-sph/nswd/data/hotspot/fuga" >> input.list
-echo "660 660" >> input.list
+echo "/work/tanikwat/git-sph/nswd/data/r256k/run.bns-wd1.0/data/hotspot" >> input.list
+echo "659 660" >> input.list
 
 NPROCESS=`echo "$NPARALLEL / $NTHREAD" | bc`
 export OMP_NUM_THREADS=$NTHREAD

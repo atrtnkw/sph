@@ -4,7 +4,7 @@
 #include <cstring>
 #include <limits>
 #include <mpi.h>
-#include <Eigen/Eigenvalues>
+//#include <Eigen/Eigenvalues>
 
 enum KernelType {CubicSpline = 0, WendlandC2 = 1, WendlandC4 = 2};
 
@@ -220,6 +220,7 @@ int main(int argc, char ** argv) {
     bhns.setNumberOfParticleLocal(0);
 
     char idir[1024], otype[1024];
+    PS::S32 fflag, nfile;
     PS::S64 ibgn, iend;
     PS::F64vec xmin;
     PS::F64    wdth;
@@ -227,23 +228,51 @@ int main(int argc, char ** argv) {
     FILE * fp = fopen(argv[1], "r");
     fscanf(fp, "%s", idir);
     fscanf(fp, "%s", otype);
+    fscanf(fp, "%d %d", &fflag, &nfile);
     fscanf(fp, "%lld%lld", &ibgn, &iend);
     fscanf(fp, "%lf%lf%lf", &xmin[0], &xmin[1], &xmin[2]);
     fscanf(fp, "%lf%lld", &wdth, &nnxx);
     fclose(fp);
 
     for(PS::S64 itime = ibgn; itime <= iend; itime++) {
-        char sfile[1024], bfile[1024];
-        sprintf(sfile, "%s/sph_t%04d.dat",  idir, itime);
-        sprintf(bfile, "%s/bhns_t%04d.dat", idir, itime);
-        fp = fopen(sfile, "r");
-        assert(fp);
-        sph.readParticleAscii(sfile);
-        fclose(fp);
-        fp = fopen(bfile, "r");
-        assert(fp);
-        bhns.readParticleAscii(bfile);
-        fclose(fp);
+        if(fflag == 0) {
+            char sfile[1024], bfile[1024];
+            sprintf(sfile, "%s/sph_t%04d.dat",  idir, itime);
+            sprintf(bfile, "%s/bhns_t%04d.dat", idir, itime);
+            fp = fopen(sfile, "r");
+            assert(fp);
+            sph.readParticleAscii(sfile);
+            fclose(fp);
+            fp = fopen(bfile, "r");
+            assert(fp);
+            bhns.readParticleAscii(bfile);
+            fclose(fp);
+        } else {
+            PS::ParticleSystem<SPHAnalysis> tmpsph;
+            tmpsph.initialize();
+            tmpsph.createParticle(0);
+            char sfile[1024];
+            PS::F64 ntot = 0;
+            for(PS::S64 ifile = 0; ifile < nfile; ifile++) {
+                sprintf(sfile, "%s/sph_t%04d_p%06d_i%06d.dat",  idir, itime, nfile, ifile);
+                fp = fopen(sfile, "r");
+                assert(fp);
+                tmpsph.readParticleAscii(sfile);
+                fclose(fp);
+                PS::S64 ntmp = tmpsph.getNumberOfParticleLocal();
+                sph.setNumberOfParticleLocal(ntot+ntmp);
+                for(PS::S64 i = 0; i < ntmp; i++) {
+                    sph[ntot+i] = tmpsph[i];
+                }
+                ntot += ntmp;
+            }
+            char bfile[1024];
+            sprintf(bfile, "%s/bhns_t%04d.dat", idir, itime);
+            fp = fopen(bfile, "r");
+            assert(fp);
+            bhns.readParticleAscii(bfile);
+            fclose(fp);
+        }
 
         char ofile[1024];
         sprintf(ofile, "%s_t%04d.dat", otype, itime);

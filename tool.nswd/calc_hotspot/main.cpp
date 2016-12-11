@@ -145,6 +145,7 @@ public:
         fprintf(fp, "%8d", this->id);
         fprintf(fp, " %+e %+e %+e", this->pos[0], this->pos[1], this->pos[2]);
         fprintf(fp, " %+e %+e %+e", this->dens, this->temp, this->tempu);
+        fprintf(fp, " %+e", this->vsnd);
         fprintf(fp, "\n");
     }
 
@@ -361,6 +362,7 @@ void calcMeshData(Tdinfo & dinfo,
                              &pout, &cout, &tout, &sout);
         }
         mesh[i].tempu = tout;
+        mesh[i].vsnd  = sout;
     }
 }
 
