@@ -147,10 +147,17 @@ void projectOnOrbitalPlane(char * ofile,
     }
 
     for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
+#if 0
         if(fabs(sph[i].pos[2]) > fabs(sph[i].ksr)) {
             continue;
         }
         PS::F64vec px = sph[i].pos - bhns[0].pos;
+#else
+        PS::F64vec px = sph[i].pos - bhns[0].pos;
+        if(fabs(px[2]) > fabs(sph[i].ksr)) {
+            continue;
+        }
+#endif
         PS::S64 nxi = (PS::S64)((px[0] - xmin[0]) * dxinv);
         if(nxi < 0 || nmax <= nxi) {
             continue;
