@@ -132,8 +132,8 @@ void calcRotationalVelocity(Tsph & sph,
     PS::F64    axis  = sqrt(axisv * axisv);
     PS::F64    vel   = sqrt(CodeUnit::GravityConstantInThisUnit * (m0 + m1) / axis);
     
-    RP::RotationalVelocity[0] = 0.d;
-    RP::RotationalVelocity[1] = 0.d;
+    RP::RotationalVelocity[0] = 0.;
+    RP::RotationalVelocity[1] = 0.;
     RP::RotationalVelocity[2] = vel / axis;
 }
 
@@ -150,7 +150,7 @@ void reduceSeparation(Tsph & sph,
         PS::F64vec x1, v1;
         calcCenterOfMass(sph, m1, x1, v1, 1);
 
-        PS::F64 r2maxloc = 0.d;
+        PS::F64 r2maxloc = 0.;
         for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
             if(sph[i].istar == 1) {
                 PS::F64vec dr = sph[i].pos - x1;
@@ -161,7 +161,7 @@ void reduceSeparation(Tsph & sph,
 
         PS::F64 r2maxglb = PS::Comm::getMaxValue(r2maxloc);
         PS::F64 rmax     = sqrt(r2maxglb);
-        PS::F64 rho2     = m1 / ((4.d * M_PI / 3.d * rmax * rmax * rmax));
+        PS::F64 rho2     = m1 / ((4. * M_PI / 3. * rmax * rmax * rmax));
 
         RP::ReductionTime    = 1. / (0.05 * sqrt(CodeUnit::GravityConstantInThisUnit * rho2));
         RP::ReductionTimeInv = 1. / RP::ReductionTime;

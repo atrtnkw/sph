@@ -515,7 +515,7 @@ public:
 
     inline void addAdditionalForceDamping2() {
         this->acc  -= RP::RotationalVelocity ^ (RP::RotationalVelocity ^ this->pos)
-            + 2.d * (RP::RotationalVelocity ^ this->vel);
+            + 2. * (RP::RotationalVelocity ^ this->vel);
     }
 
 /*

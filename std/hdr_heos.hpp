@@ -40,9 +40,9 @@ namespace CodeUnit {
     PS::F64 RadiationConstant       = 4. * StefanBoltzmannConstant / SpeedOfLight;
     PS::F64 RadiationConstantInv    = 1. / RadiationConstant;
 
-    PS::F64 UnitOfLength       = SolarRadius * 1.0e-3d;
-    PS::F64 UnitOfMass         = SolarMass   * 1.0e-6d;
-    PS::F64 UnitOfTime         = 1.0d;
+    PS::F64 UnitOfLength       = SolarRadius * 1.0e-3;
+    PS::F64 UnitOfMass         = SolarMass   * 1.0e-6;
+    PS::F64 UnitOfTime         = 1.0;
 
     PS::F64 UnitOfVelocity     = UnitOfLength / UnitOfTime;
 #ifdef FOR_TUBE_TEST
@@ -57,13 +57,13 @@ namespace CodeUnit {
 #endif
     PS::F64 UnitOfAcceleration = UnitOfVelocity / UnitOfTime;
 
-    PS::F64 UnitOfLengthInv    = 1.d / UnitOfLength;
-    PS::F64 UnitOfMassInv      = 1.d / UnitOfMass;
-    PS::F64 UnitOfTimeInv      = 1.d / UnitOfTime;
-    PS::F64 UnitOfVelocityInv  = 1.d / UnitOfVelocity;
-    PS::F64 UnitOfDensityInv   = 1.d / UnitOfDensity;
-    PS::F64 UnitOfEnergyInv    = 1.d / UnitOfEnergy;
-    PS::F64 UnitOfPressureInv  = 1.d / UnitOfPressure;
+    PS::F64 UnitOfLengthInv    = 1. / UnitOfLength;
+    PS::F64 UnitOfMassInv      = 1. / UnitOfMass;
+    PS::F64 UnitOfTimeInv      = 1. / UnitOfTime;
+    PS::F64 UnitOfVelocityInv  = 1. / UnitOfVelocity;
+    PS::F64 UnitOfDensityInv   = 1. / UnitOfDensity;
+    PS::F64 UnitOfEnergyInv    = 1. / UnitOfEnergy;
+    PS::F64 UnitOfPressureInv  = 1. / UnitOfPressure;
 
     PS::F64 MaximumOfTemperature       = 1e11;
     PS::F64 MinimumOfTemperature       = 1e5;
@@ -232,8 +232,8 @@ public:
                                          PS::S64 & counteos) {
         using namespace CodeUnit;
 
-        PS::F64 ttmax = (temperature != 0.d && 10.d * temperature < MaximumOfTemperature) ?
-            10.d * temperature : MaximumOfTemperature;
+        PS::F64 ttmax = (temperature != 0. && 10. * temperature < MaximumOfTemperature) ?
+            10. * temperature : MaximumOfTemperature;
         PS::F64 ttmin = MinimumOfTemperature;
         PS::S32 cnt   = 2;
         PS::F64 umax, umin;
@@ -257,7 +257,7 @@ public:
             PS::Abort();
         } else if (eg > umin) {
             PS::F64 ttmid;
-            PS::F64 eginv = 1.d / eg;
+            PS::F64 eginv = 1. / eg;
             PS::F64 tttol;
             PS::F64 tterr;
             do {
@@ -270,7 +270,7 @@ public:
                     ttmax = ttmid;
                 }
                 assert(cnt < 100);
-                tterr = ttmax / ttmin - 1.d;
+                tterr = ttmax / ttmin - 1.;
                 tttol = (ttmax < BoundaryTemperature) ?
                     TolaranceOfLowTemperature :
                     TolaranceOfHighTemperature;
