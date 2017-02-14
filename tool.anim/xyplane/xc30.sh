@@ -8,7 +8,7 @@ cd $PBS_O_WORKDIR
 echo "/work/tanikwat/git-sph/nswd/data/r512k/run.bns-wd1.0/unfy"  > input.list
 echo "/work/tanikwat/git-sph/nswd/data/r512k/run.bns-wd1.0/anim/xy03e09" >> input.list
 echo "1 132" >> input.list
-echo "273 311" >> input.list
+echo "441 521" >> input.list
 echo "-3e9 -3e9 0." >> input.list
 echo "6e9 256" >> input.list
 

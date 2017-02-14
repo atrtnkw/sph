@@ -22,6 +22,35 @@ int main(int argc, char **argv) {
     PS::S64 wdtype = atoi(argv[1]);
 
     init_flash_helmholtz_(&CodeUnit::FractionOfCoulombCorrection);
+
+    {    
+        PS::S64 ndens = 5;
+        PS::S64 ntemp = 6;
+        PS::F64 dens[ndens] = {1e7, 2e7, 3e7, 5e7, 7e7};
+        PS::F64 temp[ntemp] = {1e7, 1e8, 3e9, 5e9, 7e9, 1e10};
+        NR::Nucleon cmps;
+        cmps[1] = 0.5;
+        cmps[2] = 0.5;
+        /*
+        cmps[2] = 0.65;
+        cmps[3] = 0.35;
+        cmps[4] = 0.05;
+        */
+        for(PS::S64 idens = 0; idens < ndens; idens++) {
+            for(PS::S64 itemp = 0; itemp < ntemp; itemp++) {
+                PS::F64 uene = 0.;
+                PS::F64 pres = 0.;
+                PS::F64 vsnd = 0.;
+                PS::F64 entr = 0.;
+                flash_helmholtz_e_(&dens[idens], &temp[itemp], cmps.getPointer(), &uene);
+                flash_helmholtz_(&dens[idens], &uene, &temp[itemp], cmps.getPointer(),
+                                 &pres, &vsnd, &temp[itemp], &entr);
+                printf("dens: %+e temp: %+e vsnd: %+e\n", dens[idens], temp[itemp], vsnd);
+            }
+        }
+        MPI_Finalize();
+        exit(0);
+    }
     
     {
         FILE *fp = fopen("result.log", "w");

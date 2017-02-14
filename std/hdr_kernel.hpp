@@ -151,6 +151,17 @@ namespace SmoothingKernel {
     const PS::F64 ceff0   = +1.25;
     const PS::F64 ceff1   = +3.75;
 
+    inline PS::F64 kernel0th(const PS::F64 r) {
+        PS::F64 rmin  = ((1. - r > 0.) ? 1. - r : 0.);
+        return ceff0 * rmin * rmin * rmin * (1. + 3. * r);
+    }
+    inline PS::F64 kernel1st(const PS::F64 r) {
+        PS::F64 rmin  = ((1. - r > 0.) ? 1. - r : 0.);
+        PS::F64 rmin2 = rmin * rmin;
+        PS::F64 rmin3 = rmin * rmin2;
+        return ceff1 * (rmin3 - rmin2 * (1. + 3. * r));
+    }
+
     inline v4df kernel0th(const v4df r) {
 //        v4df rmin = v4df::max(v4df(1.d) - r, 0.d);
         v4df rmin = v4df::max(v4df(1.) - r, 0.);
@@ -177,6 +188,19 @@ namespace SmoothingKernel {
     const  PS::F64 ksrh  = +1.936492;
     const  PS::F64 ksrhinv = 1. / ksrh;
     const  PS::F64 ceff0 = +1.5;
+
+    inline PS::F64 kernel0th(const PS::F64 r) {
+        PS::F64 rmin  = ((1. - r > 0.) ? 1. - r : 0.);
+        PS::F64 rmin2 = rmin * rmin;
+        return ceff0 * rmin2 * rmin2 * rmin * (1. + 5. * r + 8. * r * r);
+    }
+    inline PS::F64 kernel1st(const PS::F64 r) {
+        PS::F64 rmin  = ((1. - r > 0.) ? 1. - r : 0.);
+        PS::F64 rmin2 = rmin  * rmin;
+        PS::F64 rmin4 = rmin2 * rmin2;
+        return ceff0 * rmin4 * (rmin * (5. + 16. * r) - (5. + 25. * r + 40 * r * r));
+    }
+
     inline v4df kernel0th(const v4df r) {
 //        v4df rmin  = v4df::max(v4df(1.d) - r, 0.d);
         v4df rmin  = v4df::max(v4df(1.) - r, 0.);
@@ -217,6 +241,8 @@ namespace SmoothingKernel {
     const PS::F64 ceff0   = +3.342253804929802286e+00;
     const PS::F64 ceff1   = +1.336901521971920914e+01;
 
+#ifdef USE_INTRINSICS
+
     inline v4df kernel0th(const v4df r) {
 //        v4df rmin  = v4df::max(v4df(1.d) - r, 0.d);
         v4df rmin  = v4df::max(v4df(1.) - r, 0.);
@@ -233,6 +259,24 @@ namespace SmoothingKernel {
 //        return v4df(ceff1) * (rmin4 - rmin3 * (v4df(1.d) + v4df(4.d) * r));
         return v4df(ceff1) * (rmin4 - rmin3 * (v4df(1.) + v4df(4.) * r));
     }
+
+#else
+
+    inline PS::F64 kernel0th(const PS::F64 r) {
+        PS::F64 rmin  = ((1. - r > 0.) ? 1. - r : 0.);
+        PS::F64 rmin2 = rmin * rmin;
+        return ceff0 * rmin2 * rmin2 * (1. + 4. * r);
+    }
+    inline PS::F64 kernel1st(const PS::F64 r) {
+        PS::F64 rmin  = ((1. - r > 0.) ? 1. - r : 0.);
+        PS::F64 rmin2 = rmin  * rmin;
+        PS::F64 rmin3 = rmin  * rmin2;
+        PS::F64 rmin4 = rmin2 * rmin2;
+        return ceff1 * (rmin4 - rmin3 * (1. + 4. * r));
+    }
+
+#endif
+
     void setKernel(const KernelType kn,
                    const PS::F64 ndim) {
         if(PS::Comm::getRank() == 0) {

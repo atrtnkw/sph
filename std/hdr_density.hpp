@@ -76,6 +76,8 @@ public:
     }
 };
 
+#ifdef USE_INTRINSICS
+
 struct calcDensity {
 
     void operator () (const DensityEPI *epi,
@@ -236,6 +238,125 @@ struct calcDensity {
         }        
     }
 };
+
+#else
+
+struct calcDensity {
+
+    void operator () (const DensityEPI *epi,
+                      const PS::S32 nip,
+                      const DensityEPJ *epj,
+                      const PS::S32 njp,
+                      Density *density) {
+
+        for(PS::S32 i = 0; i < nip; i++) {
+            PS::S64 id_i = epi[i].id;
+            PS::F64 px_i = epi[i].pos[0];
+            PS::F64 py_i = epi[i].pos[1];
+            PS::F64 pz_i = epi[i].pos[2];
+            PS::F64 vx_i = epi[i].vel[0];
+            PS::F64 vy_i = epi[i].vel[1];
+            PS::F64 vz_i = epi[i].vel[2];
+            PS::F64 hs_i = epi[i].ksr;
+
+            for(PS::S32 repeat = 0; repeat < 3; repeat++) {
+                PS::F64 hi_i  = 1. / hs_i;
+                PS::F64 hi3_i = ND::calcVolumeInverse(hi_i);
+                PS::F64 hi4_i = hi_i * hi3_i;
+                PS::F64 rh_i  = 0.;
+                PS::S64 nj_i  = 0.;
+
+                for(PS::S32 j = 0; j < njp; j++) {
+                    PS::F64 dx_ij = px_i - epj[j].pos[0];
+                    PS::F64 dy_ij = py_i - epj[j].pos[1];
+                    PS::F64 dz_ij = pz_i - epj[j].pos[2];
+
+                    PS::F64 r2_ij = dx_ij * dx_ij + dy_ij * dy_ij + dz_ij * dz_ij;
+
+                    PS::F64 r1_ij = sqrt(r2_ij);
+                    PS::F64 q_i   = r1_ij * hi_i;
+
+                    PS::F64 kw0 = SK::kernel0th(q_i);
+                    PS::F64 rhj = epj[j].mass * hi3_i * kw0;
+
+                    rh_i += rhj;
+                    nj_i += ((q_i < 1.) ? 1 : 0);                    
+                }
+
+                PS::F64 buf_hs = SK::eta * SK::ksrh
+                    * ND::calcPowerOfDimInverse(epi[i].mass, rh_i);
+                buf_hs = ((buf_hs < RP::KernelSupportRadiusMaximum)
+                          ? buf_hs : RP::KernelSupportRadiusMaximum);
+                density[i].dens = rh_i;
+                density[i].np   = nj_i;
+                density[i].ksr  = buf_hs;
+                density[i].itr  = (buf_hs > epi[i].rs) ? true : false;
+
+                hs_i = buf_hs;
+            }
+            
+            PS::F64 hi_i   = 1. / hs_i;
+            PS::F64 hi4_i  = hi_i * ND::calcVolumeInverse(hi_i);
+            PS::F64 grdh_i = 0.;
+            PS::F64 divv_i = 0.;
+            PS::F64 rotx_i = 0.;
+            PS::F64 roty_i = 0.;
+            PS::F64 rotz_i = 0.;
+            for(PS::S32 j = 0; j < njp; j++) {
+                PS::F64 dpx_ij = px_i - epj[j].pos[0];
+                PS::F64 dpy_ij = py_i - epj[j].pos[1];
+                PS::F64 dpz_ij = pz_i - epj[j].pos[2];
+                PS::F64 dvx_ij = vx_i - epj[j].vel[0];
+                PS::F64 dvy_ij = vy_i - epj[j].vel[1];
+                PS::F64 dvz_ij = vz_i - epj[j].vel[2];
+
+                PS::F64 r2_ij = dpx_ij * dpx_ij + dpy_ij * dpy_ij + dpz_ij * dpz_ij;
+                PS::F64 ri_ij = 1. / sqrt(r2_ij);
+                ri_ij = ((id_i != epj[j].id) ? ri_ij : 0.);
+                PS::F64 r1_ij = r2_ij * ri_ij;
+                PS::F64 q_i = r1_ij * hi_i;
+
+                PS::F64 kw0 = SK::kernel0th(q_i);
+                PS::F64 kw1 = SK::kernel1st(q_i);
+
+                PS::F64 m_j(epj[j].mass);
+                PS::F64 ghj = PS::F64(RP::NumberOfDimension) * kw0;
+                ghj += q_i * kw1;
+                grdh_i -= ghj * hi4_i * m_j;
+
+                PS::F64 dw_ij  = m_j * hi4_i * kw1 * ri_ij;
+                PS::F64 dwx_ij = dw_ij * dpx_ij;
+                PS::F64 dwy_ij = dw_ij * dpy_ij;
+                PS::F64 dwz_ij = dw_ij * dpz_ij;
+
+                divv_i -= dvx_ij * dwx_ij;
+                divv_i -= dvy_ij * dwy_ij;
+                divv_i -= dvz_ij * dwz_ij;
+
+                rotx_i += dvy_ij * dwz_ij;
+                roty_i += dvz_ij * dwx_ij;
+                rotz_i += dvx_ij * dwy_ij;
+                rotx_i -= dvz_ij * dwy_ij;
+                roty_i -= dvx_ij * dwz_ij;
+                rotz_i -= dvy_ij * dwx_ij;                 
+            }
+
+            PS::F64 dens_i = density[i].dens;
+            PS::F64 deni_i = 1. / dens_i;
+            PS::F64 omgi_i = 1. / (1. + hs_i * deni_i * grdh_i / RP::NumberOfDimension);
+            PS::F64 rot2_i = rotx_i * rotx_i + roty_i * roty_i + rotz_i * rotz_i;
+            PS::F64 rotv_i = rot2_i * ((rot2_i != 0.) ? 1. / sqrt(rot2_i) : 0.);
+            rotv_i *= deni_i * omgi_i;
+            divv_i *= deni_i * omgi_i;
+
+            density[i].divv = divv_i;
+            density[i].rotv = rotv_i;
+            density[i].grdh = omgi_i;
+        }        
+    }
+};
+
+#endif
 
 template <class Tdinfo,
           class Tsph,

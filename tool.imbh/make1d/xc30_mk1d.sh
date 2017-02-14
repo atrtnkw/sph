@@ -9,7 +9,7 @@ NPROCESS=$NPARALLEL
 fexe=run
 file=input.list
 
-flag=0
+flag=4
 nhlf=10000
 frvz=2
 fhe=0.00
@@ -29,8 +29,10 @@ then
         vz_c=+1.6e+1    
         vzvz=1.0
     else
-        vz_c=+2.4e+1
-        vzvz=1.5
+#        vz_c=+2.4e+1
+#        vzvz=1.5
+        vz_c=+1.9e+1
+        vzvz=cor
     fi
     dn_a=+2.0e-8
     dn_b=+1.2e+8
@@ -88,8 +90,10 @@ else
         vz_c=+7.5e+1
         vzvz=1.0
     else
-        vz_c=+11.25e+1
-        vzvz=1.5
+#        vz_c=+11.25e+1
+#        vzvz=1.5
+        vz_c=+4.1e+1
+        vzvz=cor
     fi
     dn_a=+2.0e-8
     dn_b=+1.3e+7

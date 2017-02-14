@@ -188,6 +188,8 @@ public:
     }
 };
 
+#ifdef USE_INTRINSICS
+
 template <class TGravityJ>
 struct calcGravity {    
 
@@ -275,6 +277,67 @@ struct calcGravity {
         }
     }
 };
+
+#else
+
+template <class TGravityJ>
+struct calcGravity {    
+
+    void operator () (const GravityEPI *epi,
+                      const PS::S32 nip,
+                      const TGravityJ *epj,
+                      const PS::S32 njp,
+                      Gravity *gravity) {
+
+        for(PS::S32 i = 0; i < nip; i++) {
+            PS::F64 px_i = epi[i].pos[0];
+            PS::F64 py_i = epi[i].pos[1];
+            PS::F64 pz_i = epi[i].pos[2];
+            PS::F64 e2_i = epi[i].eps2;
+            PS::F64 ax_i = 0.;
+            PS::F64 ay_i = 0.;
+            PS::F64 az_i = 0.;
+            PS::F64 pt_i = 0.;
+            PS::F64 et_i = 0.;
+            for(PS::S32 j = 0; j < njp; j++) {
+                PS::F64 dpx_ij = px_i - epj[j].pos[0];
+                PS::F64 dpy_ij = py_i - epj[j].pos[1];
+                PS::F64 dpz_ij = pz_i - epj[j].pos[2];
+
+                PS::F64 r2_ij  = dpx_ij * dpx_ij + dpy_ij * dpy_ij + dpz_ij * dpz_ij;
+                PS::F64 re2_i  = r2_ij + e2_i;
+                PS::F64 rei_i  = 1. / sqrt(re2_i);
+                PS::F64 rei3_i = rei_i * rei_i * rei_i;
+                PS::F64 re2_j  = r2_ij + epj[j].eps2;
+                PS::F64 rei_j  = 1. / sqrt(re2_j);
+                PS::F64 rei3_j = rei_j * rei_j * rei_j;
+
+                PS::F64 m_j    = epj[j].mass;
+                PS::F64 dg2_ij = m_j * (rei3_i + rei3_j);
+
+                pt_i -= m_j    * (rei_i  + rei_j);
+                ax_i -= dpx_ij * dg2_ij;
+                ay_i -= dpy_ij * dg2_ij;
+                az_i -= dpz_ij * dg2_ij;
+                et_i += m_j    * rei3_i;
+
+            }
+            ax_i *= 0.5;
+            ay_i *= 0.5;
+            az_i *= 0.5;
+            pt_i *= 0.5;
+
+            gravity[i].acc[0] += ax_i;
+            gravity[i].acc[1] += ay_i;
+            gravity[i].acc[2] += az_i;
+            gravity[i].pot    += pt_i;
+            gravity[i].eta    += et_i;
+        }
+
+    }
+};
+
+#endif
 
 template <class Tdinfo,
           class Tsph,

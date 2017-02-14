@@ -125,6 +125,8 @@ public:
     }
 };
 
+#ifdef USE_INTRINSICS
+
 struct calcHydro {
 
     void operator () (const HydroEPI * epi,
@@ -304,3 +306,121 @@ struct calcHydro {
 
     }
 };
+
+#else
+
+struct calcHydro {
+
+    void operator () (const HydroEPI * epi,
+                      const PS::S32 nip,
+                      const HydroEPJ * epj,
+                      const PS::S32 njp,
+                      Hydro * hydro) {
+
+        for(PS::S32 i = 0; i < nip; i++) {
+            PS::S64 id_i = epi[i].id;
+            PS::F64 px_i = epi[i].pos[0];
+            PS::F64 py_i = epi[i].pos[1];
+            PS::F64 pz_i = epi[i].pos[2];
+            PS::F64 vx_i = epi[i].vel[0];
+            PS::F64 vy_i = epi[i].vel[1];
+            PS::F64 vz_i = epi[i].vel[2];
+            PS::F64 hi_i = epi[i].hinv;
+            PS::F64 pp_i = epi[i].pres;
+            PS::F64 pc_i = epi[i].presc;
+            PS::F64 bs_i = epi[i].bswt;
+            PS::F64 dn_i = epi[i].dens;
+            PS::F64 cs_i = epi[i].vsnd;
+            PS::F64 al_i = epi[i].alph;
+            PS::F64 au_i = epi[i].alphu;
+            PS::F64 eg_i = epi[i].thrm;
+            PS::F64 et_i = epi[i].eta;
+
+            PS::F64 hi4_i  = hi_i * ND::calcVolumeInverse(hi_i);
+            PS::F64 achx_i = 0.;
+            PS::F64 achy_i = 0.;
+            PS::F64 achz_i = 0.;
+            PS::F64 udot_i = 0.;
+            PS::F64 vsmx_i = 0.;
+            PS::F64 difu_i = 0.;
+            PS::F64 g1x_i  = 0.;
+            PS::F64 g1y_i  = 0.;
+            PS::F64 g1z_i  = 0.;
+            for(PS::S32 j = 0; j < njp; j++) {
+                PS::F64 dpx_ij = px_i - epj[j].pos[0];
+                PS::F64 dpy_ij = py_i - epj[j].pos[1];
+                PS::F64 dpz_ij = pz_i - epj[j].pos[2];
+                PS::F64 dvx_ij = vx_i - epj[j].vel[0];
+                PS::F64 dvy_ij = vy_i - epj[j].vel[1];
+                PS::F64 dvz_ij = vz_i - epj[j].vel[2];
+
+                PS::F64 r2_ij = dpx_ij * dpx_ij + dpy_ij * dpy_ij + dpz_ij * dpz_ij;
+                PS::F64 ri_ij = ((id_i != epj[j].id) ? 1. / sqrt(r2_ij) : 0.);
+                PS::F64 r1_ij = r2_ij * ri_ij;
+                PS::F64 q_i   = r1_ij * hi_i;
+                PS::F64 q_j   = r1_ij * epj[j].hinv;
+
+                PS::F64 hi4_j = epj[j].hinv * ND::calcVolumeInverse(epj[j].hinv);
+                PS::F64 dw_i  = hi4_i * SK::kernel1st(q_i);
+                PS::F64 dw_j  = hi4_j * SK::kernel1st(q_j);
+                PS::F64 ka_ij = (dw_i + dw_j) * epj[j].mass;
+
+                PS::F64 rv_ij  = dpx_ij * dvx_ij + dpy_ij * dvy_ij + dpz_ij * dvz_ij;
+                PS::F64 w_ij   = rv_ij * ri_ij;
+                PS::F64 w0_ij  = ((w_ij < 0.) ? w_ij : 0.);
+                PS::F64 vs_ij  = cs_i + epj[j].vsnd - 3. * w0_ij;
+                PS::F64 rhi_ij = 1. / (dn_i + epj[j].dens);
+                PS::F64 av0_ij = (bs_i + epj[j].bswt) * (al_i + epj[j].alph)
+                    * vs_ij * w0_ij;
+                                
+                vsmx_i  = ((vsmx_i > vs_ij) ? vsmx_i : vs_ij);
+
+                PS::F64 ta_ij = (pc_i + epj[j].presc - 0.5 * av0_ij * rhi_ij)
+                    * ka_ij * ri_ij;
+                achx_i -= ta_ij * dpx_ij;
+                achy_i -= ta_ij * dpy_ij;
+                achz_i -= ta_ij * dpz_ij;
+
+                PS::F64 vsu2_ij = fabs(pp_i - epj[j].pres) * rhi_ij * 2.;
+                PS::F64 vsui_ij = ((vsu2_ij != 0.) ? 1. / sqrt(vsu2_ij) : 0.);
+                PS::F64 vsu_ij  = vsu2_ij * vsui_ij;
+                PS::F64 du_ij   = eg_i - epj[j].thrm;
+
+                udot_i += ka_ij * (pc_i * w_ij
+                                   - rhi_ij * (0.25 * av0_ij * w0_ij
+                                               - (au_i + epj[j].alphu) * vsu_ij * du_ij));
+
+                difu_i += rhi_ij * du_ij * ka_ij * ri_ij;
+
+                PS::F64 dg_ij = epj[j].mass * ri_ij * (et_i * dw_i + epj[j].eta * dw_j);
+                g1x_i += dg_ij * dpx_ij;
+                g1y_i += dg_ij * dpy_ij;
+                g1z_i += dg_ij * dpz_ij;
+                    
+            }
+
+            achx_i *= 0.5;
+            achy_i *= 0.5;
+            achz_i *= 0.5;
+            udot_i *= 0.5;
+            difu_i *= 2.;
+            g1x_i  *= 0.5;
+            g1y_i  *= 0.5;
+            g1z_i  *= 0.5;
+
+            hydro[i].acch[0] = achx_i;
+            hydro[i].acch[1] = achy_i;
+            hydro[i].acch[2] = achz_i;
+            hydro[i].udot    = udot_i;
+            hydro[i].vsmx    = vsmx_i;
+            hydro[i].diffu   = difu_i;
+            hydro[i].accg[0] = g1x_i;
+            hydro[i].accg[1] = g1y_i;
+            hydro[i].accg[2] = g1z_i;
+            
+        }
+
+    }
+};
+
+#endif

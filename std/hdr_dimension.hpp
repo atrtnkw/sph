@@ -109,9 +109,20 @@ namespace NthDimension {
 
 #else
 
+
+#ifdef USE_INTRINSICS
+
     inline v4df calcVolumeInverse(const v4df hi) {
         return hi * hi * hi;
     }
+
+#else
+
+    inline PS::F64 calcVolumeInverse(const PS::F64 hi) {
+        return hi * hi * hi;
+    }
+
+#endif
 
     inline PS::F64 calcPowerOfDimInverse(const PS::F64 mass,
                                          const PS::F64 dens) {

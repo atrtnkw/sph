@@ -153,13 +153,13 @@ void projectOnPlaneXZ(char * ofile,
     PS::S64 ptcl[nmax][nmax];
     PS::F64 dens[nmax][nmax];
     PS::F64 temp[nmax][nmax];
-    PS::F64 entr[nmax][nmax];
+    PS::F64 frhe[nmax][nmax];
     for(PS::S64 i = 0; i < nmax; i++) {
         for(PS::S64 j = 0; j < nmax; j++) {
             ptcl[i][j] = 0;
             dens[i][j] = 0.;
             temp[i][j] = 0.;
-            entr[i][j] = 0.;
+            frhe[i][j] = 0.;
         }
     }
 
@@ -178,7 +178,7 @@ void projectOnPlaneXZ(char * ofile,
         ptcl[nxi][nzi] += 1;
         dens[nxi][nzi] += sph[i].dens;
         temp[nxi][nzi] += sph[i].temp;
-        entr[nxi][nzi] += sph[i].entr;
+        frhe[nxi][nzi] += sph[i].cmps[0];
     }
 
     for(PS::S64 i = 0; i < nmax; i++) {
@@ -186,7 +186,7 @@ void projectOnPlaneXZ(char * ofile,
             PS::F64 pinv = ((ptcl[i][j] != 0) ? (1. / ptcl[i][j]) : 0.);
             dens[i][j] *= pinv;
             temp[i][j] *= pinv;
-            entr[i][j] *= pinv;
+            frhe[i][j] *= pinv;
         }
     }
 
@@ -200,7 +200,7 @@ void projectOnPlaneXZ(char * ofile,
             PS::F64 pz = xmin[2] + dx * (PS::F64)j;
             fprintf(fp, "%+e %+e %+e %+e %+e %8lld\n",
                     px, pz,
-                    dens[i][j], temp[i][j], entr[i][j],
+                    dens[i][j], temp[i][j], frhe[i][j],
                     ptcl[i][j]);
         }
     }
@@ -244,7 +244,14 @@ int main(int argc, char ** argv) {
             sph.readParticleAscii(sfile);
             fclose(fp);
             fp = fopen(bfile, "r");
+#if 0
             assert(fp);
+#else
+            if(fp == NULL) {
+                sprintf(bfile, "%s/origin.dat", idir);
+                fp = fopen(bfile, "r");
+            }
+#endif
             bhns.readParticleAscii(bfile);
             fclose(fp);
         } else {
@@ -269,7 +276,14 @@ int main(int argc, char ** argv) {
             char bfile[1024];
             sprintf(bfile, "%s/bhns_t%04d.dat", idir, itime);
             fp = fopen(bfile, "r");
+#if 0
             assert(fp);
+#else
+            if(fp == NULL) {
+                sprintf(bfile, "%s/origin.dat", idir);
+                fp = fopen(bfile, "r");
+            }
+#endif
             bhns.readParticleAscii(bfile);
             fclose(fp);
         }

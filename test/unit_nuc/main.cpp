@@ -350,7 +350,7 @@ int main(int argc, char **argv) {
     fclose(fp);
 
     init_flash_helmholtz_(&CodeUnit::FractionOfCoulombCorrection);
-    
+
     {
         PS::F64 tend = (1./(PS::F64)(((PS::S64)1) << te)) * CodeUnit::UnitOfTimeInv;
         PS::F64 dtim = (1./(PS::F64)(((PS::S64)1) << dt)) * CodeUnit::UnitOfTimeInv;
@@ -359,7 +359,7 @@ int main(int argc, char **argv) {
         sph.uene     = obtainEnergyGivingTemperature(tt, sph);
         CalcEquationOfState::getThermodynamicQuantity(sph.dens, sph.uene, sph.cmps,
                                                       sph.pres, sph.vsnd, sph.temp,
-                                                      sph.entr);
+                                                      sph.entr);        
         FILE * fp = fopen(filename, "w");
         PS::F64 st0 = getWallclockTime();
         //integrateEnergyByConstantTimestep(fp, tend, dtim, sph);
