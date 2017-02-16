@@ -989,6 +989,7 @@ template <class Tsph,
           class Tbhns>
 void predict(Tsph & sph,
              Tbhns & bhns) {
+#pragma omp parallel for
     for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
         sph[i].predict(RP::Timestep);
     }
@@ -1002,6 +1003,7 @@ template <class Tsph,
 void correct(Tsph & sph,
              Tbhns & bhns) {
     if(RP::FlagDamping == 0) {
+#pragma omp parallel for
         for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
             sph[i].correct(RP::Timestep);
         }
@@ -1009,10 +1011,12 @@ void correct(Tsph & sph,
             bhns[i].correct(RP::Timestep);
         }
     } else if(RP::FlagDamping == 1) {
+#pragma omp parallel for
         for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
             sph[i].correctDamping1(RP::Timestep);
         }
     } else if(RP::FlagDamping == 2) {
+#pragma omp parallel for
         for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
             sph[i].correctDamping2(RP::Timestep);
         }
@@ -1020,6 +1024,7 @@ void correct(Tsph & sph,
             bhns[i].correctDamping2(RP::Timestep);
         }
     } else if(RP::FlagDamping == 3) {
+#pragma omp parallel for
         for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
             sph[i].correctDamping3(RP::Timestep);
         }

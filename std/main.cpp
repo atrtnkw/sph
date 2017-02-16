@@ -52,6 +52,7 @@ inline void debugFunction(const char * const literal) {
 
 template <class Tsph>
 void calcAbarZbar(Tsph & sph) {
+#pragma omp parallel for
     for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
         sph[i].calcAbarZbar();
     }
@@ -111,6 +112,7 @@ void correctReleasedNuclearEnergy(Tsph & sph) {
 
 template <class Tsph>
 void calcBalsaraSwitch(Tsph & sph) {
+#pragma omp parallel for
     for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
         sph[i].calcBalsaraSwitch();
     }
@@ -121,10 +123,12 @@ template <class Tsph,
 void addAdditionalForce(Tsph & sph,
                         Tbhns & bhns) {
     if(RP::FlagDamping != 2) {
+#pragma omp parallel for
         for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
             sph[i].addAdditionalForce();
         }
     } else {
+#pragma omp parallel for
         for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
             sph[i].addAdditionalForceDamping2();
         }
@@ -136,6 +140,7 @@ void addAdditionalForce(Tsph & sph,
 
 template <class Tsph>
 void calcAlphaDot(Tsph & sph) {
+#pragma omp parallel for
     for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
         sph[i].calcAlphaDot();
     }
@@ -144,6 +149,7 @@ void calcAlphaDot(Tsph & sph) {
 template <class Tsph>
 void sumAcceleration(Tsph & sph) {
     if(RP::FlagGravity == 0) {
+#pragma omp parallel for
         for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
             sph[i].copyAcceleration();
         }
