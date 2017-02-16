@@ -33,17 +33,61 @@ public:
     PS::S64 istar;
     PS::F64 temp;
     PS::F64 entr;
-    //PS::S64 cnteos;    
     PS::F64 dnuc;
     PS::F64 enuc;
-    //bool    fnse;
-    //PS::F64 dens0, temp0;
-    //NR::Nucleon cmps, cmps0;
     NR::Nucleon cmps;
     PS::F64 pot3;
     PS::F64 gcor3, dgcor3;
 
     PS::F64 tempmax[3];
+
+    HelmholtzGas() {
+        id     = 0;
+        mass   = 0.;
+        pos    = 0.;
+        vel    = 0.;
+        vel2   = 0.;
+        acc    = 0.;
+        uene   = 0.;
+        uene2  = 0.;
+        udot   = 0.;
+        alph   = 0.;
+        alph2  = 0.;
+        adot   = 0.;
+        alphu  = 0.;
+        alphu2 = 0.;    
+        adotu  = 0.;
+        diffu  = 0.;
+        vol    = 0.;
+        ksr    = 0.;
+        rs     = 0.;
+        dens   = 0.;
+        pres   = 0.;
+        vsnd   = 0.;
+        divv   = 0.;
+        rotv   = 0.;
+        bswt   = 0.;
+        np     = 0;
+        grdh   = 0.;
+        vsmx   = 0.;
+        pot    = 0.;
+        acch   = 0.;
+        accg1  = 0.;
+        accg2  = 0.;
+        eta    = 0.;
+        abar   = 0.;
+        zbar   = 0.;
+        umin   = 0.;
+        istar  = 0;
+        temp   = 0.;
+        entr   = 0.;
+        dnuc   = 0.;
+        enuc   = 0.;
+        pot3   = 0.;
+        gcor3  = 0.;
+        dgcor3 = 0.;
+    }
+
     void getMaximumTemperature() {
         if(this->temp > this->tempmax[0]) {
             this->tempmax[0] = this->temp;
