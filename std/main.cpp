@@ -296,7 +296,11 @@ void calcSPHKernel(Tdinfo & dinfo,
     WT::accumulateCalcDensity();
     WT::start();
     calcAbarZbar(sph);
+    WT::accumulateOthers();
+    WT::start();
     referEquationOfState(sph);
+    WT::accumulateReferEquationOfState();
+    WT::start();
     calcBalsaraSwitch(sph);
     WT::accumulateOthers();
     WT::start();
