@@ -30,5 +30,5 @@ awk -f - flist="$list" tmp.snap<<EOF
 }
 EOF
 
-#rm -f tmp.*
+rm -f tmp.*
 

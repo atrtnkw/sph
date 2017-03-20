@@ -48,12 +48,9 @@ public:
         for(PS::S32 k = 0; k < NuclearReaction::NumberOfNucleon; k++) { // 32 -- 44
             fscanf(fp, "%lf", &this->cmps[k]);
         }
-#if 0
-        fscanf(fp, "%d", &this->fnse);
-#else
-        fscanf(fp, "%lf", this->entr);
+        fscanf(fp, "%lf", &this->pot3);
         fscanf(fp, "%lf%lf%lf", &this->tempmax[0], &this->tempmax[1], &this->tempmax[2]);
-#endif
+        fscanf(fp, "%lf", &this->entr);
     }
 
     void write(FILE * fp = stdout) {
@@ -75,18 +72,21 @@ namespace HeliumDetonation {
     PS::F64 size = 0.;
     PS::F64vec hpos;
 
-/*
     PS::F64 getTemperatureLinear(SPH3D & sph) {
-        PS::F64 temp;
-        PS::F64 rsph = sqrt(sph.pos[0] * sph.pos[0] + sph.pos[1] * sph.pos[1]);
-        if(rsph < size & sph.pos[2] > 0.) {
-            temp = tmax - (tmax - tmin) * rsph / size;
+        if(sph.cmps[0] < 0.1) {
+            return sph.temp;
         } else {
-            temp = tmin;
+            PS::F64 temp;
+            PS::F64 rsph = sqrt(sph.pos[0] * sph.pos[0] + sph.pos[1] * sph.pos[1]);
+            if(rsph < size & sph.pos[2] > 0.) {
+                temp = tmax - (tmax - tmin) * rsph / size;
+            } else {
+                temp = tmin;
+            }
+            return temp;
         }
-        return temp;
     }
-*/
+/*
     PS::F64 getTemperatureLinear(SPH3D & sph) {
         PS::F64 temp = sph.temp;
         PS::F64vec dx = sph.pos - hpos;
@@ -99,6 +99,7 @@ namespace HeliumDetonation {
         }
         return temp;
     }
+*/
 }
 
 namespace CarbonDetonation {
@@ -140,15 +141,6 @@ int main(int argc, char ** argv) {
         printf("ifile: %s\n", ifile);
         printf("ofile: %s\n", ofile);
         if(flag == 0) {
-            /*
-            printf("Helium detonation\n");
-            fscanf(fp, "%lf", &rmin);
-            printf("rmin: %+e\n", rmin);
-            fscanf(fp, "%lf", &HeliumDetonation::size);
-            printf("size: %+e\n", HeliumDetonation::size);
-            fscanf(fp, "%lf", &hemf);
-            printf("He fraction: %+e\n", hemf);
-            */
             printf("Helium detonation\n");
             fscanf(fp, "%lf", &HeliumDetonation::size);
             printf("size: %+e\n", HeliumDetonation::size);
@@ -160,6 +152,7 @@ int main(int argc, char ** argv) {
                    HeliumDetonation::hpos[0],
                    HeliumDetonation::hpos[1],
                    HeliumDetonation::hpos[2]);
+            printf("CAUTION!! fHe < 0.1 particles can not be hotspot!\n");
         } else {
             printf("Carbon detonation\n");
             fscanf(fp, "%lf", &CarbonDetonation::size);
@@ -185,17 +178,6 @@ int main(int argc, char ** argv) {
             for(PS::S64 i = 0; i < nptcl; i++) {
                 SPH3D sph;
                 sph.read(ifp);
-                /*
-                PS::F64 r2 = sph.pos * sph.pos;
-                if(r2 >= rmin * rmin) {
-                    sph.cmps[0] = hemf;
-                    sph.cmps[1] = 0.5 * (1. - sph.cmps[0]);
-                    sph.cmps[2] = 0.5 * (1. - sph.cmps[0]);
-                    PS::F64 temp = HeliumDetonation::getTemperatureLinear(sph);
-                    flash_helmholtz_e_(&sph.dens, &temp, sph.cmps.getPointer(), &sph.uene);
-                }
-                sph.write(ofp);
-                */
                 PS::F64 temp = HeliumDetonation::getTemperatureLinear(sph);
                 if(temp != sph.temp) {
                     flash_helmholtz_e_(&sph.dens, &temp, sph.cmps.getPointer(), &sph.uene);

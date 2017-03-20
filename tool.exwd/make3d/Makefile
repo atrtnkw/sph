@@ -9,14 +9,15 @@ use_omp = yes
 ###########################
 ###### AT_FLAGS ##############################
 CFLAGS += -DUSE_HELMHOLTZ
-CFLAGS += -DCOULOMB_CORRECTION
+#CFLAGS += -DCOULOMB_CORRECTION
 ##############################################
 ##############################################
-
 
 ifeq ($(use_xc), yes)
-FDPS_DIR = /home/tanikwat/fdps/src
-SPH_DIR = /home/tanikwat/git-sph/std
+HOME_DIR = /home/tanikwat
+FDPS_DIR = ${HOME_DIR}/fdps/src
+SPH_DIR = ${HOME_DIR}/git-sph/std
+FLASH_DIR = ${HOME_DIR}/work/git-sph/link/flash
 CCC = CC
 FCC = ftn
 else
@@ -30,7 +31,7 @@ PS_PATH  = -I${FDPS_DIR}
 
 CFLAGS += -O3 -march=core-avx2 -ffast-math -funroll-loops #-Wall
 CFLAGS += -I${SPH_DIR} -I${SPH_DIR}/heos -I${SPH_DIR}/aprox13
-CLIBS  += -lstdc++ -lm -L../../flash/ -lflash
+CLIBS  += -lstdc++ -lm -L${FLASH_DIR} -lflash
 
 OBJ  = main.o ${SPH_DIR}/heos/eos.o #${SPH_DIR}/aprox13/aprox13_main.o \
 	${SPH_DIR}/aprox13/aprox13_input.o ${SPH_DIR}/aprox13/aprox13.o \
