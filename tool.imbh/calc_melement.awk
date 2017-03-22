@@ -1,3 +1,4 @@
+#argv: dtsp
 BEGIN{
     msun = 1.989e33;
     nele = 13;
