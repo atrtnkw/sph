@@ -311,6 +311,20 @@ public:
         return eg;
     }
 
+    static PS::F64 getEnergyGivenTemperature(PS::F64 density,
+                                             PS::F64 temperature,
+                                             NR::Nucleon & composition) {
+        PS::F64 din  = density * CodeUnit::UnitOfDensity;
+        PS::F64 tin  = temperature;
+        PS::F64 eout;
+
+        flash_helmholtz_e_(&din, &tin, composition.getPointer(), &eout);
+
+        PS::F64 eg = eout * CodeUnit::UnitOfEnergyInv;
+        
+        return eg;
+    }
+
     static void getThermodynamicQuantity(PS::F64 density,
                                          PS::F64 energy,
                                          NR::Nucleon & composition,

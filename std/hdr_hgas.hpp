@@ -651,9 +651,22 @@ public:
         this->alph  = this->alph2  + 0.5 * this->adot  * dt;
         this->alphu = this->alphu2 + 0.5 * this->adotu * dt;
         PS::F64 unow = this->uene;
-        //PS::F64 umin = CalcEquationOfState::getEnergyMin(this->dens, this->abar, this->zbar);
         PS::F64 umin = CalcEquationOfState::getEnergyMin(this->dens, this->cmps);
         this->uene   = (unow < umin) ? unow : ((unow - umin) * exp(-0.1 * dt) + umin);
+    }
+
+    void correctDamping4(PS::F64 dt) {
+        this->vel   = this->vel2   + 0.5 * this->acc   * dt;
+        this->uene  = this->uene2  + 0.5 * this->udot  * dt;
+        this->alph  = this->alph2  + 0.5 * this->adot  * dt;
+        this->alphu = this->alphu2 + 0.5 * this->adotu * dt;
+        if(this->cmps[0] > 0.1) {
+            PS::F64 tgiv = 2.e8;
+            PS::F64 unow = this->uene;
+            PS::F64 ugiv = CalcEquationOfState::getEnergyGivenTemperature(this->dens, tgiv,
+                                                                          this->cmps);
+            this->uene   = unow + (ugiv - unow) * exp(-0.1 * dt);
+        }
     }
 
     void calcAlphaDot() {
@@ -1037,6 +1050,13 @@ void correct(Tsph & sph,
 #endif
         for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
             sph[i].correctDamping3(RP::Timestep);
+        }
+    } else if(RP::FlagDamping == 4) {
+#ifdef USE_XEONPHI
+#pragma omp parallel for
+#endif
+        for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
+            sph[i].correctDamping4(RP::Timestep);
         }
     } else {
         fprintf(stderr, "Not supported damping mode %d!\n", RP::FlagDamping);
