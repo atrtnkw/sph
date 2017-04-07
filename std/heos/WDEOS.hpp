@@ -4,8 +4,8 @@
 
 extern "C" {
     void helm_init_(void);
-    void eosx_(double *, double *, double *, double *, double *);
-    void eosx_return_(double *, double *, double *, double *, double *);
+    void eosx_(double *, double *, double *, double *, double *, PS::F64 *);
+    void eosx_return_(double *, double *, double *, double *, double *, PS::F64 *);
 }
 
 namespace OTOO {
@@ -21,7 +21,7 @@ namespace OTOO {
         virtual void TestEOS(uint64 n, float *d, float *e= NULL) = 0;
         virtual float GetEmin(float d) = 0; 
         virtual float GetEmin2(float d) = 0; 
-        
+
     protected:
 #define N_TABLE 3999
         void LoadHelmTable();
@@ -80,7 +80,7 @@ namespace OTOO {
             
             D = pow(10.0, log10(D_min)+d_D*j)*sph_dunit;
             T = initial_temperature;
-            eosx_return_(&T, &D, &P, &E, &C);
+            eosx_return_(&T, &D, &P, &E, &C, &CodeUnit::FractionOfCoulombCorrection);
             
             D_table[j]    = D/sph_dunit;
             E_table[0][j] = E/sph_eunit;
@@ -114,7 +114,7 @@ namespace OTOO {
                 
                 D = pow(10.0, log10(D_min)+d_D*j)*sph_dunit;
                 T = initial_temperature;
-                eosx_return_(&T, &D, &P, &E, &C);
+                eosx_return_(&T, &D, &P, &E, &C, &CodeUnit::FractionOfCoulombCorrection);
                 
                 D_table[j]    = D/sph_dunit;
                 E_table[0][j] = E/sph_eunit;
@@ -137,7 +137,7 @@ namespace OTOO {
                 
                 D = pow(10.0, log10(D_min)+d_D*j)*sph_dunit;
                 T = initial_temperature;
-                eosx_return_(&T, &D, &P, &E, &C);
+                eosx_return_(&T, &D, &P, &E, &C, &CodeUnit::FractionOfCoulombCorrection);
                 
                 D_table[j]    = D/sph_dunit;
                 E_table[0][j] = E/sph_eunit;
@@ -196,7 +196,7 @@ namespace OTOO {
                 for(uint64 i = 0; i < N_TABLE; i++) {
                     T = pow(10.0, log10(T_min)+d_T*i);
                     
-                    eosx_return_(&T, &D, &P, &E, &C);
+                    eosx_return_(&T, &D, &P, &E, &C, &CodeUnit::FractionOfCoulombCorrection);
                     
                     E_table[j][i] = E/sph_eunit;
                     T_table[j][i] = T;
@@ -232,7 +232,7 @@ namespace OTOO {
                 for(uint64 i = 0; i < N_TABLE; i++) {
                     T = pow(10.0, log10(T_min)+d_T*i);
                     
-                    eosx_return_(&T, &D, &P, &E, &C);
+                    eosx_return_(&T, &D, &P, &E, &C, &CodeUnit::FractionOfCoulombCorrection);
                     
                     E_table[j][i] = E/sph_eunit;
                     T_table[j][i] = T;
@@ -302,7 +302,7 @@ namespace OTOO {
         ee = pow(10.0, ee);
         
         temp0 = 5.0e6;
-        eosx_(&temp0, &dd, &pres0, &ee, &cs0);
+        eosx_(&temp0, &dd, &pres0, &ee, &cs0, &CodeUnit::FractionOfCoulombCorrection);
     }
     
     uint64 WDEOS::bisection(float x, uint64 i_min, uint64 i_max, double *tab)
@@ -453,7 +453,7 @@ namespace OTOO {
                     double rho1, temp1, pres1, eg1, cs1;
                     rho1 = d[i]*sph_dunit;
                     temp1 = initial_temperature;
-                    eosx_return_(&temp1, &rho1, &pres1, &eg1, &cs1);
+                    eosx_return_(&temp1, &rho1, &pres1, &eg1, &cs1, &CodeUnit::FractionOfCoulombCorrection);
                     
                     eg1   /= sph_eunit;
                     pres1 /= sph_punit;
@@ -639,7 +639,7 @@ namespace OTOO {
             rho1 = d[i]*sph_dunit;
             eg1  = e[i]*sph_eunit;
             temp1 = 1.0e6;
-            eosx_(&temp1, &rho1, &pres1, &eg1, &cs1);
+            eosx_(&temp1, &rho1, &pres1, &eg1, &cs1, &CodeUnit::FractionOfCoulombCorrection);
             
             pres1 /= sph_punit;
             cs1   /= sph_vunit;

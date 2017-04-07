@@ -1,6 +1,12 @@
-      program coldwd
+c..      program coldwd
+      subroutine coldwd(rhoc,ncolumn,radius,density,massrad,totalmass)
       include 'implno.dek'
       include 'const.dek'
+
+      double precision rhoc
+      integer(4) ncolumn
+      double precision radius(600),density(600), massrad(600)
+      double precision totalmass
 
 c..
 c..this program generats cold white dwarf models
@@ -73,7 +79,7 @@ c..set the composition, half carbon half oxygen
 
 
 c..get abar and zbar      
-      call azbar(xmass,aion,zion,ionmax,
+      call azbarcoldwd(xmass,aion,zion,ionmax,
      1           ymass,abar,zbar)
 
       ye = zbar/abar
@@ -84,10 +90,11 @@ c..get the central density and find the central pressure
 c      write(6,*) 'give the central density =>'
 c      read(5,*) denc
 c      denc = 4.15e7 (1.15Mo)
-      open(unit=917, file="input.dat", status="old")
+c      open(unit=917, file="input.dat", status="old")
 c      denc = 3.17e7
-      read(917,*) denc
-      close(917)
+c      read(917,*) denc
+c      close(917)
+      denc = rhoc
 
       call fergas(denc,ye,presc,dpresdd,ener,denerdd)
 
@@ -97,7 +104,7 @@ c..get the output file name
 C      write(6,*) 'give output file name =>'
 C      read(5,03) string
 
-      open(unit=3, file="poly.dat", status='unknown')
+c      open(unit=3, file="poly.dat", status='unknown')
 
 
 
@@ -177,9 +184,10 @@ c..write out the profile
 c      write(3,04) '  i','radius','mass_grav','pressure',
 c     1            'density'
       denold = denc
-      write(3,*) kount
-      write(3,01) gamma
-      write(3,01) xrk(kount)
+c      write(3,*) kount
+      ncolumn = kount
+c      write(3,01) gamma
+c      write(3,01) xrk(kount)
       do i=1,kount
 
 c..cold ideal fermi gas
@@ -187,12 +195,16 @@ c..cold ideal fermi gas
        call invert_fergas(den,ye,yrk(2,i),dpresdd,ener,denerdd)
        denold = den
        
-       write(3,01) xrk(i),den,yrk(4,i),1.0e7,ener,yrk(1,i)/msol
+c       write(3,01) xrk(i),den,yrk(4,i),1.0e7,ener,yrk(1,i)/msol
+       radius(i)  = xrk(i)
+       density(i) = den
+       massrad(i) = yrk(1,i)
       enddo
-      write(3,01) yrk(1,kount)/msol
+c      write(3,01) yrk(1,kount)/msol
+      totalmass = yrk(1,kount)/msol
 c..output for terminal confirmation (Sato corrections)
-      write(6,*) "Mass of WD is..."
-      write(6,01) yrk(1,kount)/msol
+c      write(6,*) "Mass of WD is..."
+c      write(6,01) yrk(1,kount)/msol
 c..Dynamical timescale
       den_mean = (3.0d0*yrk(1,kount))/(4.0d0*pi*xrk(kount)**3)
       t_dyn = sqrt(g*den_mean)
@@ -227,8 +239,8 @@ c      write(6,02) denc,yrk(1,kount)/msol,m53,m43,xrk(kount)/rsol,kount
 c..back for another central density
 c      enddo
 
-      close(unit=3)
-      stop 'normal termination'
+c      close(unit=3)
+c      stop 'normal termination'
       end
 
 
@@ -448,7 +460,7 @@ c..call it one more time with the converged value of the density
 
 
 
-      subroutine azbar(xmass,aion,zion,ionmax,
+      subroutine azbarcoldwd(xmass,aion,zion,ionmax,
      1                 ymass,abar,zbar)
       include 'implno.dek'
 

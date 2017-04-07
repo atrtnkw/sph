@@ -217,7 +217,7 @@ c
       end
 
 cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-      subroutine EOSX(temp0, den0, pres0, eg0, cs0)
+      subroutine EOSX(temp0, den0, pres0, eg0, cs0, flagcoulomb)
       implicit none
       double precision abar,zbar
       common /xxx/ abar, zbar
@@ -226,6 +226,7 @@ c
       double precision temp_new, tol, t0
       double precision temp1, eg1, pres1, dedt, cs1
       logical          eosfail
+      double precision flagcoulomb
 c
       double precision delta, diff
       integer i
@@ -235,7 +236,7 @@ c
 c
       temp1 = temp0
       call helmeos2(temp1, den0, abar, zbar, pres1, eg1,
-     &     dedt, cs1, eosfail)
+     &     dedt, cs1, eosfail, flagcoulomb)
 c
       temp_new = temp1 - (eg1 - eg0) / dedt
       temp_new = min(10.0*temp1, 
@@ -251,7 +252,7 @@ c
       i = 2
       do while ( (i <= 50) .and. (diff > tol) )
          call helmeos2(temp1, den0, abar, zbar, pres1, eg1,
-     &        dedt, cs1, eosfail)
+     &        dedt, cs1, eosfail, flagcoulomb)
          temp_new = temp1 - (eg1 - eg0) / dedt
          temp_new = min(10.0*temp1, 
      &        max(0.1*temp1, temp_new))
@@ -273,7 +274,7 @@ c
       endif
 c
       call helmeos2(temp1, den0, abar, zbar, pres1, eg1,
-     &     dedt, cs1, eosfail)
+     &     dedt, cs1, eosfail, flagcoulomb)
 c
       temp0 = temp1
       pres0 = pres1
@@ -282,7 +283,8 @@ c
       return
       end
 c
-      subroutine EOSX_return(temp0, den0, pres0, eg0, cs0)
+      subroutine EOSX_return(temp0, den0, pres0, eg0, cs0,
+     &      flagcoulomb)
       implicit none
       double precision abar,zbar
       common /xxx/ abar, zbar
@@ -290,9 +292,10 @@ c
       double precision temp0, den0, pres0, eg0, cs0
       double precision temp1, eg1, pres1, dedt, cs1
       logical          eosfail
+      double precision flagcoulomb
 c
       call helmeos2(temp0, den0, abar, zbar, pres1, eg1,
-     &     dedt, cs1, eosfail)
+     &     dedt, cs1, eosfail, flagcoulomb)
 c
       pres0 = pres1
       cs0   = cs1
@@ -1511,11 +1514,12 @@ c..end of vectorization loop
       end
 
       subroutine helmeos2(temp, den, abar, zbar, pres, ener,
-     &     denerdt, sound, eosfail)
+     &     denerdt, sound, eosfail, flagcoulomb)
       implicit none
 CC      save
 cc      include 'vector_eos.dek'
       logical          eosfail
+      double precision flagcoulomb
 
 c..given a temperature temp [K], density den [g/cm**3], and a composition 
 c..characterized by abar and zbar, this routine returns most of the other 
@@ -2344,6 +2348,26 @@ c..yakovlev & shalybkov 1989 equations 102, 103, 104
           dscouldz = s * plasgdz
          end if
 
+
+c..off coulomb by tanikawa FROM
+         if (flagcoulomb .eq. 0.) then
+            pcoul    = 0.0d0
+            dpcouldd = 0.0d0
+            dpcouldt = 0.0d0
+            dpcoulda = 0.0d0
+            dpcouldz = 0.0d0
+            ecoul    = 0.0d0
+            decouldd = 0.0d0
+            decouldt = 0.0d0
+            decoulda = 0.0d0
+            decouldz = 0.0d0
+            scoul    = 0.0d0
+            dscouldd = 0.0d0
+            dscouldt = 0.0d0
+            dscoulda = 0.0d0
+            dscouldz = 0.0d0
+         endif
+c..off coulomb by tanikawa TO
 
 
 c..bomb proof

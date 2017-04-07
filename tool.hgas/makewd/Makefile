@@ -26,7 +26,7 @@ CFLAGS += -O3 -march=core-avx2 -ffast-math -funroll-loops #-Wall
 CFLAGS += -I${SPH_DIR} -I${SPH_DIR}/heos -I${SPH_DIR}/aprox13
 CLIBS  += -lstdc++ -lm -L${FLASH_DIR} -lflash
 
-OBJ  = main.o ${SPH_DIR}/heos/eos.o
+OBJ  = main.o coldwd.o ${SPH_DIR}/heos/eos.o
 ETC  = Makefile
 
 run: $(OBJ) $(ETC)
@@ -34,6 +34,9 @@ run: $(OBJ) $(ETC)
 
 main.o: main.cpp $(ETC)
 	$(CCC) $(PS_PATH) $(CFLAGS) -c main.cpp $(CLIBS)
+
+coldwd.o: coldwd.f $(ETC)
+	$(FCC) $(PS_PATH) $(CFLAGS) -c coldwd.f
 
 clean:
 	rm -f *~

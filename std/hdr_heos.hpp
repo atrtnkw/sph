@@ -1,5 +1,14 @@
 #pragma once
 
+namespace CodeUnit {
+    // for eos
+#ifdef COULOMB_CORRECTION
+    PS::F64 FractionOfCoulombCorrection = 1.;
+#else
+    PS::F64 FractionOfCoulombCorrection = 0.;
+#endif
+}
+
 #include "heos/WDEOS.hpp"
 
 #if 0
@@ -84,13 +93,6 @@ namespace CodeUnit {
     // for imbh
     PS::F64 BlackHoleMass;
     PS::F64 BlackHoleMassInThisUnit;
-
-    // for eos
-#ifdef COULOMB_CORRECTION
-    PS::F64 FractionOfCoulombCorrection = 1.;
-#else
-    PS::F64 FractionOfCoulombCorrection = 0.;
-#endif
 }
 
 namespace NuclearReaction {    
