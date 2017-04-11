@@ -657,16 +657,24 @@ public:
     }
 
     void correctDamping4(PS::F64 dt) {
+        this->acc  -= this->vel * 0.2;
         this->vel   = this->vel2   + 0.5 * this->acc   * dt;
         this->uene  = this->uene2  + 0.5 * this->udot  * dt;
         this->alph  = this->alph2  + 0.5 * this->adot  * dt;
         this->alphu = this->alphu2 + 0.5 * this->adotu * dt;
         if(this->cmps[0] > 0.1) {
-            PS::F64 tgiv = 2.e8;
             PS::F64 unow = this->uene;
-            PS::F64 ugiv = CalcEquationOfState::getEnergyGivenTemperature(this->dens, tgiv,
-                                                                          this->cmps);
-            this->uene   = unow + (ugiv - unow) * exp(-0.1 * dt);
+            PS::F64 utgt = CalcEquationOfState::getEnergyGivenTemperature(this->dens,
+//                                                                          2e8, this->cmps);
+//                                                                          4e8, this->cmps);
+//                                                                          3e8, this->cmps);
+                                                                          2.5e8, this->cmps);
+            this->uene = unow + (utgt - unow) * exp(-0.1 * dt);
+        } else {
+            PS::F64 unow = this->uene;
+            PS::F64 utgt = CalcEquationOfState::getEnergyGivenTemperature(this->dens,
+                                                                          3e7, this->cmps);
+            this->uene = unow + (utgt - unow) * exp(-0.1 * dt);
         }
     }
 
