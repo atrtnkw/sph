@@ -83,6 +83,9 @@ public:
 int main(int argc, char ** argv) {
     PS::Initialize(argc, argv);
 
+    PS::DomainInfo dinfo;
+    dinfo.initialize();
+    dinfo.setDomain(PS::Comm::getNumberOfProc(), 1);
     PS::ParticleSystem<SPHAnalysis> sph;
     sph.initialize();
     sph.createParticle(0);
@@ -92,12 +95,13 @@ int main(int argc, char ** argv) {
     PS::S32 fflag, nfile;
     PS::S64 ibgn, iend;
     PS::F64vec xmin;
+    PS::F64    xmax;
     PS::F64    wdth;
     PS::S64    nnxx;
     FILE * fp = fopen(argv[1], "r");
     fscanf(fp, "%s", itype);
     fscanf(fp, "%d %d", &fflag, &nfile);
-    fscanf(fp, "%lf%lf", &xmin[0], &xmin[1]);
+    fscanf(fp, "%lf%lf%lf", &xmin[0], &xmin[1], &xmax);
     fscanf(fp, "%lf%lld", &wdth, &nnxx);
     fclose(fp);
 
@@ -105,6 +109,7 @@ int main(int argc, char ** argv) {
         fprintf(stderr, "itype: %s\n", itype);
         fprintf(stderr, "fflag: %d nfile: %d\n", fflag, nfile);
         fprintf(stderr, "xmin[0]: %+e xmin[1]: %+e\n", xmin[0], xmin[1]);
+        fprintf(stderr, "xmax: %+e\n", xmax);
         fprintf(stderr, "width: %+e nnxx: %lld\n", wdth, nnxx);
     }
 
@@ -142,7 +147,71 @@ int main(int argc, char ** argv) {
         }
     }
 
-    sph.writeParticleAscii("hoge", "%s_p%06d_i%06d.dat");
+    {
+        PS::S64 nrank = PS::Comm::getNumberOfProc();
+        PS::F64 dx    = wdth / (PS::F64)nrank;
+        for(PS::S64 i = 0; i < nrank; i++) {
+            PS::F64ort pos;
+            pos.low_[0]  = xmin[0] + dx * i;
+            pos.low_[1]  = - xmax;
+            pos.low_[2]  = - xmax;
+            pos.high_[0] = xmin[0] + dx * (i + 1);
+            pos.high_[1] = + xmax;
+            pos.high_[2] = + xmax;
+            dinfo.setPosDomain(i, pos);
+        }
+        sph.exchangeParticle(dinfo);
+    }
+    
+    {
+        PS::F64 wx = wdth / (PS::F64)nnxx;
+        PS::F64 bx = xmin[0] + (wdth / (PS::F64)PS::Comm::getNumberOfProc()) * PS::Comm::getRank();
+        PS::F64 by = xmin[1];
+        PS::S64 nx = nnxx / PS::Comm::getNumberOfProc();
+        PS::S64 ny = nnxx;
+        PS::S64 *nptcl = (PS::S64 *)malloc(sizeof(PS::S64) * nx * ny);
+        assert(nptcl);
+        PS::S64 *pdivv = (PS::S64 *)malloc(sizeof(PS::S64) * nx * ny);
+        assert(pdivv);
+        for(PS::S64 i = 0; i < nx * ny; i++) {
+            nptcl[i] = 0;
+            pdivv[i] = 0;
+        }        
+        for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
+            PS::F64 dx = sph[i].pos[0] - bx;
+            PS::F64 dy = sph[i].pos[1] - by;
+            PS::S64 id = 0;
+            id  = (PS::S64)(dy / wx) * nx;
+            id += (PS::S64)(dx / wx) % nx;
+            assert(id < nx * ny);
+            nptcl[id]++;
+            if(sph[i].divv > 0.) {
+                pdivv[id]++;
+            }
+        }
+        
+        char ofile[1024];
+        sprintf(ofile, "hoge_p%06d_i%06d.dat", PS::Comm::getNumberOfProc(), PS::Comm::getRank());
+        fp = fopen(ofile, "w");
+        for(PS::S64 i = 0; i < nx * ny; i++) {
+            /*
+            if(nptcl[i] == 0) {
+                continue;
+            }
+            PS::F64 fpdivv = (PS::F64)pdivv[i] / (PS::F64)nptcl[i];
+            if(0.4 < fpdivv && fpdivv < 0.6) {
+            */
+            PS::F64 px = bx + wx * (i % nx);
+            PS::F64 py = by + wx * (i / nx);
+            fprintf(fp, "%8d %+e %+e %8lld %8lld\n", i, px, py, nptcl[i], pdivv[i]);
+            /*
+            }
+            */
+        }
+        fclose(fp);
+    }
+
+    //sph.writeParticleAscii("hoge", "%s_p%06d_i%06d.dat");
 
     PS::Finalize();
 
