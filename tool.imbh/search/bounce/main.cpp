@@ -80,6 +80,72 @@ public:
     }
 };
 
+template <class Tsph>
+void search1Dpoint(Tsph & sph,
+                   const PS::S64 nx,
+                   const PS::S64 ny,
+                   const PS::F64 bx,
+                   const PS::F64 by,
+                   const PS::F64 wx,
+                   PS::S64 * nptcl,
+                   PS::S64 * pdivv,
+                   PS::F64 * dnmax,
+                   bool maxornot,
+                   bool rightornot,
+                   PS::F64 dnlimit,
+                   PS::F64 pxlimit,
+                   char * filename,
+                   PS::F64 * _dnglb,
+                   PS::F64 * _pxglb) {
+    PS::F64 dnloc = -1.;
+    PS::S64 idloc = -1;
+    for(PS::S64 i = 0; i < nx * ny; i++) {
+        PS::F64 fracpdivv = (PS::F64)pdivv[i] / (PS::F64)nptcl[i];
+        if(fracpdivv < 0.3 || 0.6 < fracpdivv) {
+            continue;
+        }
+        if(dnmax[i] > dnlimit && (!maxornot)) {
+            continue;
+        }
+        if(bx + (PS::F64)(i % nx) * wx - pxlimit > 0. && (!maxornot) && (!rightornot)) {
+            continue;
+        }
+        if(dnloc < dnmax[i]) {
+            dnloc = dnmax[i];
+            idloc = i;
+        }
+    }
+
+    PS::F64 dnglb = -1.;
+    PS::S32 rkglb = -1;
+    PS::Comm::getMaxValue(dnloc, PS::Comm::getRank(), dnglb, rkglb);
+    PS::S64 idglb = ((PS::Comm::getRank() == rkglb) ? idloc : -1);
+    PS::F64 pxglb = bx + (PS::F64)(idloc % nx) * wx;
+    PS::Comm::broadcast(&pxglb, 1, rkglb);
+
+    if(PS::Comm::getRank() == rkglb) {
+        char ofile[1024];
+        sprintf(ofile, filename);
+        FILE * fp = fopen(ofile, "w");
+        assert(fp);
+        for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
+            PS::F64 dx = sph[i].pos[0] - bx;
+            PS::F64 dy = sph[i].pos[1] - by;
+            PS::S64 id = 0;
+            id  = (PS::S64)(dy / wx) * nx;
+            id += (PS::S64)(dx / wx) % nx;
+            assert(id < nx * ny);
+            if(id == idglb) {
+                sph[i].writeAscii(fp);
+            }
+        }
+        fclose(fp);
+    }
+
+    *_dnglb = dnglb;
+    *_pxglb = pxglb;
+}
+    
 int main(int argc, char ** argv) {
     PS::Initialize(argc, argv);
 
@@ -113,6 +179,7 @@ int main(int argc, char ** argv) {
         fprintf(stderr, "width: %+e nnxx: %lld\n", wdth, nnxx);
     }
 
+    // input
     if(fflag == 0) {
         char sfile[1024];
         sprintf(sfile, "%s.dat",  itype);
@@ -147,6 +214,7 @@ int main(int argc, char ** argv) {
         }
     }
 
+    // Data distribution
     {
         PS::S64 nrank = PS::Comm::getNumberOfProc();
         PS::F64 dx    = wdth / (PS::F64)nrank;
@@ -162,20 +230,25 @@ int main(int argc, char ** argv) {
         }
         sph.exchangeParticle(dinfo);
     }
-    
+
+    // Analyse divergence v
     {
-        PS::F64 wx = wdth / (PS::F64)nnxx;
-        PS::F64 bx = xmin[0] + (wdth / (PS::F64)PS::Comm::getNumberOfProc()) * PS::Comm::getRank();
-        PS::F64 by = xmin[1];
-        PS::S64 nx = nnxx / PS::Comm::getNumberOfProc();
-        PS::S64 ny = nnxx;
+        const PS::F64 wx = wdth / (PS::F64)nnxx;
+        const PS::F64 bx = xmin[0] + (wdth / (PS::F64)PS::Comm::getNumberOfProc())
+            * PS::Comm::getRank();
+        const PS::F64 by = xmin[1];
+        const PS::S64 nx = nnxx / PS::Comm::getNumberOfProc();
+        const PS::S64 ny = nnxx;
         PS::S64 *nptcl = (PS::S64 *)malloc(sizeof(PS::S64) * nx * ny);
         assert(nptcl);
         PS::S64 *pdivv = (PS::S64 *)malloc(sizeof(PS::S64) * nx * ny);
         assert(pdivv);
+        PS::F64 *dnmax = (PS::F64 *)malloc(sizeof(PS::F64) * nx * ny);
+        assert(dnmax);
         for(PS::S64 i = 0; i < nx * ny; i++) {
             nptcl[i] = 0;
             pdivv[i] = 0;
+            dnmax[i] = 0.;
         }        
         for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
             PS::F64 dx = sph[i].pos[0] - bx;
@@ -188,30 +261,24 @@ int main(int argc, char ** argv) {
             if(sph[i].divv > 0.) {
                 pdivv[id]++;
             }
-        }
-        
-        char ofile[1024];
-        sprintf(ofile, "hoge_p%06d_i%06d.dat", PS::Comm::getNumberOfProc(), PS::Comm::getRank());
-        fp = fopen(ofile, "w");
-        for(PS::S64 i = 0; i < nx * ny; i++) {
-            /*
-            if(nptcl[i] == 0) {
-                continue;
+            if(dnmax[id] < sph[i].dens) {
+                dnmax[id] = sph[i].dens;
             }
-            PS::F64 fpdivv = (PS::F64)pdivv[i] / (PS::F64)nptcl[i];
-            if(0.4 < fpdivv && fpdivv < 0.6) {
-            */
-            PS::F64 px = bx + wx * (i % nx);
-            PS::F64 py = by + wx * (i / nx);
-            fprintf(fp, "%8d %+e %+e %8lld %8lld\n", i, px, py, nptcl[i], pdivv[i]);
-            /*
-            }
-            */
         }
-        fclose(fp);
-    }
 
-    //sph.writeParticleAscii("hoge", "%s_p%06d_i%06d.dat");
+        PS::F64 dncen, pxcen;
+        search1Dpoint(sph, nx, ny, bx, by, wx, nptcl, pdivv, dnmax,
+                      true, false, 0., 0., "fuga_max.dat", &dncen, &pxcen);
+        PS::F64 dntmp, pxtmp;
+        search1Dpoint(sph, nx, ny, bx, by, wx, nptcl, pdivv, dnmax,
+                      false, true,  0.5*dncen, pxcen, "fuga_rght.dat", &dntmp, &pxtmp);
+        search1Dpoint(sph, nx, ny, bx, by, wx, nptcl, pdivv, dnmax,
+                      false, false, 0.5*dncen, pxcen, "fuga_left.dat", &dntmp, &pxtmp);
+
+        free(nptcl);
+        free(pdivv);
+        free(dnmax);
+    }
 
     PS::Finalize();
 
