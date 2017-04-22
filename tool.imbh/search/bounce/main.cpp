@@ -78,7 +78,156 @@ public:
         fprintf(fp, " %+e", this->entr);                                       // 49
         fprintf(fp, "\n");
     }
+
+    void clear() {
+        this->dens   = 0.;
+        this->vel[2] = 0.;
+    }
+
+    void copyFromForce(const SPHAnalysis & tmpsph) {
+        this->dens   = tmpsph.dens;
+        this->vel[2] = tmpsph.vel[2];
+    }
+
+    void copyFromFP(const SPHAnalysis & sph) {
+        (*this) = sph;
+    }
+
+    PS::F64 getRSearch() const {
+        return this->ksr;
+    }
+
 };
+
+struct calcFitting {
+    void operator () (const SPHAnalysis * epi,
+                      const PS::S32 nip,
+                      const SPHAnalysis * epj,
+                      const PS::S32 njp,
+                      SPHAnalysis * back) {
+        for(PS::S32 i = 0; i < nip; i++) {
+            if(epi[i].mass != 0.) {
+                continue;
+            }
+            PS::F64vec ipos = epi[i].pos;
+            PS::F64    dn   = 0.;
+            PS::F64    vz   = 0.;
+            for(PS::S32 j = 0; j < njp; j++) {
+                PS::F64vec dx  = ipos - epj[j].pos;
+                PS::F64    r2  = dx * dx;
+                PS::F64    r1  = sqrt(r2);
+                PS::F64    hi  = (epj[j].ksr  != 0.) ? 1. / epj[j].ksr  : 0.;
+                PS::F64    di  = (epj[j].dens != 0.) ? 1. / epj[j].dens : 0.;
+                PS::F64    qj  = r1 * hi;
+                PS::F64    dnj = epj[j].mass * ND::calcVolumeInverse(hi) * SK::kernel0th(qj);
+                PS::F64    vzj = epj[j].vel[2] * epj[j].mass * di
+                    * ND::calcVolumeInverse(hi) * SK::kernel0th(qj);
+                dn += dnj;
+                vz += vzj;
+            }
+            back[i].dens   = dn;
+            back[i].vel[2] = vz;
+        }
+    }
+};
+
+template <class Tzsph>
+void makeFitting(Tzsph & zsph) {
+    PS::S64 nzsph = zsph.size();
+
+    PS::F64 zpmax = 0.;
+    for(PS::S64 i = 0; i < nzsph; i++) {
+        if(fabs(zsph[i].pos[2]) > zpmax) {
+            zpmax = fabs(zsph[i].pos[2]);
+        }
+    }
+
+    PS::F64 zmmax = 2. * zpmax;
+    PS::S64 nmesh = 6400;
+    PS::F64 msize = zmmax / (PS::F64)nmesh;
+    PS::S64 * nptcl = (PS::S64 *)malloc(sizeof(PS::F64) * nmesh);
+    PS::F64 * mdens = (PS::F64 *)malloc(sizeof(PS::F64) * nmesh);
+    PS::F64 * mzvel = (PS::F64 *)malloc(sizeof(PS::F64) * nmesh);
+    for(PS::S64 i = 0; i < nmesh; i++) {
+        nptcl[i] = 0;
+        mdens[i] = 0.;
+        mzvel[i] = 0.;
+    }
+    for(PS::S64 i = 0; i < nzsph; i++) {
+        PS::F64 zabs = fabs(zsph[i].pos[2]);
+#if 0
+        PS::F64 ksr  = zsph[i].ksr;
+        PS::F64 zneg = zabs - ksr;
+        PS::F64 zpos = zabs + ksr;
+        PS::S64 ineg = (PS::S64)(zneg / msize);
+        PS::S64 ipos = (PS::S64)(zpos / msize);
+        for(PS::S64 ii = ineg; ii <= ipos; ii++) {
+            if(ii < 0 || nmesh <= ii) {
+                continue;
+            }
+            nptcl[ii] += 1;
+            mdens[ii] += zsph[i].dens;
+            mzvel[ii] += zsph[i].vel[2];
+        }
+#else
+        PS::S64 imid = (PS::S64)(zabs / msize);
+        nptcl[imid] += 1;
+        mdens[imid] += zsph[i].dens;
+        mzvel[imid] += (zsph[i].pos[2] > 0. ? zsph[i].vel[2] : - zsph[i].vel[2]);
+#endif
+    }
+    FILE * fp = fopen("hoge.dat", "w");
+    assert(fp);
+    for(PS::S64 i = 0; i < nmesh; i++) {
+        PS::F64 mzpos = (PS::F64)i * msize;
+        mdens[i] = ((nptcl[i] > 0) ? mdens[i] / (PS::F64)nptcl[i] : 0.);
+        mzvel[i] = ((nptcl[i] > 0) ? mzvel[i] / (PS::F64)nptcl[i] : 0.);
+        fprintf(fp, "%+e %+e %+e\n", mzpos, mdens[i], mzvel[i]);
+    }
+    fclose(fp);
+    free(nptcl);
+    free(mdens);
+    free(mzvel);
+}
+
+template <class Tsph,
+          class Tzsph>
+void insertMassLessParticle(Tsph & sph,
+                            Tzsph & zsph,
+                            const PS::S64 nx,
+                            const PS::S64 ny,
+                            const PS::F64 bx,
+                            const PS::F64 by,
+                            const PS::F64 wx,
+                            const PS::S32 rkglb,
+                            const PS::S32 idglb) {
+
+    PS::S64 nzsph = zsph.size();
+    PS::F64 zpmax = 0.;
+    for(PS::S64 i = 0; i < nzsph; i++) {
+        if(fabs(zsph[i].pos[2]) > zpmax) {
+            zpmax = fabs(zsph[i].pos[2]);
+        }
+    }
+    PS::F64 zmmax = 2. * zpmax;
+    PS::S64 nmesh = 6400;
+    PS::F64 msize = zmmax / (PS::F64)nmesh;
+    
+    PS::F64 posx = bx + (PS::F64(idglb % nx) + 0.5) * wx;
+    PS::F64 posy = by + (PS::F64(idglb / nx) + 0.5) * wx;
+    PS::S64 nloc = sph.getNumberOfParticleLocal();
+    sph.setNumberOfParticleLocal(nloc+nmesh);
+    for(PS::S64 i = 0; i < nmesh; i++) {
+        SPHAnalysis tmpsph;
+        tmpsph.mass   = 0.;
+        tmpsph.pos[0] = posx;
+        tmpsph.pos[1] = posy;
+        tmpsph.pos[2] = (PS::F64)i * msize;
+        tmpsph.vel    = 0.;
+        sph[nloc+i]   = tmpsph;
+    }
+
+}
 
 template <class Tsph>
 void search1Dpoint(Tsph & sph,
@@ -124,6 +273,7 @@ void search1Dpoint(Tsph & sph,
     PS::Comm::broadcast(&pxglb, 1, rkglb);
 
     if(PS::Comm::getRank() == rkglb) {
+        PS::ReallocatableArray<SPHAnalysis> zsph;
         char ofile[1024];
         sprintf(ofile, filename);
         FILE * fp = fopen(ofile, "w");
@@ -137,9 +287,12 @@ void search1Dpoint(Tsph & sph,
             assert(id < nx * ny);
             if(id == idglb) {
                 sph[i].writeAscii(fp);
+                zsph.push_back(sph[i]);
             }
         }
         fclose(fp);
+        insertMassLessParticle(sph, zsph, nx, ny, bx, by, wx, rkglb, idglb);
+        //makeFitting(zsph);
     }
 
     *_dnglb = dnglb;
@@ -279,6 +432,12 @@ int main(int argc, char ** argv) {
         free(pdivv);
         free(dnmax);
     }
+    
+    PS::TreeForForceShort<SPHAnalysis, SPHAnalysis, SPHAnalysis>::Scatter fitting;
+    fitting.initialize(0);
+    fitting.calcForceAllAndWriteBack(calcFitting(), sph, dinfo);
+
+    sph.writeParticleAscii("hoge", "%s_p%06d_i%06d.dat");
 
     PS::Finalize();
 
