@@ -24,7 +24,8 @@ do
         file1="$idir"/sph_t"$ptim"*000000.dat
         if test -e $file0
         then
-            echo "NOT delete $idir/sph_t$ptim.dat"
+            echo "delete $idir/sph_t$ptim.dat"
+            rm -f "$idir"/sph_t"$ptim".dat
         elif test -e $file1
         then
             echo "delete $idir/sph_t$ptim.dat"
