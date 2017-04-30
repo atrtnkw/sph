@@ -81,7 +81,8 @@ namespace HeliumDetonation {
             if(rsph < size & sph.pos[2] > 0.) {
                 temp = tmax - (tmax - tmin) * rsph / size;
             } else {
-                temp = tmin;
+                //temp = tmin;
+                temp = sph.temp;
             }
             return temp;
         }

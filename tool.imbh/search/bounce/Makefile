@@ -1,6 +1,6 @@
 ###### AT_PLATFORM ########
-#use_xc  = yes
-use_ofp  = yes
+use_xc  = yes
+#use_ofp  = yes
 ###### AT_EOS #############
 use_ideal = no
 ###### AT_MPI_OPENMP ######
@@ -64,7 +64,12 @@ OBJ  = main.o ${SPH_DIR}/heos/eos.o
 ETC  = Makefile
 
 run: $(OBJ) $(ETC)
+ifeq ($(use_xc), yes)
+	$(CCC) $(PS_PATH) $(CFLAGS) -o run $(OBJ) $(CLIBS)
+endif
+ifeq ($(use_ofp), yes)
 	$(FCC) $(PS_PATH) $(CFLAGS) -o run $(OBJ) $(CLIBS)
+endif
 
 main.o: main.cpp $(ETC)
 	$(CCC) $(PS_PATH) $(CFLAGS) -c main.cpp $(CLIBS)

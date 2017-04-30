@@ -1,24 +1,19 @@
 #PBS -N mk3d
 #PBS -l mppwidth=1
 #PBS -j oe
-#PBS -q short-a
+#PBS -q short-b+
 
 NPARALLEL=1
 NPROCESS=$NPARALLEL
-#ifile=../../../exwd/t002/sph_t0153.dat
-#ofile=../../../exwd/init/b1.1-0.9_he0100-050_t0153.data
-#iflag=0
-#size=1e8
-#spotx=-6.735527e+08
-#spoty=+8.732118e+07
-#spotz=-1.899386e+07
-ifile=../../../exwd.2/hedet/t001/sph_t0117.dat
-ofile=../../../exwd.2/hedet/b1.1-0.9_he0100-050_2nd.data
-iflag=1
-size=5e8
-spotx=-3.5e8
-spoty=-8e8
-spotz=-1.899386e+07
+ifile=../r001m/rlx2_s1.00/s1.00_h060-060.data
+ofile=../r001m/init/s1.00_h060-060.data
+iflag=0
+size=1e8
+#size=5e7
+#size=3e7
+spotx=0.0
+spoty=0.0
+spotz=4.2e8
 
 cd $PBS_O_WORKDIR
 
