@@ -1,6 +1,6 @@
 ###### AT_PLATFORM ########
-use_xc  = yes
-#use_ofp  = yes
+#use_xc  = yes
+use_ofp  = yes
 ###### AT_EOS #############
 use_ideal = no
 ###### AT_MPI_OPENMP ######

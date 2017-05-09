@@ -11,20 +11,29 @@
 ## The number of processes must be 2^n.
 ## The number of "nnxxx" must be 2^n.
 
-itype=../r512k/run.cowd1.0_bh3e2_b04.00/t00/sph_t0015
+itbgn=14
+itend=16
+iform=../r002m/run.cowd1.0_bh3e2_b04.00/t00/sph_t
 fflag=1
 nfile=768
 xmin0=-2e9
 ymin0=-2e9
 xmax=1e11
 width=4e9
-#nnxxx=1024
 nnxxx=512
 
-echo "$itype"  > input.list
-echo "$fflag $nfile" >> input.list
-echo "$xmin0 $ymin0 $xmax" >> input.list
-echo "$width $nnxxx" >> input.list
+for itime in $(seq -f "%04g" $itbgn 1 $itend)
+do
+    itype="$iform""$itime"
+    otype=t"$itime"
+    
+    echo "$itype"               > input.list
+    echo "$fflag $nfile"       >> input.list
+    echo "$xmin0 $ymin0 $xmax" >> input.list
+    echo "$width $nnxxx"       >> input.list
+    echo "$otype"              >> input.list
+    
+    mpiexec.hydra -n ${PJM_MPI_PROC} ./run input.list
 
-mpiexec.hydra -n ${PJM_MPI_PROC} ./run input.list
+done
 

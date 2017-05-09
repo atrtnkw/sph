@@ -20,6 +20,10 @@ enum KernelType {CubicSpline = 0, WendlandC2 = 1, WendlandC4 = 2};
 #include "hdr_hgas.hpp"
 #include "hdr_bhns.hpp"
 
+namespace Alert{
+    bool BeyondBoundary = false;
+}
+
 class SPHAnalysis : public HelmholtzGas {
 public:
     SPHAnalysis() {
@@ -79,6 +83,11 @@ public:
         fprintf(fp, "\n");
     }
 
+    void writeAscii1Dimension(FILE *fp) const {
+        fprintf(fp, "%+e %+e %+e", this->pos[2], this->dens, this->vel[2]);
+        fprintf(fp, "\n");
+    }
+
     void clear() {
         this->dens   = 0.;
         this->vel[2] = 0.;
@@ -99,12 +108,77 @@ public:
 
 };
 
+class SPHFitting {
+public:
+    PS::S64    id;
+    PS::F64    mass;
+    PS::F64vec pos;
+    PS::F64vec vel;
+    PS::F64    ksr;
+    PS::F64    dens;
+
+    SPHFitting() {
+        this->id   = 0;
+        this->mass = 0.;
+        this->pos  = 0.;
+        this->vel  = 0.;
+        this->ksr  = 0.;
+        this->dens = 0.;
+    }
+
+    void copyFromSPHAnalysis(const SPHAnalysis & sph) {
+        this->id   = sph.id;
+        this->mass = sph.mass;
+        this->pos  = sph.pos;
+        this->vel  = sph.vel;
+        this->ksr  = sph.ksr;
+        this->dens = sph.dens;
+    }
+
+    void copyToSPHAnalysis(SPHAnalysis & sph) const {
+        sph.id   = this->id;
+        sph.mass = this->mass;
+        sph.pos  = this->pos;
+        sph.vel  = this->vel;
+        sph.ksr  = this->ksr;
+        sph.dens = this->dens;
+    }
+
+    PS::F64vec getPos() const {
+        return this->pos;
+    }
+
+    void setPos(PS::F64vec pos_new) {        
+        this->pos = pos_new;
+    }
+
+    void clear() {
+        this->dens   = 0.;
+        this->vel[2] = 0.;
+    }
+
+    void copyFromForce(const SPHFitting & tmpsph) {
+        this->dens   = tmpsph.dens;
+        this->vel[2] = tmpsph.vel[2];
+    }
+
+    void copyFromFP(const SPHFitting & sph) {
+        (*this) = sph;
+    }
+
+    PS::F64 getRSearch() const {
+        return this->ksr;
+    }
+    
+};
+
+template <class Tsph>
 struct calcFitting {
-    void operator () (const SPHAnalysis * epi,
+    void operator () (const Tsph * epi,
                       const PS::S32 nip,
-                      const SPHAnalysis * epj,
+                      const Tsph * epj,
                       const PS::S32 njp,
-                      SPHAnalysis * back) {
+                      Tsph * back) {
         for(PS::S32 i = 0; i < nip; i++) {
             if(epi[i].mass != 0.) {
                 continue;
@@ -131,65 +205,6 @@ struct calcFitting {
     }
 };
 
-template <class Tzsph>
-void makeFitting(Tzsph & zsph) {
-    PS::S64 nzsph = zsph.size();
-
-    PS::F64 zpmax = 0.;
-    for(PS::S64 i = 0; i < nzsph; i++) {
-        if(fabs(zsph[i].pos[2]) > zpmax) {
-            zpmax = fabs(zsph[i].pos[2]);
-        }
-    }
-
-    PS::F64 zmmax = 2. * zpmax;
-    PS::S64 nmesh = 6400;
-    PS::F64 msize = zmmax / (PS::F64)nmesh;
-    PS::S64 * nptcl = (PS::S64 *)malloc(sizeof(PS::F64) * nmesh);
-    PS::F64 * mdens = (PS::F64 *)malloc(sizeof(PS::F64) * nmesh);
-    PS::F64 * mzvel = (PS::F64 *)malloc(sizeof(PS::F64) * nmesh);
-    for(PS::S64 i = 0; i < nmesh; i++) {
-        nptcl[i] = 0;
-        mdens[i] = 0.;
-        mzvel[i] = 0.;
-    }
-    for(PS::S64 i = 0; i < nzsph; i++) {
-        PS::F64 zabs = fabs(zsph[i].pos[2]);
-#if 0
-        PS::F64 ksr  = zsph[i].ksr;
-        PS::F64 zneg = zabs - ksr;
-        PS::F64 zpos = zabs + ksr;
-        PS::S64 ineg = (PS::S64)(zneg / msize);
-        PS::S64 ipos = (PS::S64)(zpos / msize);
-        for(PS::S64 ii = ineg; ii <= ipos; ii++) {
-            if(ii < 0 || nmesh <= ii) {
-                continue;
-            }
-            nptcl[ii] += 1;
-            mdens[ii] += zsph[i].dens;
-            mzvel[ii] += zsph[i].vel[2];
-        }
-#else
-        PS::S64 imid = (PS::S64)(zabs / msize);
-        nptcl[imid] += 1;
-        mdens[imid] += zsph[i].dens;
-        mzvel[imid] += (zsph[i].pos[2] > 0. ? zsph[i].vel[2] : - zsph[i].vel[2]);
-#endif
-    }
-    FILE * fp = fopen("hoge.dat", "w");
-    assert(fp);
-    for(PS::S64 i = 0; i < nmesh; i++) {
-        PS::F64 mzpos = (PS::F64)i * msize;
-        mdens[i] = ((nptcl[i] > 0) ? mdens[i] / (PS::F64)nptcl[i] : 0.);
-        mzvel[i] = ((nptcl[i] > 0) ? mzvel[i] / (PS::F64)nptcl[i] : 0.);
-        fprintf(fp, "%+e %+e %+e\n", mzpos, mdens[i], mzvel[i]);
-    }
-    fclose(fp);
-    free(nptcl);
-    free(mdens);
-    free(mzvel);
-}
-
 template <class Tsph,
           class Tzsph>
 void insertMassLessParticle(Tsph & sph,
@@ -199,6 +214,8 @@ void insertMassLessParticle(Tsph & sph,
                             const PS::F64 bx,
                             const PS::F64 by,
                             const PS::F64 wx,
+                            bool maxornot,
+                            bool rightornot,
                             const PS::S32 rkglb,
                             const PS::S32 idglb) {
 
@@ -219,6 +236,13 @@ void insertMassLessParticle(Tsph & sph,
     sph.setNumberOfParticleLocal(nloc+nmesh);
     for(PS::S64 i = 0; i < nmesh; i++) {
         SPHAnalysis tmpsph;
+        if(maxornot) {
+            tmpsph.id = -1;
+        } else if (rightornot) {
+            tmpsph.id = -2;
+        } else {
+            tmpsph.id = -3;
+        }
         tmpsph.mass   = 0.;
         tmpsph.pos[0] = posx;
         tmpsph.pos[1] = posy;
@@ -250,13 +274,14 @@ void search1Dpoint(Tsph & sph,
     PS::S64 idloc = -1;
     for(PS::S64 i = 0; i < nx * ny; i++) {
         PS::F64 fracpdivv = (PS::F64)pdivv[i] / (PS::F64)nptcl[i];
-        if(fracpdivv < 0.3 || 0.6 < fracpdivv) {
+        //if(fracpdivv < 0.3 || 0.6 < fracpdivv) {
+        if(fracpdivv < 0.2 || 0.4 < fracpdivv) {
             continue;
         }
         if(dnmax[i] > dnlimit && (!maxornot)) {
             continue;
         }
-        if(bx + (PS::F64)(i % nx) * wx - pxlimit > 0. && (!maxornot) && (!rightornot)) {
+        if(!((bx + (PS::F64)(i % nx) * wx - pxlimit > 0.) ^ (!rightornot)) && (!maxornot)) {
             continue;
         }
         if(dnloc < dnmax[i]) {
@@ -284,15 +309,17 @@ void search1Dpoint(Tsph & sph,
             PS::S64 id = 0;
             id  = (PS::S64)(dy / wx) * nx;
             id += (PS::S64)(dx / wx) % nx;
-            assert(id < nx * ny);
+            //assert(id < nx * ny);
+            if(id >= nx * ny) {
+                continue;
+            }
             if(id == idglb) {
                 sph[i].writeAscii(fp);
                 zsph.push_back(sph[i]);
             }
         }
         fclose(fp);
-        insertMassLessParticle(sph, zsph, nx, ny, bx, by, wx, rkglb, idglb);
-        //makeFitting(zsph);
+        insertMassLessParticle(sph, zsph, nx, ny, bx, by, wx, maxornot, rightornot, rkglb, idglb);
     }
 
     *_dnglb = dnglb;
@@ -317,11 +344,13 @@ int main(int argc, char ** argv) {
     PS::F64    xmax;
     PS::F64    wdth;
     PS::S64    nnxx;
+    char       otype[1024];
     FILE * fp = fopen(argv[1], "r");
     fscanf(fp, "%s", itype);
     fscanf(fp, "%d %d", &fflag, &nfile);
     fscanf(fp, "%lf%lf%lf", &xmin[0], &xmin[1], &xmax);
     fscanf(fp, "%lf%lld", &wdth, &nnxx);
+    fscanf(fp, "%s", otype);
     fclose(fp);
 
     if(PS::Comm::getRank() == 0) {
@@ -330,6 +359,7 @@ int main(int argc, char ** argv) {
         fprintf(stderr, "xmin[0]: %+e xmin[1]: %+e\n", xmin[0], xmin[1]);
         fprintf(stderr, "xmax: %+e\n", xmax);
         fprintf(stderr, "width: %+e nnxx: %lld\n", wdth, nnxx);
+        fprintf(stderr, "otype: %s\n", otype);
     }
 
     // input
@@ -409,7 +439,14 @@ int main(int argc, char ** argv) {
             PS::S64 id = 0;
             id  = (PS::S64)(dy / wx) * nx;
             id += (PS::S64)(dx / wx) % nx;
-            assert(id < nx * ny);
+            //assert(id < nx * ny);
+            if(id >= nx * ny) {
+                if(Alert::BeyondBoundary == false) {
+                    fprintf(stderr, "Caution! A particle is beyond the boundary!\n");
+                    Alert::BeyondBoundary = true;
+                }
+                continue;
+            }
             nptcl[id]++;
             if(sph[i].divv > 0.) {
                 pdivv[id]++;
@@ -420,24 +457,66 @@ int main(int argc, char ** argv) {
         }
 
         PS::F64 dncen, pxcen;
+        char ofile[1024];
+        sprintf(ofile, "%s_0.log", otype);
         search1Dpoint(sph, nx, ny, bx, by, wx, nptcl, pdivv, dnmax,
-                      true, false, 0., 0., "fuga_max.dat", &dncen, &pxcen);
+                      true, false, 0., 0., ofile, &dncen, &pxcen);
         PS::F64 dntmp, pxtmp;
+        sprintf(ofile, "%s_1.log", otype);
         search1Dpoint(sph, nx, ny, bx, by, wx, nptcl, pdivv, dnmax,
-                      false, true,  0.5*dncen, pxcen, "fuga_rght.dat", &dntmp, &pxtmp);
+                      false, true,  0.5*dncen, pxcen, ofile, &dntmp, &pxtmp);
+        sprintf(ofile, "%s_2.log", otype);
         search1Dpoint(sph, nx, ny, bx, by, wx, nptcl, pdivv, dnmax,
-                      false, false, 0.5*dncen, pxcen, "fuga_left.dat", &dntmp, &pxtmp);
+                      false, false, 0.5*dncen, pxcen, ofile, &dntmp, &pxtmp);
 
         free(nptcl);
         free(pdivv);
         free(dnmax);
     }
-    
-    PS::TreeForForceShort<SPHAnalysis, SPHAnalysis, SPHAnalysis>::Scatter fitting;
-    fitting.initialize(0);
-    fitting.calcForceAllAndWriteBack(calcFitting(), sph, dinfo);
 
-    sph.writeParticleAscii("hoge", "%s_p%06d_i%06d.dat");
+    PS::ParticleSystem<SPHFitting> fsph;
+    fsph.initialize();
+    fsph.createParticle(0);
+    fsph.setNumberOfParticleLocal(sph.getNumberOfParticleLocal());
+    for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
+        fsph[i].copyFromSPHAnalysis(sph[i]);
+    }
+    PS::TreeForForceShort<SPHFitting, SPHFitting, SPHFitting>::Scatter fitting;
+    fitting.initialize(0);
+    fitting.calcForceAllAndWriteBack(calcFitting<SPHFitting>(), fsph, dinfo);
+    for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
+        fsph[i].copyToSPHAnalysis(sph[i]);
+    }
+
+    // output fitting funciton
+    {
+        for(PS::S64 irank = 0; irank < PS::Comm::getNumberOfProc(); irank++) {
+            if(irank == PS::Comm::getRank()) {
+                char ofile0[1024];
+                char ofile1[1024];
+                char ofile2[1024];
+                sprintf(ofile0, "%s_0.dat", otype);
+                sprintf(ofile1, "%s_1.dat", otype);
+                sprintf(ofile2, "%s_2.dat", otype);
+                FILE * fp0 = fopen(ofile0, "a");
+                FILE * fp1 = fopen(ofile1, "a");
+                FILE * fp2 = fopen(ofile2, "a");
+                for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
+                    if(sph[i].id == -1) {
+                        sph[i].writeAscii1Dimension(fp0);
+                    } else if(sph[i].id == -2) {
+                        sph[i].writeAscii1Dimension(fp1);
+                    } else if(sph[i].id == -3) {
+                        sph[i].writeAscii1Dimension(fp2);
+                    }
+                }
+                fclose(fp0);
+                fclose(fp1);
+                fclose(fp2);
+            }
+            PS::Comm::barrier();
+        }
+    }
 
     PS::Finalize();
 
