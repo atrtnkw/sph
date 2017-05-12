@@ -13,7 +13,9 @@
 
 itbgn=14
 itend=16
-iform=../r002m/run.cowd1.0_bh3e2_b04.00/t00/sph_t
+iform=../r001m/run.cowd1.0_bh3e2_b04.50/t00/sph_t
+odir=../r001m/run.cowd1.0_bh3e2_b04.50/fitting
+#
 fflag=1
 nfile=768
 xmin0=-2e9
@@ -22,10 +24,15 @@ xmax=1e11
 width=4e9
 nnxxx=512
 
+if ! test -e $odir
+then
+    mkdir $odir
+fi
+
 for itime in $(seq -f "%04g" $itbgn 1 $itend)
 do
     itype="$iform""$itime"
-    otype=t"$itime"
+    otype="$odir"/t"$itime"
     
     echo "$itype"               > input.list
     echo "$fflag $nfile"       >> input.list

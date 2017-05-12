@@ -21,7 +21,8 @@ enum KernelType {CubicSpline = 0, WendlandC2 = 1, WendlandC4 = 2};
 #include "hdr_bhns.hpp"
 
 namespace Alert{
-    bool BeyondBoundary = false;
+    bool    BeyondBoundary   = false;
+    PS::F64 MinimumOfDensity = 1.;
 }
 
 class SPHAnalysis : public HelmholtzGas {
@@ -199,7 +200,7 @@ struct calcFitting {
                 dn += dnj;
                 vz += vzj;
             }
-            back[i].dens   = dn;
+            back[i].dens   = (dn > Alert::MinimumOfDensity) ? dn : Alert::MinimumOfDensity;
             back[i].vel[2] = vz;
         }
     }
@@ -226,8 +227,10 @@ void insertMassLessParticle(Tsph & sph,
             zpmax = fabs(zsph[i].pos[2]);
         }
     }
-    PS::F64 zmmax = 2. * zpmax;
-    PS::S64 nmesh = 6400;
+    //PS::F64 zmmax = 2. * zpmax;
+    PS::F64 zmmax = 1e8;
+    assert(zmmax > zpmax);
+    PS::S64 nmesh = 800;
     PS::F64 msize = zmmax / (PS::F64)nmesh;
     
     PS::F64 posx = bx + (PS::F64(idglb % nx) + 0.5) * wx;
