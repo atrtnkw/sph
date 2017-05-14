@@ -1,4 +1,4 @@
-if test -ne 5
+if test $# -ne 5
 then
     echo "sh $0 <dy> <nprc> <tbgn> <tend> <dtsp>"
     exit
