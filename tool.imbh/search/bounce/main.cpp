@@ -173,6 +173,7 @@ public:
     
 };
 
+#if 0
 template <class Tsph>
 struct calcFitting {
     void operator () (const Tsph * epi,
@@ -205,6 +206,68 @@ struct calcFitting {
         }
     }
 };
+#else
+template <class Tsph>
+struct calcFitting {
+    void operator () (const Tsph * epi,
+                      const PS::S32 nip,
+                      const Tsph * epj,
+                      const PS::S32 njp,
+                      Tsph * back) {
+        for(PS::S32 i = 0; i < nip; i++) {
+            if(epi[i].mass != 0.) {
+                continue;
+            }
+            PS::F64 r2min_m = 1e60;
+            PS::F64 r2min_p = 1e60;
+            bool    prsns_m = false;
+            bool    prsns_p = false;
+            PS::S64 id_m    = -100;
+            PS::S64 id_p    = -100;
+            for(PS::S32 j = 0; j < njp; j++) {
+                if(epj[j].mass == 0.) {
+                    continue;
+                }
+                if(epj[j].pos[2] < 0.) {
+                    continue;
+                }
+                PS::F64vec dx = epj[j].pos - epi[i].pos;
+                PS::F64    r2 = dx * dx;
+                if(dx[2] < 0.) {
+                    if(r2 < r2min_m) {
+                        r2min_m = r2;
+                        id_m    = j;
+                    }
+                    prsns_m = true;
+                } else {
+                    if(r2 < r2min_p) {
+                        r2min_p = r2;
+                        id_p    = j;
+                    }
+                    prsns_p = true;
+                }
+            }
+            PS::F64 pzm = epj[id_m].pos[2];
+            PS::F64 pzp = epj[id_p].pos[2];
+            PS::F64 pzi = epi[i].pos[2];
+            PS::F64 dnm = epj[id_m].dens;
+            PS::F64 dnp = epj[id_p].dens;
+            PS::F64 vzm = epj[id_m].vel[2];
+            PS::F64 vzp = epj[id_p].vel[2];
+            if(prsns_m && prsns_p) {
+                back[i].dens   = ((pzp - pzi) * dnm + (pzi - pzm) * dnp) / (pzp - pzm);
+                back[i].vel[2] = ((pzp - pzi) * vzm + (pzi - pzm) * vzp) / (pzp - pzm);
+            } else if(prsns_p) {
+                back[i].dens   = dnp;
+                back[i].vel[2] = 0.;
+            } else {
+                back[i].dens   = Alert::MinimumOfDensity;
+                back[i].vel[2] = 0.;
+            }
+        }
+    }
+};
+#endif
 
 template <class Tsph,
           class Tzsph>
@@ -251,6 +314,7 @@ void insertMassLessParticle(Tsph & sph,
         tmpsph.pos[1] = posy;
         tmpsph.pos[2] = (PS::F64)i * msize;
         tmpsph.vel    = 0.;
+        tmpsph.ksr    = 0.;
         sph[nloc+i]   = tmpsph;
     }
 
@@ -484,6 +548,7 @@ int main(int argc, char ** argv) {
     for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
         fsph[i].copyFromSPHAnalysis(sph[i]);
     }
+    fsph.exchangeParticle(dinfo);
     PS::TreeForForceShort<SPHFitting, SPHFitting, SPHFitting>::Scatter fitting;
     fitting.initialize(0);
     fitting.calcForceAllAndWriteBack(calcFitting<SPHFitting>(), fsph, dinfo);
