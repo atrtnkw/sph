@@ -24,17 +24,15 @@ int main(int argc, char **argv) {
     init_flash_helmholtz_(&CodeUnit::FractionOfCoulombCorrection);
 
     {    
-        PS::S64 ndens = 5;
+        PS::S64 ndens = 6;
         PS::S64 ntemp = 6;
-        PS::F64 dens[ndens] = {1e7, 2e7, 3e7, 5e7, 7e7};
-        PS::F64 temp[ntemp] = {1e7, 1e8, 3e9, 5e9, 7e9, 1e10};
+        PS::F64 dens[ndens] = {1e5, 3e5, 1e6, 3e6, 1e7, 3e8};
+        PS::F64 temp[ntemp] = {1e8, 3e8, 1e9, 3e9, 5e9, 7e9};
         NR::Nucleon cmps;
+        cmps[0] = 1.0;
+        /*
         cmps[1] = 0.5;
         cmps[2] = 0.5;
-        /*
-        cmps[2] = 0.65;
-        cmps[3] = 0.35;
-        cmps[4] = 0.05;
         */
         for(PS::S64 idens = 0; idens < ndens; idens++) {
             for(PS::S64 itemp = 0; itemp < ntemp; itemp++) {

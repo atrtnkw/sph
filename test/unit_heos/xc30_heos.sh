@@ -1,7 +1,7 @@
 #PBS -N test_heos
 #PBS -l mppwidth=1
 #PBS -j oe
-#PBS -q short-a
+#PBS -q short-b+
 
 NPARALLEL=1
 NPROCESS=$NPARALLEL
