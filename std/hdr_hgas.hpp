@@ -656,6 +656,7 @@ public:
         this->uene   = (unow < umin) ? unow : ((unow - umin) * exp(-0.1 * dt) + umin);
     }
 
+#if 0
     void correctDamping4(PS::F64 dt) {
         this->acc  -= this->vel * 0.2;
         this->vel   = this->vel2   + 0.5 * this->acc   * dt;
@@ -665,9 +666,6 @@ public:
         if(this->cmps[0] > 0.1) {
             PS::F64 unow = this->uene;
             PS::F64 utgt = CalcEquationOfState::getEnergyGivenTemperature(this->dens,
-//                                                                          2e8, this->cmps);
-//                                                                          4e8, this->cmps);
-//                                                                          3e8, this->cmps);
                                                                           2.5e8, this->cmps);
             this->uene = unow + (utgt - unow) * exp(-0.1 * dt);
         } else {
@@ -677,6 +675,18 @@ public:
             this->uene = unow + (utgt - unow) * exp(-0.1 * dt);
         }
     }
+#else
+    void correctDamping4(PS::F64 dt) {
+        this->acc  -= this->vel * 0.2;
+        this->vel   = this->vel2   + 0.5 * this->acc   * dt;
+        this->uene  = this->uene2  + 0.5 * this->udot  * dt;
+        this->alph  = this->alph2  + 0.5 * this->adot  * dt;
+        this->alphu = this->alphu2 + 0.5 * this->adotu * dt;
+        PS::F64 unow = this->uene;
+        PS::F64 umin = CalcEquationOfState::getEnergyMin(this->dens, this->cmps);
+        this->uene   = (unow < umin) ? unow : ((unow - umin) * exp(-0.5 * dt) + umin);
+    }
+#endif
 
     void calcAlphaDot() {
         PS::F64 src    = std::max((- divv * (RP::AlphaMaximum - this->alph)), 0.);
