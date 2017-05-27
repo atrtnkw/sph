@@ -1,4 +1,3 @@
-# argv: n (Original number)
 BEGIN{
     pi  = 3.141;
     idc = 0;
