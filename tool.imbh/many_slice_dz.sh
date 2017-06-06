@@ -1,14 +1,15 @@
-if test $# -ne 5
+if test $# -ne 6
 then
-    echo "sh $0 <dz> <nprc> <tbgn> <tend> <dtsp>"
+    echo "sh $0 <dz> <nprc> <bdir> <tbgn> <tend> <dtsp>"
     exit
 fi
 
 dz=$1
 nprc=`printf "%06d" $2`
-tbgn=$3
-tend=$4
-dtsp=$5
+bdir=$3
+tbgn=$4
+tend=$5
+dtsp=$6
 
 for time in $(seq -f "%04g" $tbgn $dtsp $tend)
 do
@@ -18,13 +19,13 @@ do
         then
             continue
         fi
-        if ! test -e t"$dnum"/sph_t"$time"_p"$nprc"_i000000.dat
+        if ! test -e "$bdir"//t"$dnum"/sph_t"$time"_p"$nprc"_i000000.dat
         then
-            echo "Not found t"$dnum"/sph_t"$time".dat"
+            echo "Not found "$bdir"/t"$dnum"/sph_t"$time".dat"
             continue
         fi
         echo "Process $time ..." >&2
-        awk -f ~/git-sph/tool.hgas/slice.awk dz="$dz" t"$dnum"/sph_t"$time"*.dat \
+        awk -f ~/git-sph/tool.hgas/slice.awk dz="$dz" "$bdir"/t"$dnum"/sph_t"$time"*.dat \
             > sph_t"$time".dat.dz
     done
 done

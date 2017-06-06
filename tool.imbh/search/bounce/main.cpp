@@ -25,6 +25,15 @@ namespace Alert{
     PS::F64 MinimumOfDensity = 1.;
 }
 
+void debugByPrintf(char * str) {
+    for(PS::S64 i = 0; i < PS::Comm::getNumberOfProc(); i++) {
+        if(i == PS::Comm::getRank()) {
+            fprintf(stderr, "Process %8d %s\n", PS::Comm::getRank(), str);
+        }
+        PS::Comm::barrier();
+    }
+}
+
 class SPHAnalysis : public HelmholtzGas {
 public:
     SPHAnalysis() {
@@ -40,6 +49,24 @@ public:
         for(PS::S32 k = 0; k < NR::NumberOfNucleon; k++) {
             this->cmps[k] = 0.;
         }        
+    }
+
+    bool judgeCriterion() {
+        /*
+        if(this->divv > 0.) {
+            return true;
+        } else {
+            return false;
+        }
+        */
+        PS::F64 vzovercs = ((this->pos[2] > 0.) ? (- this->vel[2] / this->vsnd)
+                            : (this->vel[2] / this->vsnd));
+        //if(vzovercs > 3.) {
+        if(vzovercs > 2.) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     void readAscii(FILE * fp) {
@@ -170,10 +197,14 @@ public:
     PS::F64 getRSearch() const {
         return this->ksr;
     }
-    
+
+    void writeAscii(FILE *fp) const {
+        fprintf(fp, "%6d", this->id);
+        fprintf(fp, "\n");
+    }
 };
 
-#if 0
+#if 1
 template <class Tsph>
 struct calcFitting {
     void operator () (const Tsph * epi,
@@ -328,7 +359,7 @@ void search1Dpoint(Tsph & sph,
                    const PS::F64 by,
                    const PS::F64 wx,
                    PS::S64 * nptcl,
-                   PS::S64 * pdivv,
+                   PS::S64 * pcrit,
                    PS::F64 * dnmax,
                    bool maxornot,
                    bool rightornot,
@@ -340,9 +371,8 @@ void search1Dpoint(Tsph & sph,
     PS::F64 dnloc = -1.;
     PS::S64 idloc = -1;
     for(PS::S64 i = 0; i < nx * ny; i++) {
-        PS::F64 fracpdivv = (PS::F64)pdivv[i] / (PS::F64)nptcl[i];
-        //if(fracpdivv < 0.3 || 0.6 < fracpdivv) {
-        if(fracpdivv < 0.2 || 0.4 < fracpdivv) {
+        PS::F64 fracpcrit = (PS::F64)pcrit[i] / (PS::F64)nptcl[i];
+        if(fracpcrit < 0.01 || 0.02 < fracpcrit) {
             continue;
         }
         if(dnmax[i] > dnlimit && (!maxornot)) {
@@ -491,13 +521,13 @@ int main(int argc, char ** argv) {
         const PS::S64 ny = nnxx;
         PS::S64 *nptcl = (PS::S64 *)malloc(sizeof(PS::S64) * nx * ny);
         assert(nptcl);
-        PS::S64 *pdivv = (PS::S64 *)malloc(sizeof(PS::S64) * nx * ny);
-        assert(pdivv);
+        PS::S64 *pcrit = (PS::S64 *)malloc(sizeof(PS::S64) * nx * ny);
+        assert(pcrit);
         PS::F64 *dnmax = (PS::F64 *)malloc(sizeof(PS::F64) * nx * ny);
         assert(dnmax);
         for(PS::S64 i = 0; i < nx * ny; i++) {
             nptcl[i] = 0;
-            pdivv[i] = 0;
+            pcrit[i] = 0;
             dnmax[i] = 0.;
         }        
         for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
@@ -515,8 +545,8 @@ int main(int argc, char ** argv) {
                 continue;
             }
             nptcl[id]++;
-            if(sph[i].divv > 0.) {
-                pdivv[id]++;
+            if(sph[i].judgeCriterion()) {
+                pcrit[id]++;
             }
             if(dnmax[id] < sph[i].dens) {
                 dnmax[id] = sph[i].dens;
@@ -526,18 +556,18 @@ int main(int argc, char ** argv) {
         PS::F64 dncen, pxcen;
         char ofile[1024];
         sprintf(ofile, "%s_0.log", otype);
-        search1Dpoint(sph, nx, ny, bx, by, wx, nptcl, pdivv, dnmax,
+        search1Dpoint(sph, nx, ny, bx, by, wx, nptcl, pcrit, dnmax,
                       true, false, 0., 0., ofile, &dncen, &pxcen);
         PS::F64 dntmp, pxtmp;
         sprintf(ofile, "%s_1.log", otype);
-        search1Dpoint(sph, nx, ny, bx, by, wx, nptcl, pdivv, dnmax,
+        search1Dpoint(sph, nx, ny, bx, by, wx, nptcl, pcrit, dnmax,
                       false, true,  0.5*dncen, pxcen, ofile, &dntmp, &pxtmp);
         sprintf(ofile, "%s_2.log", otype);
-        search1Dpoint(sph, nx, ny, bx, by, wx, nptcl, pdivv, dnmax,
+        search1Dpoint(sph, nx, ny, bx, by, wx, nptcl, pcrit, dnmax,
                       false, false, 0.5*dncen, pxcen, ofile, &dntmp, &pxtmp);
 
         free(nptcl);
-        free(pdivv);
+        free(pcrit);
         free(dnmax);
     }
 
@@ -548,10 +578,15 @@ int main(int argc, char ** argv) {
     for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
         fsph[i].copyFromSPHAnalysis(sph[i]);
     }
+    dinfo.decomposeDomainAll(fsph);
     fsph.exchangeParticle(dinfo);
     PS::TreeForForceShort<SPHFitting, SPHFitting, SPHFitting>::Scatter fitting;
     fitting.initialize(0);
+    //fsph.writeParticleAscii("hoge", "%s_p%06d_i%06d.dat");
+    //debugByPrintf("hoge a");
     fitting.calcForceAllAndWriteBack(calcFitting<SPHFitting>(), fsph, dinfo);
+    //debugByPrintf("hoge b");
+    sph.setNumberOfParticleLocal(fsph.getNumberOfParticleLocal());
     for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
         fsph[i].copyToSPHAnalysis(sph[i]);
     }

@@ -5,24 +5,25 @@
 #PJM -g xg17i022
 #PJM -N bounce
 #PJM -j
-#PJM -L node=1
+#PJM -L node=8
 #PJM --mpi proc=64
-#PJM --omp thread=1
+#PJM --omp thread=8
 
 ## The number of processes must be 2^n.
 ## The number of "nnxxx" must be 2^n.
 
-itbgn=19
-itend=19
-iform=../r001m/run.hewd0.3_bh3e2_b10.00/t00/sph_t
-odir=fitting
+itbgn=52
+itend=52
+idtsp=4
+iform=../r004m/run.cowd1.0_bh3e2_b04.50_nw/t00/sph_t
+odir=../r004m/run.cowd1.0_bh3e2_b04.50_nw/fitting
 #
 fflag=1
 nfile=768
-xmin0=-5e9
-ymin0=-5e9
+xmin0=-3e9
+ymin0=-3e9
 xmax=1e11
-width=10e9
+width=6e9
 nnxxx=512
 #
 
@@ -33,11 +34,11 @@ fi
 
 cp $0 $odir/ofp_bnce.sh
 
-for itime in $(seq -f "%04g" $itbgn 1 $itend)
+for itime in $(seq -f "%04g" $itbgn $idtsp $itend)
 do
     itype="$iform""$itime"
     otype="$odir"/t"$itime"
-    
+
     echo "$itype"               > input.list
     echo "$fflag $nfile"       >> input.list
     echo "$xmin0 $ymin0 $xmax" >> input.list
