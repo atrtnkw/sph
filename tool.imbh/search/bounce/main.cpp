@@ -61,8 +61,9 @@ public:
         */
         PS::F64 vzovercs = ((this->pos[2] > 0.) ? (- this->vel[2] / this->vsnd)
                             : (this->vel[2] / this->vsnd));
-        //if(vzovercs > 3.) {
-        if(vzovercs > 2.) {
+        //if(vzovercs > 4.) {
+        if(vzovercs > 3.) {
+        //if(vzovercs > 2.) {
             return true;
         } else {
             return false;
@@ -321,11 +322,11 @@ void insertMassLessParticle(Tsph & sph,
             zpmax = fabs(zsph[i].pos[2]);
         }
     }
-    //PS::F64 zmmax = 2. * zpmax;
     PS::F64 zmmax = 1e8;
+    PS::F64 zmmin = - zmmax;
     assert(zmmax > zpmax);
     PS::S64 nmesh = 800;
-    PS::F64 msize = zmmax / (PS::F64)nmesh;
+    PS::F64 msize = (zmmax - zmmin) / (PS::F64)nmesh;
     
     PS::F64 posx = bx + (PS::F64(idglb % nx) + 0.5) * wx;
     PS::F64 posy = by + (PS::F64(idglb / nx) + 0.5) * wx;
@@ -343,7 +344,7 @@ void insertMassLessParticle(Tsph & sph,
         tmpsph.mass   = 0.;
         tmpsph.pos[0] = posx;
         tmpsph.pos[1] = posy;
-        tmpsph.pos[2] = (PS::F64)i * msize;
+        tmpsph.pos[2] = zmmin + (PS::F64)i * msize;
         tmpsph.vel    = 0.;
         tmpsph.ksr    = 0.;
         sph[nloc+i]   = tmpsph;
@@ -364,10 +365,10 @@ void search1Dpoint(Tsph & sph,
                    bool maxornot,
                    bool rightornot,
                    PS::F64 dnlimit,
-                   PS::F64 pxlimit,
+                   PS::F64 r2limit,
                    char * filename,
                    PS::F64 * _dnglb,
-                   PS::F64 * _pxglb) {
+                   PS::F64 * _r2glb) {
     PS::F64 dnloc = -1.;
     PS::S64 idloc = -1;
     for(PS::S64 i = 0; i < nx * ny; i++) {
@@ -378,7 +379,19 @@ void search1Dpoint(Tsph & sph,
         if(dnmax[i] > dnlimit && (!maxornot)) {
             continue;
         }
+#if 0
         if(!((bx + (PS::F64)(i % nx) * wx - pxlimit > 0.) ^ (!rightornot)) && (!maxornot)) {
+            continue;
+        }
+#else
+        PS::F64 tmpx  = bx + (PS::F64)(i % nx) * wx;
+        PS::F64 tmpy  = by + (PS::F64)(i / nx) * wx;
+        PS::F64 tmpr2 = tmpx * tmpx + tmpy * tmpy;
+        if(!((tmpr2 - r2limit > 0.) ^ (!rightornot)) && (!maxornot)) {
+            continue;
+        }
+#endif
+        if(bx + (PS::F64)(i % nx) * wx < 0.) {
             continue;
         }
         if(dnloc < dnmax[i]) {
@@ -392,7 +405,9 @@ void search1Dpoint(Tsph & sph,
     PS::Comm::getMaxValue(dnloc, PS::Comm::getRank(), dnglb, rkglb);
     PS::S64 idglb = ((PS::Comm::getRank() == rkglb) ? idloc : -1);
     PS::F64 pxglb = bx + (PS::F64)(idloc % nx) * wx;
-    PS::Comm::broadcast(&pxglb, 1, rkglb);
+    PS::F64 pyglb = by + (PS::F64)(idloc / nx) * wx;
+    PS::F64 r2glb = pxglb * pxglb + pyglb * pyglb;
+    PS::Comm::broadcast(&r2glb, 1, rkglb);
 
     if(PS::Comm::getRank() == rkglb) {
         PS::ReallocatableArray<SPHAnalysis> zsph;
@@ -420,7 +435,7 @@ void search1Dpoint(Tsph & sph,
     }
 
     *_dnglb = dnglb;
-    *_pxglb = pxglb;
+    *_r2glb = r2glb;
 }
     
 int main(int argc, char ** argv) {
@@ -553,18 +568,18 @@ int main(int argc, char ** argv) {
             }
         }
 
-        PS::F64 dncen, pxcen;
+        PS::F64 dncen, r2cen;
         char ofile[1024];
         sprintf(ofile, "%s_0.log", otype);
         search1Dpoint(sph, nx, ny, bx, by, wx, nptcl, pcrit, dnmax,
-                      true, false, 0., 0., ofile, &dncen, &pxcen);
-        PS::F64 dntmp, pxtmp;
+                      true, false, 0., 0., ofile, &dncen, &r2cen);
+        PS::F64 dntmp, r2tmp;
         sprintf(ofile, "%s_1.log", otype);
         search1Dpoint(sph, nx, ny, bx, by, wx, nptcl, pcrit, dnmax,
-                      false, true,  0.5*dncen, pxcen, ofile, &dntmp, &pxtmp);
+                      false, true,  0.5*dncen, r2cen, ofile, &dntmp, &r2tmp);
         sprintf(ofile, "%s_2.log", otype);
         search1Dpoint(sph, nx, ny, bx, by, wx, nptcl, pcrit, dnmax,
-                      false, false, 0.5*dncen, pxcen, ofile, &dntmp, &pxtmp);
+                      false, false, 0.5*dncen, r2cen, ofile, &dntmp, &r2tmp);
 
         free(nptcl);
         free(pcrit);

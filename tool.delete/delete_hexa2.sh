@@ -34,7 +34,6 @@ do
     echo "tbgn: $tbgn tend: $tend" 1>&2
     for time in $(seq -f "%04g" $tbgn $dsnp $tend)
     do
-#        if test $time -ne $tbgn -a  $time -ne $tend
         if test $time -ne $tend
         then
             rm -f "$idir"/t"$time"_p*.hexa

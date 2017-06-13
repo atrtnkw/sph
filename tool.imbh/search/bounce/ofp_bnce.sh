@@ -5,21 +5,21 @@
 #PJM -g xg17i022
 #PJM -N bounce
 #PJM -j
-#PJM -L node=8
-#PJM --mpi proc=64
+#PJM -L node=16
+#PJM --mpi proc=128
 #PJM --omp thread=8
 
 ## The number of processes must be 2^n.
 ## The number of "nnxxx" must be 2^n.
 
-itbgn=52
+itbgn=44
 itend=52
-idtsp=4
-iform=../r004m/run.cowd1.0_bh3e2_b04.50_nw/t00/sph_t
-odir=../r004m/run.cowd1.0_bh3e2_b04.50_nw/fitting
+idtsp=1
+idir=../r002m/run.cowd1.05_bh3e2_b04.50_nw
+odir=../r002m/run.cowd1.05_bh3e2_b04.50_nw/fitting.mach03.+-
 #
 fflag=1
-nfile=768
+nfile=1536
 xmin0=-3e9
 ymin0=-3e9
 xmax=1e11
@@ -36,16 +36,27 @@ cp $0 $odir/ofp_bnce.sh
 
 for itime in $(seq -f "%04g" $itbgn $idtsp $itend)
 do
-    itype="$iform""$itime"
-    otype="$odir"/t"$itime"
-
-    echo "$itype"               > input.list
-    echo "$fflag $nfile"       >> input.list
-    echo "$xmin0 $ymin0 $xmax" >> input.list
-    echo "$width $nnxxx"       >> input.list
-    echo "$otype"              >> input.list
-    
-    mpiexec.hydra -n ${PJM_MPI_PROC} ./run input.list
-
+    for dnum in $(seq -f "%02g" 0 1 99)
+    do
+        pnfile=`printf "%06d" $nfile`
+        if ! test -e "$idir"/t"$dnum"/sph_t"$itime"_p"$pnfile"_i000000.dat
+        then
+            echo "Not found"$idir"/t"$dnum"/sph_t"$itime"_p"$pnfile".dat"
+            continue
+        fi
+        
+        itype="$idir"/t"$dnum"/sph_t"$itime"
+        otype="$odir"/t"$itime"
+        
+        echo "$itype"               > input.list
+        echo "$fflag $nfile"       >> input.list
+        echo "$xmin0 $ymin0 $xmax" >> input.list
+        echo "$width $nnxxx"       >> input.list
+        echo "$otype"              >> input.list
+        
+        mpiexec.hydra -n ${PJM_MPI_PROC} ./run input.list
+        
+        break
+    done
 done
 
