@@ -62,8 +62,8 @@ public:
         PS::F64 vzovercs = ((this->pos[2] > 0.) ? (- this->vel[2] / this->vsnd)
                             : (this->vel[2] / this->vsnd));
         //if(vzovercs > 4.) {
-        if(vzovercs > 3.) {
-        //if(vzovercs > 2.) {
+        //if(vzovercs > 3.) {
+        if(vzovercs > 2.) {
             return true;
         } else {
             return false;
