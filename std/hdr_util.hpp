@@ -276,19 +276,23 @@ template <class Tbhns>
 void broadcastBlackHoleNeutronStar(const Tbhns & bhns,
                                    PS::F64    & mass,
                                    PS::F64vec & pos,
-                                   PS::F64vec & vel) {
+                                   PS::F64vec & vel,
+                                   PS::F64    & size) {
     PS::S32    nbhns = bhns.getNumberOfParticleLocal();
     PS::F64    mloc  = 0.;
     PS::F64vec ploc  = 0.;
     PS::F64vec vloc  = 0.;
+    PS::F64    sloc  = 0.;
     if(nbhns == 1) {
         mloc = bhns[0].mass;
         ploc = bhns[0].pos;
         vloc = bhns[0].vel;
+        sloc = bhns[0].size;
     } else if(nbhns == 0) {
         mloc = 0.;
         ploc = 0.;
         vloc = 0.;
+        sloc = 0.;
     } else {
         fprintf(stderr, "Not supported in this case (in function %s)!\n", __FUNCTION__);
         PS::Abort();
@@ -296,6 +300,7 @@ void broadcastBlackHoleNeutronStar(const Tbhns & bhns,
     mass = PS::Comm::getSum(mloc);
     pos  = PS::Comm::getSum(ploc);
     vel  = PS::Comm::getSum(vloc);
+    size = PS::Comm::getSum(sloc);
 }
 
 template <class Tbhns>
@@ -332,14 +337,13 @@ void absorbParticleIntoBlackHoleNeutronStar(Tdinfo & dinfo,
                                             Tgravity & gravity) {
     PS::F64    mbhns;
     PS::F64vec pbhns, vbhns;
-    broadcastBlackHoleNeutronStar(bhns, mbhns, pbhns, vbhns);
+    PS::F64    sbhns;
+    broadcastBlackHoleNeutronStar(bhns, mbhns, pbhns, vbhns, sbhns);
 
     PS::F64    ekloc = 0.;
     PS::F64    ephi0 = calcPotentialEnergy(sph, bhns);
     PS::F64    uloc0 = 0.;
-    ////////// 160610 from
     PS::F64    gloc0 = 0.;
-    ////////// 160610 to
     PS::S32    ndloc = 0;
     PS::F64    msloc = 0.;
     PS::F64vec mxloc = 0.;
@@ -350,7 +354,10 @@ void absorbParticleIntoBlackHoleNeutronStar(Tdinfo & dinfo,
         PS::F64vec dx = sph[i].pos - pbhns;
         PS::F64    r2 = dx * dx;
         PS::F64vec dv = sph[i].vel - vbhns;
-        if(r2 >= sph[i].ksr * sph[i].ksr) {
+        // tanikawa modified this 170623 FROM
+        //if(r2 >= sph[i].ksr * sph[i].ksr) {
+        if(r2 >= (sph[i].ksr + sbhns) * (sph[i].ksr + sbhns)) {
+        // tanikawa modified this 170623 TO
             i++;
             continue;
         }        
@@ -366,9 +373,7 @@ void absorbParticleIntoBlackHoleNeutronStar(Tdinfo & dinfo,
         ndloc++;
         ekloc += 0.5 * sph[i].mass * (sph[i].vel * sph[i].vel);
         uloc0 +=       sph[i].mass *  sph[i].uene;
-        ////////// 160610 from
         gloc0 +=       sph[i].mass *  sph[i].gcor3;
-        ////////// 160610 to
         msloc +=       sph[i].mass;
         mxloc +=       sph[i].mass *  sph[i].pos;
         mmloc +=       sph[i].mass *  sph[i].vel;
@@ -388,7 +393,9 @@ void absorbParticleIntoBlackHoleNeutronStar(Tdinfo & dinfo,
         if(RP::FlagBinary == 1) {
             correctBlackHoleNeutronStar(bhns, msglb, mxglb, mmglb);
         } else if (RP::FlagBinary == 2) {
-            ;
+            // tanikawa add this 170623 FROM
+            bhns.setNumberOfParticleLocal(0);
+            // tanikawa add this 170623 TO
         } else {
             fprintf(stderr, "Something wrong happens!\n");
             PS::Abort();
@@ -398,16 +405,12 @@ void absorbParticleIntoBlackHoleNeutronStar(Tdinfo & dinfo,
 
         PS::F64 etot1 = calcEnergy(sph, bhns);
 
-        broadcastBlackHoleNeutronStar(bhns, mbhns, pbhns, vbhns);
+        broadcastBlackHoleNeutronStar(bhns, mbhns, pbhns, vbhns, sbhns);
         PS::F64 kglb1 = 0.5 * mbhns * (vbhns * vbhns);
         PS::F64 ephi1 = calcPotentialEnergy(sph, bhns);
-        ////////// 160610 from
-//        RP::AbsorbedEnergyTotal += (kglb1 + ephi1) - (kglb0 + uglb0 + ephi0);
         RP::AbsorbedEnergyTotal += (kglb1 + ephi1) - (kglb0 + uglb0 + ephi0 - gglb0);
-        ////////// 160610 to
 
     }
-
 }
 
 template <class Tdinfo,
@@ -432,12 +435,15 @@ void absorbParticleIntoIntermediateMassBlackHole(Tdinfo & dinfo,
         first = false;
     }
     if(PS::Comm::getRank() == 0) {
+        using namespace CodeUnit;
         imbh.setNumberOfParticleLocal(1);
         imbh[0].mass = 0.;
         imbh[0].pos  = 0.;
         imbh[0].vel  = 0.;
         imbh[0].pot  = 0.;
         imbh[0].eps  = 1.;
+        imbh[0].size = GravityConstantInThisUnit * BlackHoleMassInThisUnit /
+            (SpeedOfLightInThisUnit * SpeedOfLightInThisUnit);
     } else {
         imbh.setNumberOfParticleLocal(0);
     }

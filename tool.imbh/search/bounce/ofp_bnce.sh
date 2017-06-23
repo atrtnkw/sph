@@ -15,8 +15,8 @@
 itbgn=122
 itend=132
 idtsp=1
-idir=../r001m/run.cowd1.05_bh3e2_b04.50_nw4
-odir=../r001m/run.cowd1.05_bh3e2_b04.50_nw4/fitting.mach02.+-
+idir=../r004m/run.cowd1.05_bh3e2_b04.50_nw4
+odir=../r004m/run.cowd1.05_bh3e2_b04.50_nw4/fitting.mach02.+-
 #
 fflag=1
 nfile=1536

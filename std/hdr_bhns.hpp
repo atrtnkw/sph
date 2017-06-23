@@ -3,6 +3,49 @@ public:
 
     PS::S64 istar;
     PS::F64 eps;
+    PS::F64 size;
+    
+    BlackHoleNeutronStar() {
+        this->id = 0;
+        this->mass   = 0.;
+        this->pos    = 0.;
+        this->vel    = 0.;
+        this->vel2   = 0.;
+        this->acc    = 0.;
+        this->uene   = 0.;
+        this->uene2  = 0.;
+        this->udot   = 0.;
+        this->alph   = 0.;
+        this->alph2  = 0.;
+        this->adot   = 0.;
+        this->alphu  = 0.;
+        this->alphu2 = 0.;    
+        this->adotu  = 0.;
+        this->diffu  = 0.;
+        this->vol    = 0.;
+        this->ksr    = 0.;
+        this->rs     = 0.;
+        this->dens   = 0.;
+        this->pres   = 0.;
+        this->vsnd   = 0.;
+        this->divv   = 0.;
+        this->rotv   = 0.;
+        this->bswt   = 0.;
+        this->np     = 0;
+        this->grdh   = 0.;
+        this->vsmx   = 0.;
+        this->pot    = 0.;
+        this->acch   = 0.;
+        this->accg1  = 0.;
+        this->accg2  = 0.;
+        this->eta    = 0.;
+        this->abar   = 0.;
+        this->zbar   = 0.;
+        this->umin   = 0.;
+        this->istar  = 0.;
+        this->eps    = 0.;
+        this->size   = 0.;
+    }
 
     void copyFromForce(const Gravity & gravity);
     

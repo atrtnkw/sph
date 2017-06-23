@@ -314,14 +314,14 @@ struct calcGravity {
 
                 PS::F64 m_j    = epj[j].mass;
                 PS::F64 dg2_ij = m_j * (rei3_i + rei3_j);
-
+                
                 pt_i -= m_j    * (rei_i  + rei_j);
                 ax_i -= dpx_ij * dg2_ij;
                 ay_i -= dpy_ij * dg2_ij;
                 az_i -= dpz_ij * dg2_ij;
                 et_i += m_j    * rei3_i;
-
             }
+
             ax_i *= 0.5;
             ay_i *= 0.5;
             az_i *= 0.5;
@@ -332,6 +332,7 @@ struct calcGravity {
             gravity[i].acc[2] += az_i;
             gravity[i].pot    += pt_i;
             gravity[i].eta    += et_i;
+
         }
 
     }
