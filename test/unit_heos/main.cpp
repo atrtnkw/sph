@@ -26,7 +26,7 @@ int main(int argc, char **argv) {
     {    
         PS::S64 ndens = 6;
         PS::S64 ntemp = 6;
-        PS::F64 dens[ndens] = {1e5, 3e5, 1e6, 3e6, 1e7, 3e8};
+        PS::F64 dens[ndens] = {1e5, 3e5, 1e6, 3e6, 1e7, 3e7};
         PS::F64 temp[ntemp] = {1e8, 3e8, 1e9, 3e9, 5e9, 7e9};
         NR::Nucleon cmps;
         cmps[0] = 1.0;

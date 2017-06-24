@@ -38,8 +38,8 @@ public:
     NR::Nucleon cmps;
     PS::F64 pot3;
     PS::F64 gcor3, dgcor3;
-
     PS::F64 tempmax[3];
+    bool flagwrite;
 
     HelmholtzGas() {
         id     = 0;
@@ -86,6 +86,7 @@ public:
         pot3   = 0.;
         gcor3  = 0.;
         dgcor3 = 0.;
+        flagwrite = false;
     }
 
     void getMaximumTemperature() {
@@ -167,6 +168,17 @@ public:
                 this->tempmax[2]);                                   // 46 -- 48
         fprintf(fp, " %+e", tentr);                                  // 49
         fprintf(fp, "\n");
+    }
+
+    void writeTemperatureDensity(FILE *fp) const {
+        using namespace CodeUnit;
+        if(this->flagwrite) {
+            fprintf(fp, "%16.10f", RP::Time * UnitOfTime);
+            fprintf(fp, " %10d", this->id);
+            fprintf(fp, " %+e", this->temp);
+            fprintf(fp, " %+e", this->dens * UnitOfDensity);
+            fprintf(fp, "\n");
+        }
     }
 
     void readHexa(FILE *fp) {
@@ -1344,6 +1356,37 @@ void restartSimulation(char **argv,
 }
 
 template <class Tsph>
+void initializeWriteTemperatureDensity(Tsph & sph) {
+    FILE *fp = fopen("id.list", "r");
+    if(fp != NULL) {
+        PS::S64 nlist = 0;
+        fscanf(fp, "%lld", &nlist);
+        PS::S64 *list = (PS::S64 *)malloc(sizeof(PS::S64) * nlist);
+        for(PS::S64 j = 0; j < nlist; j++) {
+            fscanf(fp, "%lld", &list[j]);
+        }
+        for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
+            for(PS::S64 j = 0; j < nlist; j++) {
+                if(sph[i].id == list[j]) {
+                    sph[i].flagwrite = true;
+                    break;
+                }
+            }
+        }
+        free(list);
+    }
+    return;
+}
+
+template <class Tsph>
+void writeTemperatureDensity(Tsph & sph) {
+    for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
+        sph[i].writeTemperatureDensity(RP::FilePointerForDebug);
+    }
+    fflush(RP::FilePointerForDebug);
+}
+
+template <class Tsph>
 void dumpOneParticle(PS::S32 id,
                      Tsph & sph) {
     for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
@@ -1369,11 +1412,12 @@ void loopSimulation(Tdinfo & dinfo,
                     Tdensity & density,
                     Thydro & hydro,
                     Tgravity & gravity) {
-
+    initializeWriteTemperatureDensity(sph);
     WT::clear();
     while(RP::Time < RP::TimeEnd) {
         ////////////
         {
+            writeTemperatureDensity(sph);
             if(RP::Time == 0) {
                 for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
                     sph[i].tempmax[0] = 0.;
