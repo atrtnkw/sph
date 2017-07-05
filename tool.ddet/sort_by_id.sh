@@ -1,4 +1,10 @@
-idir=t01
+if test $# -ne 1
+then
+    echo "sh $0 <idir>"
+    exit
+fi
+
+idir=$1
 
 if ! test -e list
 then
