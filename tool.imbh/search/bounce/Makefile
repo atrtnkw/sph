@@ -76,7 +76,7 @@ main.o: main.cpp $(ETC)
 
 clean:
 	rm -f *~
-	rm -f *.o[0-9]*
+	rm -f stdouterr.log
 	rm -f core
 	rm -f *.s
 distclean:

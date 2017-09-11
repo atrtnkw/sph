@@ -1,29 +1,33 @@
 #!/bin/sh
 ##PJM -L rscgrp=regular-cache
 #PJM -L rscgrp=regular-flat
-#PJM -L elapse=24:00:00
+##PJM -L elapse=24:00:00
+#PJM -L elapse=00:30:00
 #PJM -g xg17i022
 #PJM -N bounce
 #PJM -j
 #PJM -L node=16
 #PJM --mpi proc=128
 #PJM --omp thread=8
+#PJM -o stdouterr.log
+#PJM -e stdouterr.log
 
 ## The number of processes must be 2^n.
 ## The number of "nnxxx" must be 2^n.
 
-itbgn=122
-itend=132
+itbgn=96
+itend=106
 idtsp=1
-idir=../r004m/run.cowd1.05_bh3e2_b04.50_nw4
-odir=../r004m/run.cowd1.05_bh3e2_b04.50_nw4/fitting.mach02.+-
+idir=../r008m/run.hewd0.45_bh3e2_b07.00
+odir=../r008m/run.hewd0.45_bh3e2_b07.00/fitting.mach06.+-
+nfile=1536
+#nfile=768
 #
 fflag=1
-nfile=1536
-xmin0=-3e9
-ymin0=-3e9
+xmin0=-5e9
+ymin0=-5e9
 xmax=1e11
-width=6e9
+width=10e9
 nnxxx=512
 #
 
@@ -60,3 +64,4 @@ do
     done
 done
 
+mv stdouterr.log $odir

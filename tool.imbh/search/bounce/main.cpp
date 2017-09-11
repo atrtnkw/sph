@@ -22,7 +22,10 @@ enum KernelType {CubicSpline = 0, WendlandC2 = 1, WendlandC4 = 2};
 
 namespace Alert{
     bool    BeyondBoundary   = false;
-    PS::F64 MinimumOfDensity = 1.;
+    //PS::F64 MinimumOfDensity = 1.;
+    PS::F64 MinimumOfDensity = 1e-6;
+    //PS::F64 MaximumOfZCoordinate = 1e8;
+    PS::F64 MaximumOfZCoordinate = 5e8;
 }
 
 void debugByPrintf(char * str) {
@@ -61,9 +64,10 @@ public:
         */
         PS::F64 vzovercs = ((this->pos[2] > 0.) ? (- this->vel[2] / this->vsnd)
                             : (this->vel[2] / this->vsnd));
+        //if(vzovercs > 2.) {
         //if(vzovercs > 4.) {
-        //if(vzovercs > 3.) {
-        if(vzovercs > 2.) {
+        if(vzovercs > 6.) {
+        //if(vzovercs > 8.) {
             return true;
         } else {
             return false;
@@ -322,7 +326,7 @@ void insertMassLessParticle(Tsph & sph,
             zpmax = fabs(zsph[i].pos[2]);
         }
     }
-    PS::F64 zmmax = 1e8;
+    PS::F64 zmmax = Alert::MaximumOfZCoordinate;
     PS::F64 zmmin = - zmmax;
     assert(zmmax > zpmax);
     PS::S64 nmesh = 800;
@@ -409,7 +413,24 @@ void search1Dpoint(Tsph & sph,
     PS::F64 r2glb = pxglb * pxglb + pyglb * pyglb;
     PS::Comm::broadcast(&r2glb, 1, rkglb);
 
+#if 0
+    if(maxornot) {
+        rkglb = 71;
+        idglb = 765;
+    }
+#else
+#endif
+
     if(PS::Comm::getRank() == rkglb) {
+
+        if(maxornot) {
+            printf("max:   %8d %8d\n", rkglb, idglb);
+        } else if(rightornot){
+            printf("right: %8d %8d\n", rkglb, idglb);
+        } else {
+            printf("left:  %8d %8d\n", rkglb, idglb);
+        }
+
         PS::ReallocatableArray<SPHAnalysis> zsph;
         char ofile[1024];
         sprintf(ofile, filename);
