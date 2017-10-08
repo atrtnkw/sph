@@ -173,11 +173,15 @@ public:
     void writeTemperatureDensity(FILE *fp) const {
         using namespace CodeUnit;
         if(this->flagwrite) {
-            fprintf(fp, "%16.10f", RP::Time * UnitOfTime);
-            fprintf(fp, " %10d", this->id);
-            fprintf(fp, " %+e", this->temp);
-            fprintf(fp, " %+e", this->dens * UnitOfDensity);
-            fprintf(fp, "\n");
+            if(RP::FlagWriteAll == 0) {
+                this->writeAscii(fp);
+            } else {
+                fprintf(fp, "%16.10f", RP::Time * UnitOfTime);
+                fprintf(fp, " %10d", this->id);
+                fprintf(fp, " %+e", this->temp);
+                fprintf(fp, " %+e", this->dens * UnitOfDensity);
+                fprintf(fp, "\n");
+            }
         }
     }
 
@@ -1360,7 +1364,9 @@ void initializeWriteTemperatureDensity(Tsph & sph) {
     FILE *fp = fopen("id.list", "r");
     if(fp != NULL) {
         PS::S64 nlist = 0;
+        PS::S64 fwall = 0;
         fscanf(fp, "%lld", &nlist);
+        fscanf(fp, "%lld", &RP::FlagWriteAll);
         PS::S64 *list = (PS::S64 *)malloc(sizeof(PS::S64) * nlist);
         for(PS::S64 j = 0; j < nlist; j++) {
             fscanf(fp, "%lld", &list[j]);

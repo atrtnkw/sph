@@ -64,9 +64,7 @@ public:
         */
         PS::F64 vzovercs = ((this->pos[2] > 0.) ? (- this->vel[2] / this->vsnd)
                             : (this->vel[2] / this->vsnd));
-        //if(vzovercs > 2.) {
-        //if(vzovercs > 4.) {
-        if(vzovercs > 6.) {
+        if(vzovercs > 4.) {
         //if(vzovercs > 8.) {
             return true;
         } else {
@@ -413,10 +411,10 @@ void search1Dpoint(Tsph & sph,
     PS::F64 r2glb = pxglb * pxglb + pyglb * pyglb;
     PS::Comm::broadcast(&r2glb, 1, rkglb);
 
-#if 0
+#if 1
     if(maxornot) {
-        rkglb = 71;
-        idglb = 765;
+        rkglb =  71;
+        idglb = 755;
     }
 #else
 #endif
