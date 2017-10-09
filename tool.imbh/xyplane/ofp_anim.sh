@@ -5,15 +5,15 @@
 #PJM -N xyplane
 #PJM -j
 #PJM -L node=1
-#PJM --mpi proc=4
-#PJM --omp thread=16
+#PJM --mpi proc=16
+#PJM --omp thread=4
 #PJM -o stdouterr.log
 #PJM -e stdouterr.log
 
-echo "../r001m/run.hewd0.45_bh3e2_b07.00/t00"  > input.list
-echo "hoge/hoge" >> input.list
-echo "1 768" >> input.list
-echo "100 100" >> input.list
+echo "../r008m/run.hewd0.45_bh3e2_b07.00/t01"  > input.list
+echo "../r008m/run.hewd0.45_bh3e2_b07.00/anim/xy04e09" >> input.list
+echo "1 1536" >> input.list
+echo "101 104" >> input.list
 echo "-4e9 -4e9 0." >> input.list
 echo "8e9 256" >> input.list
 

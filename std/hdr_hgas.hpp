@@ -174,6 +174,7 @@ public:
         using namespace CodeUnit;
         if(this->flagwrite) {
             if(RP::FlagWriteAll == 0) {
+                fprintf(fp, "%16.10f ", RP::Time * UnitOfTime);
                 this->writeAscii(fp);
             } else {
                 fprintf(fp, "%16.10f", RP::Time * UnitOfTime);
