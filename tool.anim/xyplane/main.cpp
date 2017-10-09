@@ -11,7 +11,9 @@ enum KernelType {CubicSpline = 0, WendlandC2 = 1, WendlandC4 = 2};
 #include "particle_simulator.hpp"
 #include "hdr_time.hpp"
 #include "hdr_run.hpp"
+#ifdef USE_INTRINSICS
 #include "vector_x86.hpp"
+#endif
 #include "hdr_dimension.hpp"
 #include "hdr_kernel.hpp"
 #include "hdr_sph.hpp"
@@ -147,17 +149,10 @@ void projectOnOrbitalPlane(char * ofile,
     }
 
     for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
-#if 0
-        if(fabs(sph[i].pos[2]) > fabs(sph[i].ksr)) {
-            continue;
-        }
-        PS::F64vec px = sph[i].pos - bhns[0].pos;
-#else
         PS::F64vec px = sph[i].pos - bhns[0].pos;
         if(fabs(px[2]) > fabs(sph[i].ksr)) {
             continue;
         }
-#endif
         PS::S64 nxi = (PS::S64)((px[0] - xmin[0]) * dxinv);
         if(nxi < 0 || nmax <= nxi) {
             continue;
@@ -235,14 +230,10 @@ int main(int argc, char ** argv) {
             sph.readParticleAscii(sfile);
             fclose(fp);
             fp = fopen(bfile, "r");
-#if 0
-            assert(fp);
-#else
             if(fp == NULL) {
                 sprintf(bfile, "%s/origin.dat", idir);
                 fp = fopen(bfile, "r");
             }
-#endif
             bhns.readParticleAscii(bfile);
             fclose(fp);
         } else {
@@ -267,14 +258,10 @@ int main(int argc, char ** argv) {
             char bfile[1024];
             sprintf(bfile, "%s/bhns_t%04d.dat", idir, itime);
             fp = fopen(bfile, "r");
-#if 0
-            assert(fp);
-#else
             if(fp == NULL) {
                 sprintf(bfile, "%s/origin.dat", idir);
                 fp = fopen(bfile, "r");
             }
-#endif
             bhns.readParticleAscii(bfile);
             fclose(fp);
         }

@@ -57,19 +57,26 @@ public:
         fscanf(fp, "%lf", &this->entr);
     }
 
-    /*
-    void write(FILE * fp = stdout) {
-        fprintf(fp, "%8d %2d %+e",  this->id, this->istar, this->mass);
+    void writeAscii(FILE *fp) const {
+        fprintf(fp, "%6d %2d %+e", this->id, this->istar, this->mass);
         fprintf(fp, " %+e %+e %+e", this->pos[0], this->pos[1], this->pos[2]);
         fprintf(fp, " %+e %+e %+e", this->vel[0], this->vel[1], this->vel[2]);
+        fprintf(fp, " %+e %+e %+e", this->acc[0], this->acc[1], this->acc[2]);
         fprintf(fp, " %+e %+e %+e", this->uene, this->alph, this->alphu);
-        fprintf(fp, " %+e", this->ksr);
-        for(PS::S32 k = 0; k < NR::NumberOfNucleon; k++) {
+        fprintf(fp, " %+e %+e %6d", this->dens, this->ksr,  this->np);
+        fprintf(fp, " %+e %+e %+e", this->vsnd, this->pres, this->temp);
+        fprintf(fp, " %+e %+e %+e", this->divv, this->rotv, this->bswt);
+        fprintf(fp, " %+e %+e %+e", this->pot, this->abar, this->zbar);
+        fprintf(fp, " %+e",         this->enuc);
+        fprintf(fp, " %+e %+e %+e", this->vsmx, this->udot, this->dnuc);
+        for(PS::S32 k = 0; k < NuclearReaction::NumberOfNucleon; k++) {
             fprintf(fp, " %+.3e", this->cmps[k]);
         }
+        fprintf(fp, " %+e", this->pot3);
+        fprintf(fp, " %+e %+e %+e", this->tempmax[0], this->tempmax[1], this->tempmax[2]);
+        fprintf(fp, " %+e", this->entr);
         fprintf(fp, "\n");
     }
-    */
 
     inline PS::F64mat calcMomentOfInertia(PS::F64vec xc) {
         PS::F64mat qq = 0.;
@@ -134,32 +141,45 @@ void projectOnOrbitalPlane(char * ofile,
     PS::F64 dx    = wdth / (PS::F64)nmax;
     PS::F64 dxinv = 1. / dx;
 
-    PS::S64 ptcl[nmax][nmax];
-    PS::F64 dens[nmax][nmax];
-    PS::F64 temp[nmax][nmax];
-    PS::F64 frhe[nmax][nmax];
+#if 1
+    PS::S64 **ptcl;
+    PS::F64 **dens;
+    PS::F64 **temp;
+    PS::F64 **divv;
+    ptcl = (PS::S64 **) malloc(sizeof(PS::S64 *) * nmax);
+    dens = (PS::F64 **) malloc(sizeof(PS::F64 *) * nmax);
+    temp = (PS::F64 **) malloc(sizeof(PS::F64 *) * nmax);
+    divv = (PS::F64 **) malloc(sizeof(PS::F64 *) * nmax);
+    for(PS::S64 i = 0; i < nmax; i++) {
+        ptcl[i] = (PS::S64 *) malloc(sizeof(PS::S64) * nmax);
+        dens[i] = (PS::F64 *) malloc(sizeof(PS::F64) * nmax);
+        temp[i] = (PS::F64 *) malloc(sizeof(PS::F64) * nmax);
+        divv[i] = (PS::F64 *) malloc(sizeof(PS::F64) * nmax);
+    }
+#else    
+    const PS::S64 nmaxmax = 512;
+    assert(nmaxmax > nmax);
+    static PS::S64 ptcl[nmaxmax][nmaxmax];
+    static PS::F64 dens[nmaxmax][nmaxmax];
+    static PS::F64 temp[nmaxmax][nmaxmax];
+    static PS::F64 divv[nmaxmax][nmaxmax];
+#endif
 
     for(PS::S64 i = 0; i < nmax; i++) {
         for(PS::S64 j = 0; j < nmax; j++) {
             ptcl[i][j] = 0;
             dens[i][j] = 0.;
             temp[i][j] = 0.;
-            frhe[i][j] = 0.;
+            divv[i][j] = 0.;
         }
     }
 
     for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
-#if 0
-        if(fabs(sph[i].pos[2]) > fabs(sph[i].ksr)) {
-            continue;
-        }
-        PS::F64vec px = sph[i].pos - bhns[0].pos;
-#else
-        PS::F64vec px = sph[i].pos - bhns[0].pos;
+        //PS::F64vec px = sph[i].pos - bhns[0].pos;
+        PS::F64vec px = sph[i].pos;
         if(fabs(px[2]) > fabs(sph[i].ksr)) {
             continue;
         }
-#endif
         PS::S64 nxi = (PS::S64)((px[0] - xmin[0]) * dxinv);
         if(nxi < 0 || nmax <= nxi) {
             continue;
@@ -171,7 +191,16 @@ void projectOnOrbitalPlane(char * ofile,
         ptcl[nxi][nyi] += 1;
         dens[nxi][nyi] += sph[i].dens;
         temp[nxi][nyi] += sph[i].temp;
-        frhe[nxi][nyi] += sph[i].cmps[0];
+        divv[nxi][nyi] += sph[i].divv;
+    }
+
+    for(PS::S64 i = 0; i < nmax; i++) {
+        for(PS::S64 j = 0; j < nmax; j++) {
+            ptcl[i][j] = PS::Comm::getSum(ptcl[i][j]);
+            dens[i][j] = PS::Comm::getSum(dens[i][j]);
+            temp[i][j] = PS::Comm::getSum(temp[i][j]);
+            divv[i][j] = PS::Comm::getSum(divv[i][j]);;
+        }
     }
 
     for(PS::S64 i = 0; i < nmax; i++) {
@@ -179,29 +208,31 @@ void projectOnOrbitalPlane(char * ofile,
             PS::F64 pinv = ((ptcl[i][j] != 0) ? (1. / ptcl[i][j]) : 0.);
             dens[i][j] *= pinv;
             temp[i][j] *= pinv;
-            frhe[i][j] *= pinv;
+            divv[i][j] *= pinv;
         }
     }
 
-    FILE * fp = fopen(ofile, "w");
-    for(PS::S64 i = 0; i < nmax; i++) {
-        for(PS::S64 j = 0; j < nmax; j++) {
-            if(ptcl[i][j] == 0) {
-                continue;
+    if(PS::Comm::getRank() == 0) {
+        FILE * fp = fopen(ofile, "w");
+        for(PS::S64 i = 0; i < nmax; i++) {
+            for(PS::S64 j = 0; j < nmax; j++) {
+                if(ptcl[i][j] == 0) {
+                    continue;
+                }
+                PS::F64 px = xmin[0] + dx * (PS::F64)i;
+                PS::F64 py = xmin[1] + dx * (PS::F64)j;
+                fprintf(fp, "%+e %+e %+e %+e %+e %8lld\n",
+                        px, py,
+                        dens[i][j], temp[i][j], divv[i][j],
+                        ptcl[i][j]);
             }
-            PS::F64 px = xmin[0] + dx * (PS::F64)i;
-            PS::F64 py = xmin[1] + dx * (PS::F64)j;
-            fprintf(fp, "%+e %+e %+e %+e %+e %8lld\n",
-                    px, py,
-                    dens[i][j], temp[i][j], frhe[i][j],
-                    ptcl[i][j]);
         }
+        fclose(fp);
     }
-    fclose(fp);
+
 }
 
 int main(int argc, char ** argv) {
-#if 0
     MPI_Init(&argc, &argv);
 
     PS::ParticleSystem<SPHAnalysis> sph;
@@ -230,6 +261,7 @@ int main(int argc, char ** argv) {
 
     for(PS::S64 itime = ibgn; itime <= iend; itime++) {
         if(fflag == 0) {
+            /*
             char sfile[1024], bfile[1024];
             sprintf(sfile, "%s/sph_t%04d.dat",  idir, itime);
             sprintf(bfile, "%s/bhns_t%04d.dat", idir, itime);
@@ -238,48 +270,38 @@ int main(int argc, char ** argv) {
             sph.readParticleAscii(sfile);
             fclose(fp);
             fp = fopen(bfile, "r");
-#if 0
-            assert(fp);
-#else
             if(fp == NULL) {
                 sprintf(bfile, "%s/origin.dat", idir);
                 fp = fopen(bfile, "r");
             }
-#endif
             bhns.readParticleAscii(bfile);
             fclose(fp);
+            */
         } else {
-            PS::ParticleSystem<SPHAnalysis> tmpsph;
-            tmpsph.initialize();
-            tmpsph.createParticle(0);
-            char sfile[1024];
-            PS::F64 ntot = 0;
-            for(PS::S64 ifile = 0; ifile < nfile; ifile++) {
+            SPHAnalysis tmpsph;
+            PS::S64 nrank = PS::Comm::getNumberOfProc();
+            PS::S64 irank = PS::Comm::getRank();
+            PS::S64 ihead = nfile *  irank      / nrank;
+            PS::S64 itail = nfile * (irank + 1) / nrank;
+            PS::S64 ntot = 0;
+            for(PS::S64 ifile = ihead; ifile < itail; ifile++) {
+                char sfile[1024];
                 sprintf(sfile, "%s/sph_t%04d_p%06d_i%06d.dat",  idir, itime, nfile, ifile);
                 fp = fopen(sfile, "r");
                 assert(fp);
-                tmpsph.readParticleAscii(sfile);
-                fclose(fp);
-                PS::S64 ntmp = tmpsph.getNumberOfParticleLocal();
-                sph.setNumberOfParticleLocal(ntot+ntmp);
-                for(PS::S64 i = 0; i < ntmp; i++) {
-                    sph[ntot+i] = tmpsph[i];
+                PS::S64 ntmp = 0;
+                for(PS::S32 c; (c = getc(fp)) != EOF; ntmp += ('\n' == c ? 1 : 0)) {
+                    ;
                 }
+                fclose(fp);
+                sph.setNumberOfParticleLocal(ntot+ntmp);
+                fp = fopen(sfile, "r");
+                for(PS::S64 i = 0; i < ntmp; i++) {
+                    sph[ntot+i].readAscii(fp);
+                }
+                fclose(fp);
                 ntot += ntmp;
             }
-            char bfile[1024];
-            sprintf(bfile, "%s/bhns_t%04d.dat", idir, itime);
-            fp = fopen(bfile, "r");
-#if 0
-            assert(fp);
-#else
-            if(fp == NULL) {
-                sprintf(bfile, "%s/origin.dat", idir);
-                fp = fopen(bfile, "r");
-            }
-#endif
-            bhns.readParticleAscii(bfile);
-            fclose(fp);
         }
 
         char ofile[1024];
@@ -288,7 +310,6 @@ int main(int argc, char ** argv) {
     }
 
     MPI_Finalize();
-#endif
 
     return 0;
 }
