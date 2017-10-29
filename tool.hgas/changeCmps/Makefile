@@ -1,5 +1,6 @@
 ###### AT_PLATFORM ########
-use_xc  = yes
+#use_xc  = yes
+use_ofp  = yes
 ###### AT_EOS #############
 use_iso7  = no
 use_ideal = no
@@ -8,8 +9,9 @@ use_mpi = yes
 use_omp = yes
 ###########################
 ###### AT_FLAGS ##############################
+#CFLAGS += -DUSE_INTRINSICS
 CFLAGS += -DUSE_HELMHOLTZ
-CFLAGS += -DCOULOMB_CORRECTION
+#CFLAGS += -DCOULOMB_CORRECTION
 #CFLAGS += -DOLD_FORMAT
 #CFLAGS += -DNEW_FORMAT
 ##############################################
@@ -21,18 +23,34 @@ FDPS_DIR = /home/tanikwat/fdps/src
 SPH_DIR = /home/tanikwat/git-sph/std
 CCC = CC
 FCC = ftn
-else
-FDPS_DIR = ../../../../fdps-jenever0/src
-SPH_DIR = ../../std
-CCC = g++
-FCC = gfortran
-endif
-
-PS_PATH  = -I${FDPS_DIR}
-
 CFLAGS += -O3 -march=core-avx2 -ffast-math -funroll-loops #-Wall
 CFLAGS += -I${SPH_DIR} -I${SPH_DIR}/heos -I${SPH_DIR}/aprox13
 CLIBS  += -lstdc++ -lm -L../../flash/ -lflash
+endif
+
+ifeq ($(use_ofp), yes)
+HOME = /home/x10049
+FDPS_DIR = ${HOME}/fdps/src
+SPH_DIR = ${HOME}/git-sph/std
+CCC = mpiicpc
+CNN = mpiicc
+FCC = mpiifort
+LNK = ${FCC}
+CFLAGS += -I${SPH_DIR} -I${SPH_DIR}/heos -I${SPH_DIR}/aprox13
+CFLAGS += -O3 -axMIC-AVX512 #-Wall
+CFLAGS += -fimf-precision:low
+CLIBS  += -lmpicxx -lstdc++ -nofor_main #-lm 
+CLIBS  += -L./flash -lflash
+ifeq ($(use_omp), yes)
+CFLAGS += -DPARTICLE_SIMULATOR_THREAD_PARALLEL -parallel -qopenmp
+CFLAGS += -DUSE_XEONPHI
+endif
+ifeq ($(use_mpi), yes)
+CFLAGS += -DPARTICLE_SIMULATOR_MPI_PARALLEL
+endif
+endif
+
+PS_PATH  = -I${FDPS_DIR}
 
 OBJ  = main.o ${SPH_DIR}/heos/eos.o #${SPH_DIR}/aprox13/aprox13_main.o \
 	${SPH_DIR}/aprox13/aprox13_input.o ${SPH_DIR}/aprox13/aprox13.o \

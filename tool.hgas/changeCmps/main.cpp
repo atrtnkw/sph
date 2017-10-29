@@ -10,7 +10,9 @@ enum KernelType {CubicSpline = 0, WendlandC2 = 1, WendlandC4 = 2};
 #include "particle_simulator.hpp"
 #include "hdr_time.hpp"
 #include "hdr_run.hpp"
+#ifdef USE_INTRINSICS
 #include "vector_x86.hpp"
+#endif
 #include "hdr_dimension.hpp"
 #include "hdr_kernel.hpp"
 #include "hdr_sph.hpp"
@@ -90,6 +92,7 @@ int main(int argc, char ** argv) {
         fclose(fp);
     }    
 
+    init_flash_helmholtz_(&CodeUnit::FractionOfCoulombCorrection);
     {
         FILE * ifp = fopen(ifile, "r");
         assert(ifp);
@@ -99,7 +102,9 @@ int main(int argc, char ** argv) {
             sph.read(ifp);
             PS::F64 r2 = sph.pos * sph.pos;
             if(r2 >= rmin * rmin) {
+                PS::F64 temp = 1e8;
                 sph.cmps = cmps;
+                flash_helmholtz_e_(&sph.dens, &temp, sph.cmps.getPointer(), &sph.uene);
             }
             sph.write(ofp);
         }
