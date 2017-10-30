@@ -413,8 +413,8 @@ void search1Dpoint(Tsph & sph,
 
 #if 1
     if(maxornot) {
-        rkglb =  71;
-        idglb = 755;
+        rkglb =   69;
+        idglb =  815;
     }
 #else
 #endif

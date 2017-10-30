@@ -6,7 +6,6 @@
 #PJM -g xg17i022
 #PJM -N bounce
 #PJM -j
-##PJM -L node=32
 #PJM -L node=64
 #PJM --mpi proc=128
 #PJM --omp thread=16
@@ -16,15 +15,15 @@
 ## The number of processes must be 2^n.
 ## The number of "nnxxx" must be 2^n.
 
-itbgn=103
-itend=103
-idtsp=1
-#idir=../r032m/run.hewd0.45_bh3e2_b07.00
-idir=../../../imbh.3
-odir=../r064m/run.hewd0.45_bh3e2_b07.00/fitting.chkmach04_r008m
-nfile=3072
-#nfile=1536
+itbgn=62
+itend=62
+idtsp=2
+idir=../r008m/run.cowd0.60_bh3e2_b05.00
+#odir=../r001m/run.cowd0.60_bh3e2_b07.00/fitting.chkmach04_r008m
+odir=../r008m/run.cowd0.60_bh3e2_b05.00/fitting.chkmach04_r001m
 #nfile=768
+nfile=1536
+#nfile=3072
 #
 fflag=1
 xmin0=-5e9
