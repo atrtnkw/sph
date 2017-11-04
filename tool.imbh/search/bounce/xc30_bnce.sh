@@ -1,5 +1,6 @@
 #PBS -N bounce
-#PBS -l mppwidth=128
+##PBS -l mppwidth=128
+#PBS -l mppwidth=16
 #PBS -j oe
 ##PBS -q large-b+
 ##PBS -q bulk-b+
@@ -9,16 +10,18 @@
 ## The number of processes must be 2^n.
 ## The number of "nnxxx" must be 2^n.
 
-NPROCESS=128
+#NPROCESS=128
+NPROCESS=16
 export OMP_NUM_THREADS=1
 
-itbgn=62
-itend=62
+itbgn=61
+itend=61
 idtsp=2
 idir=../r001m/run.cowd0.60_h100-100_bh3e2_b05.00
-#odir=../r001m/run.cowd0.60_bh3e2_b07.00/fitting.chkmach04_r008m
-odir=../r001m/run.cowd0.60_h100-100_bh3e2_b05.00/fitting.chkmach04_r001m
+odir=../r001m/run.cowd0.60_h100-100_bh3e2_b05.00/fitting.mach04.+-
+#odir=../r002m/run.cowd0.60_h100-100_bh3e2_b05.00/fitting.chkmach04_r001m
 nfile=192
+#nfile=288
 #
 fflag=1
 xmin0=-5e9
