@@ -414,7 +414,7 @@ void search1Dpoint(Tsph & sph,
 #if 0
     if(maxornot) {
         rkglb =   69;
-        idglb =  815;
+        idglb =  821;
     }
     /*
     if(maxornot == false && rightornot == false) {

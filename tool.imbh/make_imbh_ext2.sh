@@ -19,6 +19,8 @@ gravc=0.000000066738480
 msn=`echo "1.9891 * 10^33" | bc`
 rwd=`echo "10^9" | bc`
 
+echo "$bhmas 2" > "$ofile".imbh
+
 m1=`echo "$bhmas * $msn" | bc`
 m2=`awk 'BEGIN{mtot=0.0;}{mtot+=$3}END{printf("%lf\n", mtot);}' $ifile`
 #rm=`awk 'BEGIN{r2max=0.0;}{r2=$4**2+$5**2+$6**2;if(r2>r2max)r2max=r2;}END{printf("%lf\n", sqrt(r2max));}' $ifile`
@@ -63,8 +65,6 @@ awk '{printf("p/v: %+e\n", sqrt(px**2+py**2)/sqrt(vx**2+vy**2));}' px=$dpx py=$d
     dummy >> "$ofile".log
 
 awk '{printf("%10d %2d %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e\n", $1, 0, $3, $4+dpx, $5+dpy, $6, $7+dvx, $8+dvy, $9, $13, $14, 0., $17, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44);}' dpx=$dpx dpy=$dpy dvx=$dvx dvy=$dvy $ifile > "$ofile".data
-
-echo "$bhmas 2" > "$ofile".imbh
 
 rm -f dummy
 
