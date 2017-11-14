@@ -411,17 +411,11 @@ void search1Dpoint(Tsph & sph,
     PS::F64 r2glb = pxglb * pxglb + pyglb * pyglb;
     PS::Comm::broadcast(&r2glb, 1, rkglb);
 
-#if 0
+#if 1
     if(maxornot) {
-        rkglb =   69;
-        idglb =  821;
+        rkglb =   70;
+        idglb =  824;
     }
-    /*
-    if(maxornot == false && rightornot == false) {
-        rkglb = 68;
-        idglb = 836;
-    }
-    */
 #else
 #endif
 
