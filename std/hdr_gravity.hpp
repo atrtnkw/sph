@@ -354,31 +354,6 @@ void calcGravityKernel(Tdinfo & dinfo,
         return;
     }
 
-    /*
-    if(RP::FlagDamping != 2) {
-        gravity.calcForceAllAndWriteBack(calcGravity<GravityEPJ>(), calcGravity<PS::GravitySPJ>(),
-                                         sph, dinfo);
-    } else {
-        gravity.setParticleLocalTree(sph);
-        gravity.setParticleLocalTree(msls, false);
-        gravity.setParticleLocalTree(bhns, false);
-        gravity.calcForceMakingTree(calcGravity<GravityEPJ>(),
-                                    calcGravity<PS::GravitySPJ>(),
-                                    dinfo);
-        PS::S32 nsph  = sph.getNumberOfParticleLocal();
-        for(PS::S32 i = 0; i < nsph; i++) {
-            sph[i].copyFromForce(gravity.getForce(i));
-        }
-        PS::S32 nmsls = msls.getNumberOfParticleLocal();
-        for(PS::S32 i = 0; i < nmsls; i++) {
-            msls[i].copyFromForce(gravity.getForce(i+nsph));
-        }
-        PS::S32 nbhns = bhns.getNumberOfParticleLocal();
-        for(PS::S32 i = 0; i < nbhns; i++) {
-            bhns[i].copyFromForce(gravity.getForce(i+nsph+nmsls));
-        }
-    }
-    */
     gravity.setParticleLocalTree(sph);
     gravity.setParticleLocalTree(msls, false);
     gravity.setParticleLocalTree(bhns, false);
