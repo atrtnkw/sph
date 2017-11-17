@@ -357,21 +357,15 @@ void calcGravityKernel(Tdinfo & dinfo,
     gravity.setParticleLocalTree(sph);
     gravity.setParticleLocalTree(msls, false);
     gravity.setParticleLocalTree(bhns, false);
-#if 1 // a. tanikawa change here 17/11/04
-    gravity.calcForceMakingTree(calcGravity<GravityEPJ>(),
-                                calcGravity<PS::GravitySPJ>(),
-                                dinfo);
-#else
-    PS::INTERACTION_LIST_MODE list_mode = PS::MAKE_LIST;
-    if(RP::NumberOfStep % 2 == 0) {
-        list_mode = PS::MAKE_LIST_FOR_REUSE;
-    } else {
-        list_mode = PS::REUSE_LIST;
-    }
+#ifdef DEBUG_REUSE_ON // a. tanikawa change here 17/11/17
     gravity.calcForceMakingTree(calcGravity<GravityEPJ>(),
                                 calcGravity<PS::GravitySPJ>(),
                                 dinfo,
-                                true, list_mode);
+                                true, RP::getListMode());
+#else
+    gravity.calcForceMakingTree(calcGravity<GravityEPJ>(),
+                                calcGravity<PS::GravitySPJ>(),
+                                dinfo);
 #endif
     PS::S32 nsph  = sph.getNumberOfParticleLocal();
     for(PS::S32 i = 0; i < nsph; i++) {

@@ -374,7 +374,11 @@ void calcDensityKernel(Tdinfo & dinfo,
     for(bool repeat = true; repeat == true;) {
         bool repeat_loc = false;
         repeat = false;
+#ifdef DEBUG_REUSE_ON // a. tanikawa change here 17/11/17
+        density.calcForceAll(calcDensity(), sph, dinfo, true, RP::getListMode());
+#else
         density.calcForceAll(calcDensity(), sph, dinfo);
+#endif
         for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
             if(sph[i].rs != 0.0) {
                 if(density.getForce(i).itr == true) {

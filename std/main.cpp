@@ -325,7 +325,11 @@ void calcSPHKernel(Tdinfo & dinfo,
     calcGravityKernel(dinfo, sph, bhns, msls, gravity);
     WT::accumulateCalcGravity();
     WT::start();
+#ifdef DEBUG_REUSE_ON // a. tanikawa change here 17/11/17
+    hydro.calcForceAllAndWriteBack(calcHydro(), sph, dinfo, true, RP::getListMode());
+#else
     hydro.calcForceAllAndWriteBack(calcHydro(), sph, dinfo);
+#endif
     WT::accumulateCalcHydro();
     WT::start();
     sumAcceleration(sph);

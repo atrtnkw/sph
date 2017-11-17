@@ -63,6 +63,10 @@ namespace RunParameter {
     template <class Tdinfo>
     void writeHexa(const char * const filename,
                    Tdinfo & dinfo);
+
+    PS::INTERACTION_LIST_MODE getListMode() {
+        return (NumberOfStep % 2 == 0) ? PS::MAKE_LIST_FOR_REUSE : PS::REUSE_LIST;
+    }
 };
 
 namespace RP = RunParameter;
