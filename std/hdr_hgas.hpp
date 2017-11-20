@@ -1465,8 +1465,15 @@ void loopSimulation(Tdinfo & dinfo,
         }
         WT::accumulateDecomposeDomain();
         WT::start();
+#ifdef DEBUG_REUSE_ON // a. tanikawa change here 17/11/17
+        if(RP::getListMode() == PS::MAKE_LIST_FOR_REUSE) {
+            sph.exchangeParticle(dinfo);
+            bhns.exchangeParticle(dinfo);
+        }
+#else
         sph.exchangeParticle(dinfo);
         bhns.exchangeParticle(dinfo);
+#endif
         WT::accumulateExchangeParticle();
         calcSPHKernel(dinfo, sph, bhns, msls, density, hydro, gravity);
         WT::start();

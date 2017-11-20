@@ -64,9 +64,11 @@ namespace RunParameter {
     void writeHexa(const char * const filename,
                    Tdinfo & dinfo);
 
+#ifdef DEBUG_REUSE_ON // a. tanikawa change here 17/11/17
     PS::INTERACTION_LIST_MODE getListMode() {
-        return (NumberOfStep % 2 == 0) ? PS::MAKE_LIST_FOR_REUSE : PS::REUSE_LIST;
+        return (NumberOfStep % 4 == 0) ? PS::MAKE_LIST_FOR_REUSE : PS::REUSE_LIST;
     }
+#endif
 };
 
 namespace RP = RunParameter;
