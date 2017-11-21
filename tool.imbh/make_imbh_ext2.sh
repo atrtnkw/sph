@@ -58,11 +58,13 @@ printf "rt: %+e rp: %+e\n" $rt $rp >&2
 printf "px: %+e py: %+e vx: %+e vy: %+e\n" $dpx $dpy $dvx $dvy >&2
 awk '{printf("p/v: %+e\n", sqrt(px**2+py**2)/sqrt(vx**2+vy**2));}' px=$dpx py=$dpy vx=$dvx vy=$dvy \
     dummy >&2
+awk '{ri=sqrt(xi**2+yi**2);cosf=-yi/ri;sinf=-xi/ri;u=sqrt(2.)*(1.-cosf)/sinf;t0=(u**3/6.+u)/sqrt(g*m/(rp**3));printf("t0: %+e\n", t0);}' xi=$dpx yi=$dpy rp=$rp g=$gravc m=$m1 dummy >&2
 echo "Caution! TR potential!" >&2
 printf "rt: %+e rp: %+e\n" $rt $rp >> "$ofile".log
 printf "px: %+e py: %+e vx: %+e vy: %+e\n" $dpx $dpy $dvx $dvy >> "$ofile".log
 awk '{printf("p/v: %+e\n", sqrt(px**2+py**2)/sqrt(vx**2+vy**2));}' px=$dpx py=$dpy vx=$dvx vy=$dvy \
     dummy >> "$ofile".log
+awk '{ri=sqrt(xi**2+yi**2);cosf=-yi/ri;sinf=-xi/ri;u=sqrt(2.)*(1.-cosf)/sinf;t0=(u**3/6.+u)/sqrt(g*m/(rp**3));printf("t0: %+e\n", t0);}' xi=$dpx yi=$dpy rp=$rp g=$gravc m=$m1 dummy >> "$ofile".log
 
 awk '{printf("%10d %2d %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e\n", $1, 0, $3, $4+dpx, $5+dpy, $6, $7+dvx, $8+dvy, $9, $13, $14, 0., $17, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44);}' dpx=$dpx dpy=$dpy dvx=$dvx dvy=$dvy $ifile > "$ofile".data
 
