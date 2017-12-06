@@ -340,12 +340,13 @@ struct calcDensity {
                 roty_i -= dvx_ij * dwz_ij;
                 rotz_i -= dvy_ij * dwx_ij;                 
             }
-            
+
             PS::F64 dens_i = density[i].dens;
             PS::F64 deni_i = 1. / dens_i;
             PS::F64 omgi_i = 1. / (1. + hs_i * deni_i * grdh_i / RP::NumberOfDimension);
             // tanikawa modified this 171205 FROM
-            omgi_i = (density[i].np != 1) ? omgi_i : 1.;
+            omgi_i = (hs_i * deni_i * grdh_i / RP::NumberOfDimension != -1.) ?
+                omgi_i : 1.;
             // tanikawa modified this 171205 TO
             PS::F64 rot2_i = rotx_i * rotx_i + roty_i * roty_i + rotz_i * rotz_i;
             PS::F64 rotv_i = rot2_i * ((rot2_i != 0.) ? 1. / sqrt(rot2_i) : 0.);
