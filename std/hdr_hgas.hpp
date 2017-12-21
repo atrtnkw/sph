@@ -716,6 +716,9 @@ public:
             / sqrt(uene + RP::EpsilonOfInternalEnergy)
             * std::max(RP::AlphuMaximum - this->alphu, 0.);
         //this->adotu    = - (this->alphu - RP::AlphuMinimum) * tauinv + src;
+        // tanikawa add this FROM
+        srcu = (isnan(srcu) ? 0. : srcu);
+        // tanikawa add this TO
         this->adotu    = - (this->alphu - RP::AlphuMinimum) * tauinv + srcu;
     }
 
