@@ -268,17 +268,22 @@ int main(int argc, char ** argv) {
     plane.writeData(stdout);
 
     for(PS::S64 itime = ibgn; itime <= iend; itime++) {        
-        { // input data
-            char sfile[1024];
-            sprintf(sfile, "%s/sph_t%04d", idir, itime);
-            sph.readParticleAscii(sfile, "%s_p%06d_i%06d.dat");
+        char tfile[1024];
+        sprintf(tfile, "%s/sph_t%04d_p%06d_i%06d.dat", idir, itime,
+                PS::Comm::getNumberOfProc(), 0);
+        FILE *fp = fopen(tfile, "r");
+        if(fp == NULL) {
+            continue;
         }
+        fclose(fp);
 
-        {
-            char ofile[1024];
-            sprintf(ofile, "%s/anim_%04d.dat", odir, itime);
-            projectOnPlane(ofile, plane, sph);
-        }
+        char sfile[1024];
+        sprintf(sfile, "%s/sph_t%04d", idir, itime);
+        sph.readParticleAscii(sfile, "%s_p%06d_i%06d.dat");
+
+        char ofile[1024];
+        sprintf(ofile, "%s/anim_%04d.dat", odir, itime);
+        projectOnPlane(ofile, plane, sph);
     }
 
     PS::Finalize();
