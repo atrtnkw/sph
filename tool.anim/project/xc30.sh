@@ -1,19 +1,19 @@
 #PBS -N project
-#PBS -l mppwidth=72
+#PBS -l mppwidth=144
 #PBS -j oe
 ##PBS -q bulk-b+
 #PBS -q short-b+
 
-NPROCESS=72
+NPROCESS=144
 OMP_NUM_THREADS=1
 
 cd $PBS_O_WORKDIR
 
-echo "/work/tanikwat/git-sph/ddet/data/r512k/run.s1.00_h100-100/t00"  > input.list
-echo "/work/tanikwat/git-sph/ddet/data/project" >> input.list
-echo "0 4" >> input.list
+echo "/work/tanikwat/git-sph/ddet/data/r008m/run.s1.00_h100-100/unfy"  > input.list
+echo "/work/tanikwat/git-sph/ddet/data/r008m/run.s1.00_h100-100/anim_12e08" >> input.list
+echo "81 128" >> input.list
 echo "0 1 0 0" >> input.list
-echo "1.2e9" >> input.list
+echo "12e8" >> input.list
 
 # idir
 # odir
