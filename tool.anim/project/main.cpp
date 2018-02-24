@@ -19,11 +19,12 @@ enum KernelType {CubicSpline = 0, WendlandC2 = 1, WendlandC4 = 2};
 #include "hdr_bhns.hpp"
 
 class Plane {
-    PS::F64vec nvec;
-    PS::F64    cnst;
-    PS::F64vec base;
-    PS::F64vec axis[2];
-    PS::F64    wdth;
+    PS::F64vec nvec;    // Normal vector of the projection surface
+    PS::F64    cnst;    // Distance of the projection surface from the origin
+    PS::F64vec base;    // The nearest point on the projection surface from the origin
+    PS::F64vec axis[2]; // Newly defined vectors of the projection surface
+    PS::F64vec pdsp;    // Vector of pallaral displacement on the projection surface
+    PS::F64    wdth;    // Width of the projection surface
 
     void normalize() {
         PS::F64 vabs = sqrt(this->nvec * this->nvec);
@@ -51,12 +52,14 @@ public:
         this->base    = 0.;
         this->axis[0] = 0.;
         this->axis[1] = 0.;
+        this->pdsp    = 0.;
         this->wdth    = 0.;
     }
 
     PS::F64 readData(FILE *fp) {
         fscanf(fp, "%lf%lf%lf%lf",
                &this->nvec[0], &this->nvec[1], &this->nvec[2], &this->cnst);
+        fscanf(fp, "%lf%lf", &this->pdsp[0], &this->pdsp[1]);
         fscanf(fp, "%lf", &this->wdth);
         this->normalize();
         this->base = this->cnst * this->nvec;
@@ -74,6 +77,9 @@ public:
                     this->axis[0][0], this->axis[0][1], this->axis[0][2]);
             fprintf(fp, "axis[1]: %+e %+e %+e\n",
                     this->axis[1][0], this->axis[1][1], this->axis[1][2]);
+            fprintf(fp, "pdsp: %+e %+e %+e\n",
+                    this->pdsp[0], this->pdsp[1], this->pdsp[2]);
+            fprintf(fp, "wdth: %+e\n", this->wdth);
         }
     }
 
@@ -82,8 +88,8 @@ public:
     }
 
     inline PS::F64vec calcCoordinateOnPlane(PS::F64vec pos) {
-        PS::F64 px = this->axis[0] * (pos - this->base);
-        PS::F64 py = this->axis[1] * (pos - this->base);
+        PS::F64 px = this->axis[0] * (pos - this->base) + pdsp[0];
+        PS::F64 py = this->axis[1] * (pos - this->base) + pdsp[1];
         return PS::F64vec(px, py, 0.);
     }
 
@@ -147,6 +153,7 @@ void projectOnPlane(char * ofile,
     static PS::F64 xim1[nmax][nmax];
     static PS::F64 xim2[nmax][nmax];
     static PS::F64 xige[nmax][nmax];
+    static PS::F64 pres[nmax][nmax];
     
     PS::F64 wdth  = plane.getWidth();
     PS::F64 dx    = wdth / (PS::F64)nmax;
@@ -164,6 +171,7 @@ void projectOnPlane(char * ofile,
             xim1[i][j] = 0.;
             xim2[i][j] = 0.;
             xige[i][j] = 0.;
+            pres[i][j] = 0.;
         }
     }
 
@@ -190,6 +198,7 @@ void projectOnPlane(char * ofile,
         xim1[ix][iy] += (sph[i].cmps[5] + sph[i].cmps[6]);
         xim2[ix][iy] += (sph[i].cmps[7] + sph[i].cmps[8] + sph[i].cmps[9]);
         xige[ix][iy] += (sph[i].cmps[10] + sph[i].cmps[11] + sph[i].cmps[12]);
+        pres[ix][iy] += sph[i].pres;
     }
 
     static PS::S64 ptcl_g[nmax][nmax];
@@ -202,6 +211,7 @@ void projectOnPlane(char * ofile,
     static PS::F64 xim1_g[nmax][nmax];
     static PS::F64 xim2_g[nmax][nmax];
     static PS::F64 xige_g[nmax][nmax];
+    static PS::F64 pres_g[nmax][nmax];
 
     PS::S64 ierr = 0;
     ierr = MPI_Allreduce(ptcl, ptcl_g, nmax*nmax, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
@@ -214,6 +224,7 @@ void projectOnPlane(char * ofile,
     ierr = MPI_Allreduce(xim1, xim1_g, nmax*nmax, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
     ierr = MPI_Allreduce(xim2, xim2_g, nmax*nmax, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
     ierr = MPI_Allreduce(xige, xige_g, nmax*nmax, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    ierr = MPI_Allreduce(pres, pres_g, nmax*nmax, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
     for(PS::S64 i = 0; i < nmax; i++) {
         for(PS::S64 j = 0; j < nmax; j++) {
@@ -227,6 +238,7 @@ void projectOnPlane(char * ofile,
             xim1_g[i][j] *= pinv;
             xim2_g[i][j] *= pinv;
             xige_g[i][j] *= pinv;
+            pres_g[i][j] *= pinv;
         }
     }
 
@@ -234,19 +246,14 @@ void projectOnPlane(char * ofile,
         FILE * fp = fopen(ofile, "w");
         for(PS::S64 i = 0; i < nmax; i++) {
             for(PS::S64 j = 0; j < nmax; j++) {
-                /*
-                  if(ptcl[i][j] == 0) {
-                  continue;
-                  }
-                */
                 PS::F64 px = dx * (PS::F64)i - 0.5 * wdth;
                 PS::F64 pz = dx * (PS::F64)j - 0.5 * wdth;
-                fprintf(fp, "%+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %8lld\n",
+                fprintf(fp, "%+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %8lld\n",
                         px, pz,
                         dens_g[i][j], temp_g[i][j], tmax_g[i][j],
                         xhe4_g[i][j], xc12_g[i][j], xo16_g[i][j],
                         xim1_g[i][j], xim2_g[i][j], xige_g[i][j],
-                        ptcl_g[i][j]);
+                        pres_g[i][j], ptcl_g[i][j]);
             }
         }
         fclose(fp);
