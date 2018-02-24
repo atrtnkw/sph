@@ -10,10 +10,10 @@
 #PJM -o stdouterr.log
 #PJM -e stdouterr.log
 
-echo "../r016m/run.cowd0.60_bh3e2_b05.00/t99"  > input.list
-echo "../r016m/run.cowd0.60_bh3e2_b05.00/anim/xy04e09" >> input.list
+echo "../r008m/run.hewd0.45_bh3e2_b07.00/t01"  > input.list
+echo "../r008m/run.hewd0.45_bh3e2_b07.00/anim/xy04e09" >> input.list
 echo "1 1536" >> input.list
-echo "493 493" >> input.list
+echo "99 99" >> input.list
 echo "-4e9 -4e9 0." >> input.list
 echo "8e9 256" >> input.list
 

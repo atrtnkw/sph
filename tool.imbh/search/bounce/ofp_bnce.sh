@@ -15,15 +15,12 @@
 ## The number of processes must be 2^n.
 ## The number of "nnxxx" must be 2^n.
 
-itbgn=493
-itend=493
+itbgn=96
+itend=96
 idtsp=1
-#idir=../r004m/run.cowd0.60_bh3e2_b05.00
-idir=../../../imbh.3
-odir=../r008m/run.cowd0.60_bh3e2_b05.00/fitting.fine
-#nfile=768
-nfile=1536
-#nfile=3072
+idir=../r032m/run.hewd0.45_bh3e2_b07.00/
+odir=../r032m/run.hewd0.45_bh3e2_b07.00/fitting.chkmach04_r008m
+nfile=3072
 #
 fflag=1
 xmin0=-5e9
