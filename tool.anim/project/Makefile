@@ -1,6 +1,7 @@
 ###### AT_PLATFORM ########
+include ~/setting/setting.mk
 #use_xc  = yes
-use_ofp = yes
+#use_ofp = yes
 ###### AT_EOS #############
 use_iso7  = no
 use_ideal = no
