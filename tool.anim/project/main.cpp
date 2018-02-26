@@ -11,7 +11,9 @@ enum KernelType {CubicSpline = 0, WendlandC2 = 1, WendlandC4 = 2};
 #include "particle_simulator.hpp"
 #include "hdr_time.hpp"
 #include "hdr_run.hpp"
+#ifdef USE_INTRINSICS
 #include "vector_x86.hpp"
+#endif
 #include "hdr_dimension.hpp"
 #include "hdr_kernel.hpp"
 #include "hdr_sph.hpp"
