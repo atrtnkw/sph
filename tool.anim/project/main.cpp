@@ -284,16 +284,24 @@ int main(int argc, char ** argv) {
 
     for(PS::S64 itime = ibgn; itime <= iend; itime++) {        
         char tfile[1024];
-        sprintf(tfile, "%s/sph_t%04d_p%06d_i%06d.dat", idir, itime,
-                PS::Comm::getNumberOfProc(), 0);
-        FILE *fp = fopen(tfile, "r");
+        FILE *fp = NULL;
+        PS::S64 tdir = 0;
+        for(PS::S64 iidir = 0; iidir < 100; iidir++) {
+            sprintf(tfile, "%s/t%02d/sph_t%04d_p%06d_i%06d.dat", idir, iidir, itime,
+                    PS::Comm::getNumberOfProc(), 0);
+            fp = fopen(tfile, "r");
+            if(fp != NULL) {
+                tdir = iidir;
+                break;
+            }
+        }
         if(fp == NULL) {
             continue;
         }
         fclose(fp);
 
         char sfile[1024];
-        sprintf(sfile, "%s/sph_t%04d", idir, itime);
+        sprintf(sfile, "%s/t%02d/sph_t%04d", idir, tdir, itime);
         sph.readParticleAscii(sfile, "%s_p%06d_i%06d.dat");
 
         char ofile[1024];
