@@ -6,8 +6,8 @@
 
 NPARALLEL=1
 NPROCESS=$NPARALLEL
-ifile=../r001m/run.s1.00_h090-090/nohot/s1.00_h090-090.data
-tfile=../r001m/run.s1.00_h090-090/init/s1.00_h090-090
+ifile=../r001m/run.s1.00_h080-080/nohot/s1.00_h080-080.data
+tfile=../r001m/run.s1.00_h080-080/init/s1.00_h080-080
 iflag=0
 size=1e8
 #size=5e7

@@ -9,12 +9,12 @@ OMP_NUM_THREADS=1
 
 cd $PBS_O_WORKDIR
 
-echo "/work/tanikwat/git-sph/ddet/data/r008m/run.s1.00_h100-100/unfy"  > input.list
-echo "/work/tanikwat/git-sph/ddet/data/r008m/run.s1.00_h100-100/animcen" >> input.list
-echo "0 20" >> input.list
+echo "/work/tanikwat/git-sph/ddet/data/r001m/run.s1.00_h090-090/unfy"  > input.list
+echo "/work/tanikwat/git-sph/ddet/data/r001m/run.s1.00_h090-090/anim02e09" >> input.list
+echo "80 128" >> input.list
 echo "0 1 0 0" >> input.list
-echo "0 0.2e9" >> input.list
-echo "4e8" >> input.list
+echo "0 0" >> input.list
+echo "2e9" >> input.list
 
 # idir
 # odir
