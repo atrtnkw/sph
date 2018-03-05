@@ -905,6 +905,7 @@ namespace RunParameter {
         if(FlagBinary == 2) {
             fprintf(fp, "# BHPotential: %d\n", FlagPotential);
         }
+        fprintf(fp, "# TimeEnd: %+e\n", TimeEnd);
         fprintf(fp, "# TimestepAscii: %+e\n", TimestepAscii);
         fprintf(fp, "# TimestepHexa:  %+e\n", TimestepHexa);
         fprintf(fp, "# # of Step %8d\n", NumberOfStep);

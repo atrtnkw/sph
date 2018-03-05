@@ -3,7 +3,8 @@
 #PJM -L rscgrp=regular-flat
 ##PJM -L elapse=24:00:00
 #PJM -L elapse=00:30:00
-#PJM -g xg17i022
+##PJM -g xg17i022
+#PJM -g xg17i056
 #PJM -N bounce
 #PJM -j
 #PJM -L node=64
@@ -15,11 +16,12 @@
 ## The number of processes must be 2^n.
 ## The number of "nnxxx" must be 2^n.
 
-itbgn=96
-itend=96
+itbgn=98
+itend=98
 idtsp=1
-idir=../r032m/run.hewd0.45_bh3e2_b07.00/
-odir=../r032m/run.hewd0.45_bh3e2_b07.00/fitting.chkmach04_r008m
+#idir=../r016m/run.hewd0.45_bh3e2_b06.00/
+idir=../../
+odir=../r032m/run.hewd0.45_bh3e2_b06.00/fitting.chkmach04_r008m
 nfile=3072
 #
 fflag=1

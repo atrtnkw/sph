@@ -5,16 +5,17 @@
 #PJM -g xg17i056
 #PJM -N project
 #PJM -j
-#PJM -L node=12
-#PJM --mpi proc=768
+#PJM -L node=24
+#PJM --mpi proc=1536
 #PJM --omp thread=1
 
-echo "/work/1/xg17i022/x10049/git-sph/imbh/data/r016k/run.onwd1.30_bh3e1_b05.00_rt4/"  > input.list
-echo "/work/1/xg17i022/x10049/git-sph/imbh/data/project" >> input.list
-echo "304 336" >> input.list
+#echo "/work/1/xg17i022/x10049/git-sph/imbh/data/r008m/run.hewd0.45_bh3e2_b07.00/"  > input.list
+echo "/work/1/xg17i022/x10049/git-sph/imbh/"  > input.list
+echo "/work/1/xg17i022/x10049/git-sph/imbh/data/r008m/run.hewd0.45_bh3e2_b06.00/anim10e09/" >> input.list
+echo "96 104" >> input.list
 echo "0 0 1 0" >> input.list
 echo "0 0" >> input.list
-echo "2e9" >> input.list
+echo "10e9" >> input.list
 
 # idir
 # odir
