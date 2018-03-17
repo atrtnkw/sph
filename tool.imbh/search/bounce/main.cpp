@@ -413,6 +413,14 @@ void search1Dpoint(Tsph & sph,
 
 #if 1
     if(maxornot) {
+        // run.hewd0.45_bh3e2_b05.00
+        // t0096_0
+        //rkglb =   71;
+        //idglb =  771;
+        // t0097_0
+        rkglb =   72;
+        idglb =  770;
+        // run.hewd0.45_bh3e2_b06.00
         // t0095_0
         //rkglb =   70;
         //idglb =  810;
@@ -423,8 +431,8 @@ void search1Dpoint(Tsph & sph,
         //rkglb =   71;
         //idglb =  796;
         // t0098_0
-        rkglb =   70;
-        idglb =  795;
+        //rkglb =   70;
+        //idglb =  795;
     }
 #else
 #endif
@@ -501,6 +509,8 @@ int main(int argc, char ** argv) {
         fprintf(stderr, "xmax: %+e\n", xmax);
         fprintf(stderr, "width: %+e nnxx: %lld\n", wdth, nnxx);
         fprintf(stderr, "otype: %s\n", otype);
+        fprintf(stderr, "nproc: %d\n", PS::Comm::getNumberOfProc());
+        fprintf(stderr, "nthrd: %d\n", PS::Comm::getNumberOfThread());
     }
 
     // input

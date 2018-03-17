@@ -16,13 +16,13 @@
 ## The number of processes must be 2^n.
 ## The number of "nnxxx" must be 2^n.
 
-itbgn=98
-itend=98
+itbgn=97
+itend=97
 idtsp=1
-#idir=../r016m/run.hewd0.45_bh3e2_b06.00/
-idir=../../
-odir=../r032m/run.hewd0.45_bh3e2_b06.00/fitting.chkmach04_r008m
-nfile=3072
+idir=../r001m/run.hewd0.45_bh3e2_b05.00/
+odir=../r001m/run.hewd0.45_bh3e2_b05.00/fitting.chkmach04_r008m
+nfile=768
+#nfile=1536
 #
 fflag=1
 xmin0=-5e9
@@ -37,7 +37,7 @@ then
     mkdir $odir
 fi
 
-cp $0 $odir/ofp_bnce.sh
+#cp $0 $odir/ofp_bnce.sh
 
 for itime in $(seq -f "%04g" $itbgn $idtsp $itend)
 do
