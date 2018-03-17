@@ -6,18 +6,17 @@
 
 NPARALLEL=1
 NPROCESS=$NPARALLEL
-ifile=../r001m/run.s1.00_h080-080/nohot/s1.00_h080-080.data
-tfile=../r001m/run.s1.00_h080-080/init/s1.00_h080-080
+ifile=../r008m/run.s1.00_h003-020/nohot/s1.00_h003-020.data
+tfile=../r008m/run.s1.00_h003-020/init/s1.00_h003-020
 iflag=0
 size=1e8
 #size=5e7
 #size=3e7
 spotx=0.0
 spoty=0.0
-spotz=4.2e8 #s1.00_h100-100
-#spotz=3.9e8 #s1.00_h150-100
-#spotz=3.7e8 #s1.00_h200-100
-#spotz=3.6e8  #s1.05_h050-100
+#spotz=4.2e8 #s1.00_h100-100
+#spotz=3.6e8 #s1.00_h050-100
+spotz=3.6e8 #s1.00_h025-100
 
 cd $PBS_O_WORKDIR
 
