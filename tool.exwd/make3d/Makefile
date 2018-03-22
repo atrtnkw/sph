@@ -1,5 +1,4 @@
-###### AT_PLATFORM ########
-use_xc  = yes
+include ${HOME}/setting/setting.mk
 ###### AT_EOS #############
 use_iso7  = no
 use_ideal = no
@@ -20,18 +19,27 @@ SPH_DIR = ${HOME_DIR}/git-sph/std
 FLASH_DIR = ${HOME_DIR}/work/git-sph/link/flash
 CCC = CC
 FCC = ftn
-else
-FDPS_DIR = ../../../../fdps-jenever0/src
-SPH_DIR = ../../std
-CCC = g++
-FCC = gfortran
-endif
-
+LNK = ${CC}
 PS_PATH  = -I${FDPS_DIR}
-
+CFLAGS += -DUSE_INTRINSICS
 CFLAGS += -O3 -march=core-avx2 -ffast-math -funroll-loops #-Wall
 CFLAGS += -I${SPH_DIR} -I${SPH_DIR}/heos -I${SPH_DIR}/aprox13
 CLIBS  += -lstdc++ -lm -L${FLASH_DIR} -lflash
+endif
+
+ifeq ($(use_ofp), yes)
+HOME_DIR = ${HOME}
+FDPS_DIR = ${HOME_DIR}/fdps/src
+SPH_DIR = ${HOME_DIR}/git-sph/std
+FLASH_DIR = ${HOME_DIR}/work/git-sph/link/flash
+CCC = mpiicpc
+FCC = mpiifort
+LNK = ${CCC}
+PS_PATH  = -I${FDPS_DIR}
+CFLAGS += -O3 -axMIC-AVX512 -fimf-precision:low #-Wall
+CFLAGS += -I${SPH_DIR} -I${SPH_DIR}/heos -I${SPH_DIR}/aprox13
+CLIBS  += -lmpicxx -lstdc++ -nofor_main -L${FLASH_DIR} -lflash
+endif
 
 OBJ  = main.o ${SPH_DIR}/heos/eos.o #${SPH_DIR}/aprox13/aprox13_main.o \
 	${SPH_DIR}/aprox13/aprox13_input.o ${SPH_DIR}/aprox13/aprox13.o \
@@ -39,7 +47,7 @@ OBJ  = main.o ${SPH_DIR}/heos/eos.o #${SPH_DIR}/aprox13/aprox13_main.o \
 ETC  = Makefile
 
 run: $(OBJ) $(ETC)
-	$(FCC) $(PS_PATH) $(CFLAGS) -o run $(OBJ) $(CLIBS)
+	$(LNK) $(PS_PATH) $(CFLAGS) -o run $(OBJ) $(CLIBS)
 
 main.o: main.cpp $(ETC)
 	$(CCC) $(PS_PATH) $(CFLAGS) -c main.cpp $(CLIBS)
