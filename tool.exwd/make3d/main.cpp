@@ -62,6 +62,9 @@ public:
         fprintf(fp, " %+e %+e %+e", this->uene, this->alph, this->alphu);
         fprintf(fp, " %+e", this->ksr);
         for(PS::S32 k = 0; k < NR::NumberOfNucleon; k++) {
+/////////////// A. Tanikawa adds this 18/03/22
+            this->cmps[k] = ((this->cmps[k] != 0.) ? this->cmps[k] : 1e-10);
+///////////////
             fprintf(fp, " %+.3e", this->cmps[k]);
         }
         fprintf(fp, "\n");
