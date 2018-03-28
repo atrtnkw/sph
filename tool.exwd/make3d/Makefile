@@ -19,7 +19,7 @@ SPH_DIR = ${HOME_DIR}/git-sph/std
 FLASH_DIR = ${HOME_DIR}/work/git-sph/link/flash
 CCC = CC
 FCC = ftn
-LNK = ${CC}
+LNK = ${CCC}
 PS_PATH  = -I${FDPS_DIR}
 CFLAGS += -DUSE_INTRINSICS
 CFLAGS += -O3 -march=core-avx2 -ffast-math -funroll-loops #-Wall
