@@ -1,4 +1,7 @@
-include ${HOME}/setting/setting.mk
+###### AT_PLATFORM ########
+include ~/setting/setting.mk
+#use_xc  = yes
+#use_ofp = yes
 ###### AT_EOS #############
 use_iso7  = no
 use_ideal = no
@@ -9,6 +12,8 @@ use_omp = yes
 ###### AT_FLAGS ##############################
 CFLAGS += -DUSE_HELMHOLTZ
 #CFLAGS += -DCOULOMB_CORRECTION
+#CFLAGS += -DOLD_FORMAT
+#CFLAGS += -DNEW_FORMAT
 ##############################################
 ##############################################
 
@@ -16,30 +21,49 @@ ifeq ($(use_xc), yes)
 HOME_DIR = /home/tanikwat
 FDPS_DIR = ${HOME_DIR}/fdps/src
 SPH_DIR = ${HOME_DIR}/git-sph/std
-FLASH_DIR = ${HOME_DIR}/work/git-sph/link/flash
 CCC = CC
 FCC = ftn
 LNK = ${CCC}
-PS_PATH  = -I${FDPS_DIR}
 CFLAGS += -DUSE_INTRINSICS
-CFLAGS += -O3 -march=core-avx2 -ffast-math -funroll-loops #-Wall
-CFLAGS += -I${SPH_DIR} -I${SPH_DIR}/heos -I${SPH_DIR}/aprox13
-CLIBS  += -lstdc++ -lm -L${FLASH_DIR} -lflash
+ifeq ($(use_omp), yes)
+CFLAGS += -DPARTICLE_SIMULATOR_THREAD_PARALLEL -fopenmp
+endif
+ifeq ($(use_mpi), yes)
+CFLAGS += -DPARTICLE_SIMULATOR_MPI_PARALLEL
+endif
+else
+FDPS_DIR = ../../../../fdps-jenever0/src
+SPH_DIR = ../../std
+CCC = g++
+FCC = gfortran
 endif
 
 ifeq ($(use_ofp), yes)
-HOME_DIR = ${HOME}
-FDPS_DIR = ${HOME_DIR}/fdps/src
+HOME_DIR = /home/x10049
+FDPS_DIR = ${HOME}/fdps/src
 SPH_DIR = ${HOME_DIR}/git-sph/std
-FLASH_DIR = ${HOME_DIR}/work/git-sph/link/flash
 CCC = mpiicpc
+CNN = mpiicc
 FCC = mpiifort
 LNK = ${FCC}
-PS_PATH  = -I${FDPS_DIR}
-CFLAGS += -O3 -axMIC-AVX512 -fimf-precision:low #-Wall
-CFLAGS += -I${SPH_DIR} -I${SPH_DIR}/heos -I${SPH_DIR}/aprox13
-CLIBS  += -lmpicxx -lstdc++ -nofor_main -L${FLASH_DIR} -lflash
+CFLAGS += -O3 -axMIC-AVX512 #-Wall
+CFLAGS += -fimf-precision:low
+CLIBS  += -lmpicxx -lstdc++ -nofor_main #-lm
+ifeq ($(use_omp), yes)
+CFLAGS += -DPARTICLE_SIMULATOR_THREAD_PARALLEL -parallel -qopenmp
+CFLAGS += -DUSE_XEONPHI
 endif
+ifeq ($(use_mpi), yes)
+CFLAGS += -DPARTICLE_SIMULATOR_MPI_PARALLEL
+endif
+endif
+
+PS_PATH  = -I${FDPS_DIR}
+
+CFLAGS += -O3 -march=core-avx2 -ffast-math -funroll-loops #-Wall
+CFLAGS += -I${SPH_DIR} -I${SPH_DIR}/heos -I${SPH_DIR}/aprox13
+CLIBS  += -lstdc++ -lm -L../../flash/ -lflash
+CFLAGS += -I${HOME_DIR}/opt/
 
 OBJ  = main.o ${SPH_DIR}/heos/eos.o #${SPH_DIR}/aprox13/aprox13_main.o \
 	${SPH_DIR}/aprox13/aprox13_input.o ${SPH_DIR}/aprox13/aprox13.o \
