@@ -9,8 +9,8 @@
 #PJM --mpi proc=144
 #PJM --omp thread=1
 
-echo "../r001m/run.s1.00_h100-100/"  > input.list
-echo "../r001m/run.s1.00_h100-100/anly/" >> input.list
+echo "../r008m/run.s1.00_h100-100/"  > input.list
+echo "../r008m/run.s1.00_h100-100/anly/" >> input.list
 echo "16 16" >> input.list
 
 # idir
