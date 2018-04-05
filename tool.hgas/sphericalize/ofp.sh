@@ -1,17 +1,16 @@
 #!/bin/sh
 #PJM -L rscgrp=regular-cache
 #PJM -L elapse=01:00:00
-##PJM -g xg17i022
-#PJM -g xg17i056
+#PJM -g xg18i004
 #PJM -N project
 #PJM -j
 #PJM -L node=3
 #PJM --mpi proc=144
 #PJM --omp thread=1
 
-echo "../r008m/run.s1.00_h100-100/"  > input.list
-echo "../r008m/run.s1.00_h100-100/anly/" >> input.list
-echo "16 16" >> input.list
+echo "../r004m/run.s1.00_h015-060/"  > input.list
+echo "../r004m/run.s1.00_h015-060/init1d/" >> input.list
+echo "128 128" >> input.list
 
 # idir
 # odir

@@ -7,7 +7,7 @@ use_iso7  = no
 use_ideal = no
 ###### AT_MPI_OPENMP ######
 use_mpi = yes
-use_omp = yes
+use_omp = no
 ###########################
 ###### AT_FLAGS ##############################
 CFLAGS += -DUSE_HELMHOLTZ

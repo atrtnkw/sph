@@ -138,7 +138,21 @@ void sphericalizeWhiteDwarf(char * ofile,
             PS::F64 uene   = ener / mass;
             rvel  = rvel / (PS::S64)nshl;
             menc += mass;
-            fprintf(fp, "%+e %+e %+e %+e %+e %10d\n", rad1, dens, uene, rvel, menc, nshl);
+            // temporary FROM
+            PS::F64 tin, pout, cout, tout, sout, uout;
+            NR::Nucleon cmps;
+            {
+                tin     = 1e9;
+                cmps[1] = 0.5;
+                cmps[2] = 0.5;
+            }
+            flash_helmholtz_(&dens, &uene, &tin, cmps.getPointer(), &pout, &cout, &tout, &sout);
+            flash_helmholtz_e_(&dens, &tout, cmps.getPointer(), &uout);
+            flash_helmholtz_(&dens, &uout, &tout, cmps.getPointer(), &pout, &cout, &tout, &sout);
+            fprintf(fp, "%+e %+e %+e %+e %+e %+e\n",
+                    rad1, dens, pout, tout, uout, menc/CodeUnit::SolarMass);
+            // temporary TO
+            //fprintf(fp, "%+e %+e %+e %+e %+e %10d\n", rad1, dens, uene, rvel, menc, nshl);
             
             nshl = 0;
             mass = 0.;
@@ -165,6 +179,8 @@ int main(int argc, char ** argv) {
     fscanf(fp, "%s", odir);
     fscanf(fp, "%lld%lld", &ibgn, &iend);
     fclose(fp);
+
+    init_flash_helmholtz_(&CodeUnit::FractionOfCoulombCorrection);
 
     for(PS::S64 itime = ibgn; itime <= iend; itime++) {        
         char tfile[1024];

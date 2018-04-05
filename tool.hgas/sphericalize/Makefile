@@ -7,7 +7,7 @@ use_iso7  = no
 use_ideal = no
 ###### AT_MPI_OPENMP ######
 use_mpi = yes
-use_omp = yes
+use_omp = no
 ###########################
 ###### AT_FLAGS ##############################
 CFLAGS += -DUSE_HELMHOLTZ
@@ -62,7 +62,7 @@ PS_PATH  = -I${FDPS_DIR}
 
 CFLAGS += -O3 -march=core-avx2 -ffast-math -funroll-loops #-Wall
 CFLAGS += -I${SPH_DIR} -I${SPH_DIR}/heos -I${SPH_DIR}/aprox13
-CLIBS  += -lstdc++ -lm -L../../flash/ -lflash
+CLIBS  += -lstdc++ -lm -L./../../flash/ -lflash
 CFLAGS += -I${HOME_DIR}/opt/
 
 OBJ  = main.o ${SPH_DIR}/heos/eos.o #${SPH_DIR}/aprox13/aprox13_main.o \
