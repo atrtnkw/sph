@@ -1,7 +1,0 @@
-pbgn=0
-pend=144
-
-for proc in $(seq -f "%06g" $pbgn 1 $pend)
-do
-    echo $proc
-done

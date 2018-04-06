@@ -1,1 +1,0 @@
-for time in $(seq -f "%04g"

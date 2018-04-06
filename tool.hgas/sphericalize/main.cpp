@@ -127,7 +127,8 @@ void sphericalizeWhiteDwarf(char * ofile,
             mass += sglb[ibin].mass;
             ener += sglb[ibin].ener;
             rvel += sglb[ibin].rvel;
-            if(nshl < 100 && ibin != nbin - 1) {
+            //if(nshl < 100 && ibin != nbin - 1) {
+            if(nshl < 10000 && ibin != nbin - 1) {
                 continue;
             }
 
@@ -147,6 +148,7 @@ void sphericalizeWhiteDwarf(char * ofile,
                 cmps[2] = 0.5;
             }
             flash_helmholtz_(&dens, &uene, &tin, cmps.getPointer(), &pout, &cout, &tout, &sout);
+            tout = (tout < 1e7) ? 1e7 : tout;
             flash_helmholtz_e_(&dens, &tout, cmps.getPointer(), &uout);
             flash_helmholtz_(&dens, &uout, &tout, cmps.getPointer(), &pout, &cout, &tout, &sout);
             fprintf(fp, "%+e %+e %+e %+e %+e %+e\n",
