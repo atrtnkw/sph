@@ -4,7 +4,7 @@ use_iso7  = no
 use_ideal = no
 ###### AT_MPI_OPENMP ######
 use_mpi = yes
-use_omp = yes
+use_omp = no
 ###########################
 ###### AT_FLAGS ##############################
 CFLAGS += -DUSE_HELMHOLTZ
@@ -39,6 +39,13 @@ PS_PATH  = -I${FDPS_DIR}
 CFLAGS += -O3 -axMIC-AVX512 -fimf-precision:low #-Wall
 CFLAGS += -I${SPH_DIR} -I${SPH_DIR}/heos -I${SPH_DIR}/aprox13
 CLIBS  += -lmpicxx -lstdc++ -nofor_main -L${FLASH_DIR} -lflash
+ifeq ($(use_omp), yes)
+CFLAGS += -DPARTICLE_SIMULATOR_THREAD_PARALLEL -parallel -qopenmp
+CFLAGS += -DUSE_XEONPHI
+endif
+ifeq ($(use_mpi), yes)
+CFLAGS += -DPARTICLE_SIMULATOR_MPI_PARALLEL
+endif
 endif
 
 OBJ  = main.o ${SPH_DIR}/heos/eos.o #${SPH_DIR}/aprox13/aprox13_main.o \

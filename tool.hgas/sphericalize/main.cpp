@@ -71,12 +71,16 @@ public:
     PS::F64 mass; // The total mass in the shell
     PS::F64 ener; // The total internal energy in the shell
     PS::F64 rvel; // Radial velocity in the shell
+    NR::Nucleon mele;
 
     Shell() {
         this->nump = 0;
         this->mass = 0.;
         this->ener = 0.;
         this->rvel = 0.;
+        for(PS::S64 k = 0; k < NR::NumberOfNucleon; k++) {
+            this->mele[k] = 0.;
+        }
     }
 
     void increment(SPHAnalysis & sph) {
@@ -84,6 +88,9 @@ public:
         this->mass += sph.mass;
         this->ener += sph.mass * sph.uene;
         this->rvel += sph.calcRadialVelocity();
+        for(PS::S64 k = 0; k < NR::NumberOfNucleon; k++) {
+            this->mele[k] += sph.mass * sph.cmps[k];
+        }
     }
 
     void reduceAddition(Shell sloc) {
@@ -91,6 +98,9 @@ public:
         this->mass = PS::Comm::getSum(sloc.mass);
         this->ener = PS::Comm::getSum(sloc.ener);
         this->rvel = PS::Comm::getSum(sloc.rvel);
+        for(PS::S64 k = 0; k < NR::NumberOfNucleon; k++) {
+            this->mele[k] = PS::Comm::getSum(sloc.mele[k]);
+        }
     }
 
 };
@@ -121,13 +131,16 @@ void sphericalizeWhiteDwarf(char * ofile,
         PS::F64 rvel = 0.;
         PS::F64 rad0 = 0.;
         PS::F64 menc = 0.;
+        NR::Nucleon mele;
         FILE * fp = fopen(ofile, "w");
         for(PS::S64 ibin = 0; ibin < nbin; ibin++) {
             nshl += sglb[ibin].nump;
             mass += sglb[ibin].mass;
             ener += sglb[ibin].ener;
             rvel += sglb[ibin].rvel;
-            //if(nshl < 100 && ibin != nbin - 1) {
+            for(PS::S64 k = 0; k < NR::NumberOfNucleon; k++) {
+                mele[k] += sglb[ibin].mele[k];
+            }
             if(nshl < 10000 && ibin != nbin - 1) {
                 continue;
             }
@@ -138,28 +151,36 @@ void sphericalizeWhiteDwarf(char * ofile,
             PS::F64 dens   = mass / volume;
             PS::F64 uene   = ener / mass;
             rvel  = rvel / (PS::S64)nshl;
-            menc += mass;
-            // temporary FROM
-            PS::F64 tin, pout, cout, tout, sout, uout;
             NR::Nucleon cmps;
-            {
-                tin     = 1e9;
-                cmps[1] = 0.5;
-                cmps[2] = 0.5;
+            for(PS::S64 k = 0; k < NR::NumberOfNucleon; k++) {
+                cmps[k] = mele[k] / mass;
             }
+            menc += mass;
+
+            PS::F64 tin = 1e9;
+            PS::F64 pout, cout, tout, sout, uout;
             flash_helmholtz_(&dens, &uene, &tin, cmps.getPointer(), &pout, &cout, &tout, &sout);
             tout = (tout < 1e7) ? 1e7 : tout;
             flash_helmholtz_e_(&dens, &tout, cmps.getPointer(), &uout);
             flash_helmholtz_(&dens, &uout, &tout, cmps.getPointer(), &pout, &cout, &tout, &sout);
+            /*
             fprintf(fp, "%+e %+e %+e %+e %+e %+e\n",
                     rad1, dens, pout, tout, uout, menc/CodeUnit::SolarMass);
-            // temporary TO
-            //fprintf(fp, "%+e %+e %+e %+e %+e %10d\n", rad1, dens, uene, rvel, menc, nshl);
+            */
+            fprintf(fp, "%+e %+e %+e %+e %+e %+e %+e", 
+                    rad1, dens, pout, tout, uout, menc/CodeUnit::SolarMass, rvel);
+            for(PS::S64 k = 0; k < NR::NumberOfNucleon; k++) {
+                fprintf(fp, " %+e", cmps[k]);
+            }
+            fprintf(fp, "\n");
             
             nshl = 0;
             mass = 0.;
             ener = 0.;
             rvel = 0.;
+            for(PS::S64 k = 0; k < NR::NumberOfNucleon; k++) {
+                mele[k] = 0.;
+            }
             rad0 = rad1;
         }
         fclose(fp);
