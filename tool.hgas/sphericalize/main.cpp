@@ -142,6 +142,7 @@ void sphericalizeWhiteDwarf(char * ofile,
                 mele[k] += sglb[ibin].mele[k];
             }
             if(nshl < 10000 && ibin != nbin - 1) {
+            //if(nshl < 1000 && ibin != nbin - 1) {
                 continue;
             }
 
@@ -163,10 +164,6 @@ void sphericalizeWhiteDwarf(char * ofile,
             tout = (tout < 1e7) ? 1e7 : tout;
             flash_helmholtz_e_(&dens, &tout, cmps.getPointer(), &uout);
             flash_helmholtz_(&dens, &uout, &tout, cmps.getPointer(), &pout, &cout, &tout, &sout);
-            /*
-            fprintf(fp, "%+e %+e %+e %+e %+e %+e\n",
-                    rad1, dens, pout, tout, uout, menc/CodeUnit::SolarMass);
-            */
             fprintf(fp, "%+e %+e %+e %+e %+e %+e %+e", 
                     rad1, dens, pout, tout, uout, menc/CodeUnit::SolarMass, rvel);
             for(PS::S64 k = 0; k < NR::NumberOfNucleon; k++) {

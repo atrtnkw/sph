@@ -2,7 +2,7 @@
 #PJM -L rscgrp=regular-cache
 #PJM -L elapse=01:00:00
 #PJM -g xg18i004
-#PJM -N project
+#PJM -N sphericalize
 #PJM -j
 #PJM -L node=3
 #PJM --mpi proc=144
