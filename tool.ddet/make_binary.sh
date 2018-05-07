@@ -44,8 +44,8 @@ echo "Secondary radius: $rc"  >> "$ftype".log
 echo "Binary separation: $a0" >> "$ftype".log
 echo "Relative velocity: $v0" >> "$ftype".log
 
-awk '{printf("%10d %2d %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e\n", $1+di, 0, $3, $4+dr, $5, $6, $7, $8+dv, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26);}' di=0   dr=$r1 dv=$v1 $large  > "$ftype".data
-awk '{printf("%10d %2d %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e\n", $1+di, 1, $3, $4+dr, $5, $6, $7, $8+dv, $9, $13, $14, $15, $17, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44);}' di=$n1 dr=$r2 dv=$v2 $small >> "$ftype".data
+awk '{printf("%10d %2d %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e\n", $1+di, 0, $3, $4+dr, $5, $6, $7, $8+dv, $9, $10, $11, $12, $13, $14+dX, $15+dX, $16+dX, $17+dX, $18+dX, $19+dX, $20+dX, $21+dX, $22+dX, $23+dX, $24+dX, $25+dX, $26+dX);}' di=0   dr=$r1 dv=$v1 $large dX=1e-10 > "$ftype".data
+awk '{printf("%10d %2d %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e %+.3e\n", $1+di, 1, $3, $4+dr, $5, $6, $7, $8+dv, $9, $13, $14, $15, $17, $32+dX, $33+dX, $34+dX, $35+dX, $36+dX, $37+dX, $38+dX, $39+dX, $40+dX, $41+dX, $42+dX, $43+dX, $44+dX);}' di=$n1 dr=$r2 dv=$v2 $small dX=1e-10 >> "$ftype".data
 
 rm -f dummy
 
