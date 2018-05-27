@@ -82,30 +82,25 @@ namespace HeliumDetonation {
             return sph.temp;
         } else {
             PS::F64 temp;
+#define FOR_D6
+#ifdef  FOR_D6
+            PS::F64 rsph = sqrt(sph.pos[0] * sph.pos[0] + sph.pos[2] * sph.pos[2]);
+            if(rsph < size & sph.pos[1] > 0.) {
+                temp = tmax - (tmax - tmin) * rsph / size;
+            } else {
+                temp = sph.temp;
+            }
+#else
             PS::F64 rsph = sqrt(sph.pos[0] * sph.pos[0] + sph.pos[1] * sph.pos[1]);
             if(rsph < size & sph.pos[2] > 0.) {
                 temp = tmax - (tmax - tmin) * rsph / size;
             } else {
-                //temp = tmin;
                 temp = sph.temp;
             }
+#endif
             return temp;
         }
     }
-/*
-    PS::F64 getTemperatureLinear(SPH3D & sph) {
-        PS::F64 temp = sph.temp;
-        PS::F64vec dx = sph.pos - hpos;
-        PS::F64 rsph = sqrt(dx * dx);
-        if(rsph < size) {
-            temp = tmax - (tmax - tmin) * rsph / size;
-            temp = std::max(temp, sph.temp);
-        } else {
-            temp = tmin;
-        }
-        return temp;
-    }
-*/
 }
 
 namespace CarbonDetonation {
@@ -133,8 +128,8 @@ int main(int argc, char ** argv) {
     MPI_Init(&argc, &argv);
 
     PS::S64 nptcl;
-    char ifile[64];
-    char ofile[64];
+    char ifile[1024];
+    char ofile[1024];
     PS::S64 flag;
     PS::F64 rmin;
     PS::F64 hemf;

@@ -20,87 +20,6 @@ enum KernelType {CubicSpline = 0, WendlandC2 = 1, WendlandC4 = 2};
 #include "hdr_hgas.hpp"
 #include "hdr_bhns.hpp"
 
-class Plane {
-    PS::F64vec nvec;    // Normal vector of the projection surface
-    PS::F64    cnst;    // Distance of the projection surface from the origin
-    PS::F64vec base;    // The nearest point on the projection surface from the origin
-    PS::F64vec axis[2]; // Newly defined vectors of the projection surface
-    PS::F64vec pdsp;    // Vector of pallaral displacement on the projection surface
-    PS::F64    wdth;    // Width of the projection surface
-
-    void normalize() {
-        PS::F64 vabs = sqrt(this->nvec * this->nvec);
-        this->nvec = this->nvec / vabs;
-        this->cnst = this->cnst / vabs;
-    }
-
-    void defineAxis() {
-        if(this->nvec[0] == 0. && this->nvec[1] == 0. && this->nvec[2] == 1.) {
-            this->axis[0] = PS::F64vec(1., 0., 0.);
-            this->axis[1] = PS::F64vec(0., 1., 0.);
-        } else if (this->nvec[0] == 0. && this->nvec[1] == 1. && this->nvec[2] == 0.) {
-            this->axis[0] = PS::F64vec(1., 0., 0.);
-            this->axis[1] = PS::F64vec(0., 0., 1.);
-        } else {
-            assert(NULL);
-        }
-    }
-
-public:
-
-    Plane() {
-        this->nvec    = 0.;
-        this->cnst    = 0.;
-        this->base    = 0.;
-        this->axis[0] = 0.;
-        this->axis[1] = 0.;
-        this->pdsp    = 0.;
-        this->wdth    = 0.;
-    }
-
-    PS::F64 readData(FILE *fp) {
-        fscanf(fp, "%lf%lf%lf%lf",
-               &this->nvec[0], &this->nvec[1], &this->nvec[2], &this->cnst);
-        fscanf(fp, "%lf%lf", &this->pdsp[0], &this->pdsp[1]);
-        fscanf(fp, "%lf", &this->wdth);
-        this->normalize();
-        this->base = this->cnst * this->nvec;
-        this->defineAxis();
-    }
-
-    PS::F64 writeData(FILE *fp) {
-        if(PS::Comm::getRank() == 0) {
-            fprintf(fp, "nvec: %+e %+e %+e\n",
-                    this->nvec[0], this->nvec[1], this->nvec[2]);
-            fprintf(fp, "cnst: %+e\n", this->cnst);
-            fprintf(fp, "base: %+e %+e %+e\n",
-                    this->base[0], this->base[1], this->base[2]);
-            fprintf(fp, "axis[0]: %+e %+e %+e\n",
-                    this->axis[0][0], this->axis[0][1], this->axis[0][2]);
-            fprintf(fp, "axis[1]: %+e %+e %+e\n",
-                    this->axis[1][0], this->axis[1][1], this->axis[1][2]);
-            fprintf(fp, "pdsp: %+e %+e %+e\n",
-                    this->pdsp[0], this->pdsp[1], this->pdsp[2]);
-            fprintf(fp, "wdth: %+e\n", this->wdth);
-        }
-    }
-
-    inline PS::F64 calcDistance(PS::F64vec pos) {
-        return fabs(this->nvec * (pos - this->base));
-    }
-
-    inline PS::F64vec calcCoordinateOnPlane(PS::F64vec pos) {
-        PS::F64 px = this->axis[0] * (pos - this->base) + pdsp[0];
-        PS::F64 py = this->axis[1] * (pos - this->base) + pdsp[1];
-        return PS::F64vec(px, py, 0.);
-    }
-
-    PS::F64 getWidth() {
-        return this->wdth;
-    }
-
-};
-
 class SPHAnalysis : public HelmholtzGas {
 public:
     SPHAnalysis() {
@@ -138,132 +57,102 @@ public:
         fscanf(fp, "%lf", &this->entr);
     }
 
+    void writeAscii(FILE *fp) const {
+        fprintf(fp, "%6d %2d %+e", this->id, this->istar, this->mass);         //  3
+        fprintf(fp, " %+e %+e %+e", this->pos[0], this->pos[1], this->pos[2]); //  6
+        fprintf(fp, " %+e %+e %+e", this->vel[0], this->vel[1], this->vel[2]); //  9
+        fprintf(fp, " %+e %+e %+e", this->acc[0], this->acc[1], this->acc[2]); // 12
+        fprintf(fp, " %+e %+e %+e", this->uene, this->alph, this->alphu);      // 15
+        fprintf(fp, " %+e %+e %6d", this->dens, this->ksr,  this->np);         // 18
+        fprintf(fp, " %+e %+e %+e", this->vsnd, this->pres, this->temp);       // 21
+        fprintf(fp, " %+e %+e %+e", this->divv, this->rotv, this->bswt);       // 24
+        fprintf(fp, " %+e %+e %+e", this->pot, this->abar, this->zbar);        // 27
+        fprintf(fp, " %+e",         this->enuc);                               // 28
+        fprintf(fp, " %+e %+e %+e", this->vsmx, this->udot, this->dnuc);       // 31
+        for(PS::S32 k = 0; k < NuclearReaction::NumberOfNucleon; k++) {        // 32 -- 44
+            fprintf(fp, " %+.3e", this->cmps[k]);
+        }
+        if(RP::FlagDamping == 2) {
+            PS::F64vec omg = RP::RotationalVelocity;
+            PS::F64vec vec = omg ^ pos;
+            fprintf(fp, " %+e", this->pot - 0.5 * (vec * vec));                // 45
+        }
+        fprintf(fp, " %+e", this->pot3);                                       // 45
+        fprintf(fp, " %+e %+e %+e", this->tempmax[0], this->tempmax[1],
+                this->tempmax[2]);                                             // 46 -- 48
+        fprintf(fp, " %+e", this->entr);                                       // 49
+        fprintf(fp, "\n");
+    }
+
 };
 
 template <class Tsph>
-void projectOnPlane(char * ofile,
-                    Plane & plane,
-                    Tsph  & sph) {
-    const  PS::S64 nmax = 256;
-    static PS::S64 ptcl[nmax][nmax];
-    static PS::F64 dens[nmax][nmax];
-    static PS::F64 temp[nmax][nmax];
-    static PS::F64 tmax[nmax][nmax];
-    static PS::F64 xhe4[nmax][nmax];
-    static PS::F64 xc12[nmax][nmax];
-    static PS::F64 xo16[nmax][nmax];
-    static PS::F64 xim1[nmax][nmax];
-    static PS::F64 xim2[nmax][nmax];
-    static PS::F64 xige[nmax][nmax];
-    static PS::F64 pres[nmax][nmax];
-    static PS::F64 divv[nmax][nmax];
-    
-    PS::F64 wdth  = plane.getWidth();
-    PS::F64 dx    = wdth / (PS::F64)nmax;
-    PS::F64 dxinv = 1. / dx;
-    
-    for(PS::S64 i = 0; i < nmax; i++) {
-        for(PS::S64 j = 0; j < nmax; j++) {
-            ptcl[i][j] = 0;
-            dens[i][j] = 0.;
-            temp[i][j] = 0.;
-            tmax[i][j] = 0.;
-            xhe4[i][j] = 0.;
-            xc12[i][j] = 0.;
-            xo16[i][j] = 0.;
-            xim1[i][j] = 0.;
-            xim2[i][j] = 0.;
-            xige[i][j] = 0.;
-            pres[i][j] = 0.;
-            divv[i][j] = 0.;
-        }
-    }
-
+void calcPositionAndVelocityOfDensityCenter(Tsph & sph,
+                                            PS::F64vec & xcglb,
+                                            PS::F64vec & vcglb) {
+    PS::F64    dnloc = 0.;
+    PS::F64vec xcloc = 0.;
+    PS::F64vec vcloc = 0.;
     for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
-        if(plane.calcDistance(sph[i].pos) > sph[i].ksr) {
-            continue;
-        }
-        PS::F64vec pvec  = plane.calcCoordinateOnPlane(sph[i].pos);
-        PS::S64    ix    = (PS::S64)((pvec[0] + 0.5 * wdth) * dxinv);
-        PS::S64    iy    = (PS::S64)((pvec[1] + 0.5 * wdth) * dxinv);
-        if(ix < 0 || nmax <= ix) {
-            continue;
-        }
-        if(iy < 0 || nmax <= iy) {
-            continue;
-        }
-        ptcl[ix][iy] += 1;
-        dens[ix][iy] += sph[i].dens;
-        temp[ix][iy] += sph[i].temp;
-        tmax[ix][iy] += sph[i].tempmax[0];
-        xhe4[ix][iy] += sph[i].cmps[0];
-        xc12[ix][iy] += sph[i].cmps[1];
-        xo16[ix][iy] += sph[i].cmps[2];
-        xim1[ix][iy] += (sph[i].cmps[5] + sph[i].cmps[6]);
-        xim2[ix][iy] += (sph[i].cmps[7] + sph[i].cmps[8] + sph[i].cmps[9]);
-        xige[ix][iy] += (sph[i].cmps[10] + sph[i].cmps[11] + sph[i].cmps[12]);
-        pres[ix][iy] += sph[i].pres;
-        divv[ix][iy] += sph[i].divv;
+        dnloc += sph[i].dens;
+        xcloc += sph[i].dens * sph[i].pos;
+        vcloc += sph[i].dens * sph[i].vel;
     }
+    PS::F64 dnglb;
+    dnglb = PS::Comm::getSum(dnloc);
+    xcglb = PS::Comm::getSum(xcloc);
+    vcglb = PS::Comm::getSum(vcloc);
+    xcglb /= dnglb;
+    vcglb /= dnglb;
+}
 
-    static PS::S64 ptcl_g[nmax][nmax];
-    static PS::F64 dens_g[nmax][nmax];
-    static PS::F64 temp_g[nmax][nmax];
-    static PS::F64 tmax_g[nmax][nmax];
-    static PS::F64 xhe4_g[nmax][nmax];
-    static PS::F64 xc12_g[nmax][nmax];
-    static PS::F64 xo16_g[nmax][nmax];
-    static PS::F64 xim1_g[nmax][nmax];
-    static PS::F64 xim2_g[nmax][nmax];
-    static PS::F64 xige_g[nmax][nmax];
-    static PS::F64 pres_g[nmax][nmax];
-    static PS::F64 divv_g[nmax][nmax];
+template <class Tsph>
+void findBoundParticle(char * hfile,
+                       char * ofile,
+                       PS::S64 itime,
+                       PS::S64 printmode,
+                       Tsph & sph) {
+    PS::F64vec xc, vc;
+    calcPositionAndVelocityOfDensityCenter(sph, xc, vc);
 
-    PS::S64 ierr = 0;
-    ierr = MPI_Allreduce(ptcl, ptcl_g, nmax*nmax, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
-    ierr = MPI_Allreduce(dens, dens_g, nmax*nmax, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-    ierr = MPI_Allreduce(temp, temp_g, nmax*nmax, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-    ierr = MPI_Allreduce(tmax, tmax_g, nmax*nmax, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-    ierr = MPI_Allreduce(xhe4, xhe4_g, nmax*nmax, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-    ierr = MPI_Allreduce(xc12, xc12_g, nmax*nmax, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-    ierr = MPI_Allreduce(xo16, xo16_g, nmax*nmax, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-    ierr = MPI_Allreduce(xim1, xim1_g, nmax*nmax, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-    ierr = MPI_Allreduce(xim2, xim2_g, nmax*nmax, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-    ierr = MPI_Allreduce(xige, xige_g, nmax*nmax, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-    ierr = MPI_Allreduce(pres, pres_g, nmax*nmax, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-    ierr = MPI_Allreduce(divv, divv_g, nmax*nmax, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-
-    for(PS::S64 i = 0; i < nmax; i++) {
-        for(PS::S64 j = 0; j < nmax; j++) {
-            PS::F64 pinv = ((ptcl_g[i][j] != 0) ? (1. / ptcl_g[i][j]) : 0.);
-            dens_g[i][j] *= pinv;
-            temp_g[i][j] *= pinv;
-            tmax_g[i][j] *= pinv;
-            xhe4_g[i][j] *= pinv;
-            xc12_g[i][j] *= pinv;
-            xo16_g[i][j] *= pinv;
-            xim1_g[i][j] *= pinv;
-            xim2_g[i][j] *= pinv;
-            xige_g[i][j] *= pinv;
-            pres_g[i][j] *= pinv;
-            divv_g[i][j] *= pinv;
+    NR::Nucleon mxloc;
+    FILE * fp = NULL;
+    if(printmode == 0) {
+        fp = fopen(ofile, "w");
+    }
+    for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
+        PS::F64vec dx = sph[i].pos - xc;
+        PS::F64vec dv = sph[i].vel - vc;
+        PS::F64    eb = 0.5 * (dv * dv) + sph[i].pot;
+        if(eb < 0.) {
+            if(printmode == 0) {
+                sph[i].writeAscii(fp);
+            }
+            for(PS::S64 k = 0; k < NR::NumberOfNucleon; k++) {
+                mxloc[k] += sph[i].mass * sph[i].cmps[k];
+            }
         }
+    }
+    if(printmode == 0) {
+        fclose(fp);
+    }
+    NR::Nucleon mxglb;
+    for(PS::S64 k = 0; k < NR::NumberOfNucleon; k++) {
+        mxglb[k]  = PS::Comm::getSum(mxloc[k]);
+        mxglb[k] /= CodeUnit::SolarMass;
     }
 
     if(PS::Comm::getRank() == 0) {
-        FILE * fp = fopen(ofile, "w");
-        for(PS::S64 i = 0; i < nmax; i++) {
-            for(PS::S64 j = 0; j < nmax; j++) {
-                PS::F64 px = dx * (PS::F64)i - 0.5 * wdth;
-                PS::F64 pz = dx * (PS::F64)j - 0.5 * wdth;
-                fprintf(fp, "%+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %8lld\n",
-                        px, pz,
-                        dens_g[i][j], temp_g[i][j], tmax_g[i][j],
-                        xhe4_g[i][j], xc12_g[i][j], xo16_g[i][j],
-                        xim1_g[i][j], xim2_g[i][j], xige_g[i][j],
-                        pres_g[i][j], divv_g[i][j], ptcl_g[i][j]);
-            }
-        }
+        FILE * fp = fopen(hfile, "a");
+        fprintf(fp, "%8d", itime);                                         // 1
+        fprintf(fp, " %+e %+e %+e", xc[0], xc[1], xc[2]);                  // 4
+        fprintf(fp, " %+e %+e %+e", vc[0], vc[1], vc[2]);                  // 7
+        fprintf(fp, " %+.3e %+.3e %+.3e", mxglb[0], mxglb[1],  mxglb[2]);  // 10
+        fprintf(fp, " %+.3e %+.3e %+.3e", mxglb[3], mxglb[4],  mxglb[5]);  // 13
+        fprintf(fp, " %+.3e %+.3e %+.3e", mxglb[6], mxglb[7],  mxglb[8]);  // 16
+        fprintf(fp, " %+.3e %+.3e %+.3e", mxglb[9], mxglb[10], mxglb[11]); // 19
+        fprintf(fp, " %+.3e", mxglb[12]);                                  // 20
+        fprintf(fp, "\n");
         fclose(fp);
     }
 
@@ -279,15 +168,16 @@ int main(int argc, char ** argv) {
 
     char idir[1024], odir[1024];
     PS::S64 ibgn, iend;
-    Plane plane;
+    PS::S64 printmode;
     FILE * fp = fopen(argv[1], "r");
     fscanf(fp, "%s", idir);
     fscanf(fp, "%s", odir);
     fscanf(fp, "%lld%lld", &ibgn, &iend);
-    plane.readData(fp);
+    fscanf(fp, "%lld", &printmode);
     fclose(fp);
-    plane.writeData(stdout);
 
+    char hfile[1024];
+    sprintf(hfile, "%s/summary.log", odir);
     for(PS::S64 itime = ibgn; itime <= iend; itime++) {        
         char tfile[1024];
         FILE *fp = NULL;
@@ -311,8 +201,10 @@ int main(int argc, char ** argv) {
         sph.readParticleAscii(sfile, "%s_p%06d_i%06d.dat");
 
         char ofile[1024];
-        sprintf(ofile, "%s/anim_%04d.dat", odir, itime);
-        projectOnPlane(ofile, plane, sph);
+        sprintf(ofile, "%s/sph_t%04d_p%06d_i%06d.dat.bound",
+                odir, itime, PS::Comm::getNumberOfProc(), PS::Comm::getRank());
+        findBoundParticle(hfile, ofile, itime, printmode, sph);
+
     }
 
     PS::Finalize();

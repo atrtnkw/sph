@@ -1,7 +1,7 @@
 #!/bin/sh
 #PJM -L rscgrp=regular-cache
 #PJM -L elapse=24:00:00
-#PJM -g xg17i022
+#PJM -g xg18i004
 #PJM -N mk3d
 #PJM -j
 #PJM -L node=1
@@ -10,16 +10,16 @@
 
 NPARALLEL=1
 NPROCESS=$NPARALLEL
-ifile=../r016m/run.s1.00_h100-100/nohot/s1.00_h100-100.data
-tfile=../r016m/run.s1.00_h100-100/init/s1.00_h100-100
+ifile="../r001m/run.b1.00_h050-050_0.90_h056-100/nohot/s1.00_h050-050.data"
+tfile="../r001m/run.b1.00_h050-050_0.90_h056-100/inhot/s1.00_h050-050"
 iflag=0
 size=1e8
 #size=5e7
 #size=3e7
 spotx=0.0
 spoty=0.0
-spotz=4.2e8 #s1.00_h100-100
-#spotz=3.6e8 #s1.00_h050-100
+#spotz=4.2e8 #s1.00_h100-100
+spotz=3.6e8 #s1.00_h050-100
 #spotz=3.6e8 #s1.00_h025-100
 
 export OMP_NUM_THREADS=`echo "$NPARALLEL / $NPROCESS" | bc`
