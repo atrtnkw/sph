@@ -41,6 +41,9 @@ class Plane {
         } else if (this->nvec[0] == 0. && this->nvec[1] == 1. && this->nvec[2] == 0.) {
             this->axis[0] = PS::F64vec(1., 0., 0.);
             this->axis[1] = PS::F64vec(0., 0., 1.);
+        } else if (this->nvec[0] == 1. && this->nvec[1] == 0. && this->nvec[2] == 0.) {
+            this->axis[0] = PS::F64vec(0., 1., 0.);
+            this->axis[1] = PS::F64vec(0., 0., 1.);
         } else {
             assert(NULL);
         }
@@ -157,6 +160,7 @@ void projectOnPlane(char * ofile,
     static PS::F64 xige[nmax][nmax];
     static PS::F64 pres[nmax][nmax];
     static PS::F64 divv[nmax][nmax];
+    static PS::F64 istr[nmax][nmax];
     
     PS::F64 wdth  = plane.getWidth();
     PS::F64 dx    = wdth / (PS::F64)nmax;
@@ -176,6 +180,7 @@ void projectOnPlane(char * ofile,
             xige[i][j] = 0.;
             pres[i][j] = 0.;
             divv[i][j] = 0.;
+            istr[i][j] = 0.;
         }
     }
 
@@ -204,6 +209,7 @@ void projectOnPlane(char * ofile,
         xige[ix][iy] += (sph[i].cmps[10] + sph[i].cmps[11] + sph[i].cmps[12]);
         pres[ix][iy] += sph[i].pres;
         divv[ix][iy] += sph[i].divv;
+        istr[ix][iy] += sph[i].istar;
     }
 
     static PS::S64 ptcl_g[nmax][nmax];
@@ -218,6 +224,7 @@ void projectOnPlane(char * ofile,
     static PS::F64 xige_g[nmax][nmax];
     static PS::F64 pres_g[nmax][nmax];
     static PS::F64 divv_g[nmax][nmax];
+    static PS::F64 istr_g[nmax][nmax];
 
     PS::S64 ierr = 0;
     ierr = MPI_Allreduce(ptcl, ptcl_g, nmax*nmax, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
@@ -232,6 +239,7 @@ void projectOnPlane(char * ofile,
     ierr = MPI_Allreduce(xige, xige_g, nmax*nmax, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
     ierr = MPI_Allreduce(pres, pres_g, nmax*nmax, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
     ierr = MPI_Allreduce(divv, divv_g, nmax*nmax, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    ierr = MPI_Allreduce(divv, istr_g, nmax*nmax, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
     for(PS::S64 i = 0; i < nmax; i++) {
         for(PS::S64 j = 0; j < nmax; j++) {
@@ -247,6 +255,7 @@ void projectOnPlane(char * ofile,
             xige_g[i][j] *= pinv;
             pres_g[i][j] *= pinv;
             divv_g[i][j] *= pinv;
+            istr_g[i][j] *= pinv;
         }
     }
 
@@ -256,12 +265,13 @@ void projectOnPlane(char * ofile,
             for(PS::S64 j = 0; j < nmax; j++) {
                 PS::F64 px = dx * (PS::F64)i - 0.5 * wdth;
                 PS::F64 pz = dx * (PS::F64)j - 0.5 * wdth;
-                fprintf(fp, "%+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %8lld\n",
+                fprintf(fp, "%+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %+e %8lld %+e\n",
                         px, pz,
                         dens_g[i][j], temp_g[i][j], tmax_g[i][j],
                         xhe4_g[i][j], xc12_g[i][j], xo16_g[i][j],
                         xim1_g[i][j], xim2_g[i][j], xige_g[i][j],
-                        pres_g[i][j], divv_g[i][j], ptcl_g[i][j]);
+                        pres_g[i][j], divv_g[i][j], ptcl_g[i][j],
+                        istr_g[i][j]);
             }
         }
         fclose(fp);

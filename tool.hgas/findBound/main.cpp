@@ -110,7 +110,9 @@ template <class Tsph>
 void findBoundParticle(char * hfile,
                        char * ofile,
                        PS::S64 itime,
+                       PS::S64 searchmode,
                        PS::S64 printmode,
+                       PS::S64 excludedID,
                        Tsph & sph) {
     PS::F64vec xc, vc;
     calcPositionAndVelocityOfDensityCenter(sph, xc, vc);
@@ -124,7 +126,9 @@ void findBoundParticle(char * hfile,
         PS::F64vec dx = sph[i].pos - xc;
         PS::F64vec dv = sph[i].vel - vc;
         PS::F64    eb = 0.5 * (dv * dv) + sph[i].pot;
-        if(eb < 0.) {
+        eb = (searchmode == 0) ? eb : (- eb);
+        //if(eb < 0.) {
+        if(eb < 0. && !(sph[i].istar == excludedID)) {
             if(printmode == 0) {
                 sph[i].writeAscii(fp);
             }
@@ -168,12 +172,16 @@ int main(int argc, char ** argv) {
 
     char idir[1024], odir[1024];
     PS::S64 ibgn, iend;
+    PS::S64 searchmode;
     PS::S64 printmode;
+    PS::S64 excludedID;
     FILE * fp = fopen(argv[1], "r");
     fscanf(fp, "%s", idir);
     fscanf(fp, "%s", odir);
     fscanf(fp, "%lld%lld", &ibgn, &iend);
+    fscanf(fp, "%lld", &searchmode);
     fscanf(fp, "%lld", &printmode);
+    fscanf(fp, "%lld", &excludedID);
     fclose(fp);
 
     char hfile[1024];
@@ -203,7 +211,7 @@ int main(int argc, char ** argv) {
         char ofile[1024];
         sprintf(ofile, "%s/sph_t%04d_p%06d_i%06d.dat.bound",
                 odir, itime, PS::Comm::getNumberOfProc(), PS::Comm::getRank());
-        findBoundParticle(hfile, ofile, itime, printmode, sph);
+        findBoundParticle(hfile, ofile, itime, searchmode, printmode, excludedID, sph);
 
     }
 

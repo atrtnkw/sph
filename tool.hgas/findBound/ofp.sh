@@ -4,19 +4,23 @@
 #PJM -g xg18i004
 #PJM -N findBound
 #PJM -j
-#PJM -L node=12
-#PJM --mpi proc=768
+#PJM -L node=48
+#PJM --mpi proc=3072
 #PJM --omp thread=1
 
-echo "../../mod0001"  > input.list
-echo "./hoge" >> input.list
-echo "197 200" >> input.list
+echo "../../../ddet2/mod0001/"  > input.list
+echo "../r004m/run.b1.00_h030-060_0.60/findSne0" >> input.list
+echo "10 200" >> input.list
+echo "1" >> input.list
+echo "1" >> input.list
 echo "1" >> input.list
 
 # idir
 # odir
 # tbgn tend
+# searchmode(0:bound, 1:unbound)
 # printmode(0:all, 1:summary only)
+# excludedID(-1/0/1)
 
 odir=`awk '{if(NR==2) print $0}' input.list`
 if ! test -e $odir
