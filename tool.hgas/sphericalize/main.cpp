@@ -106,16 +106,36 @@ public:
 };
 
 template <class Tsph>
-void sphericalizeWhiteDwarf(char * ofile,
+void sphericalizeWhiteDwarf(PS::F64 rmax,
+                            PS::F64 drad,
+                            char * ofile,
                             Tsph & sph) {
-    PS::F64 rmax = 1e10;
-    PS::F64 drad = 1e5;
+
+    PS::F64vec cntr_loc = 0.;
+    PS::F64vec cvel_loc = 0.;
+    PS::F64    dens_loc = 0.;
+    for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
+        dens_loc += sph[i].dens;
+        cntr_loc += sph[i].dens * sph[i].pos;
+        cvel_loc += sph[i].dens * sph[i].vel;
+    }
+    PS::F64vec cntr_glb = PS::Comm::getSum(cntr_loc);
+    PS::F64vec cvel_glb = PS::Comm::getSum(cvel_loc);
+    PS::F64    dens_glb = PS::Comm::getSum(dens_loc);
+    cntr_glb = (1. / dens_glb) * cntr_glb;
+    cvel_glb = (1. / dens_glb) * cvel_glb;
+    
     PS::S64 nbin = (PS::S64)(rmax / drad) + 1;
     Shell * sloc = (Shell *)malloc(sizeof(Shell) * nbin);
-
+    
     for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
-        PS::F64 rad1 = sqrt(sph[i].pos * sph[i].pos);
+        sph[i].pos = sph[i].pos - cntr_glb;
+        sph[i].vel = sph[i].vel - cvel_glb;
+        PS::F64 rad1  = sqrt(sph[i].pos * sph[i].pos);
         PS::S64 ibin = (PS::S64)(rad1 / drad);
+        if(ibin >= nbin) {
+            continue;
+        }
         sloc[ibin].increment(sph[i]);
     }
 
@@ -123,7 +143,7 @@ void sphericalizeWhiteDwarf(char * ofile,
     for(PS::S64 ibin = 0; ibin < nbin; ibin++) {
         sglb[ibin].reduceAddition(sloc[ibin]);
     }
-
+    
     if(PS::Comm::getRank() == 0) {
         PS::S64 nshl = 0;
         PS::F64 mass = 0.;
@@ -169,6 +189,7 @@ void sphericalizeWhiteDwarf(char * ofile,
             for(PS::S64 k = 0; k < NR::NumberOfNucleon; k++) {
                 fprintf(fp, " %+e", cmps[k]);
             }
+            fprintf(fp, " %+e", sout);
             fprintf(fp, "\n");
             
             nshl = 0;
@@ -182,6 +203,10 @@ void sphericalizeWhiteDwarf(char * ofile,
         }
         fclose(fp);
     }
+
+    free(sloc);
+    free(sglb);
+                
 }
 
 int main(int argc, char ** argv) {
@@ -193,10 +218,12 @@ int main(int argc, char ** argv) {
     sph.setNumberOfParticleLocal(0);
 
     char idir[1024], odir[1024];
+    PS::F64 rmax, drad;
     PS::S64 ibgn, iend;
     FILE * fp = fopen(argv[1], "r");
     fscanf(fp, "%s", idir);
     fscanf(fp, "%s", odir);
+    fscanf(fp, "%lf%lf", &rmax, &drad);
     fscanf(fp, "%lld%lld", &ibgn, &iend);
     fclose(fp);
 
@@ -216,17 +243,19 @@ int main(int argc, char ** argv) {
             }
         }
         if(fp == NULL) {
+            fprintf(stderr, "%s is not found.\n", tfile);
             continue;
         }
         fclose(fp);
-
+        
         char sfile[1024];
         sprintf(sfile, "%s/t%02d/sph_t%04d", idir, tdir, itime);
         sph.readParticleAscii(sfile, "%s_p%06d_i%06d.dat");
 
         char ofile[1024];
         sprintf(ofile, "%s/poly.dat", odir);
-        sphericalizeWhiteDwarf(ofile, sph);
+        sphericalizeWhiteDwarf(rmax, drad, ofile, sph);
+
     }
 
     PS::Finalize();

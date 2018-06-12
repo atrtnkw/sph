@@ -8,11 +8,11 @@
 #PJM --mpi proc=3072
 #PJM --omp thread=1
 
-echo "../r004m/run.b1.00_h030-060_0.60/findbound"  > input.list
+echo "../r004m/run.b1.00_h030-060_0.60/findunbound"  > input.list
 echo "./" >> input.list
 echo "50 50" >> input.list
 echo "0 0 1 0" >> input.list
-echo "-2e9 8e9" >> input.list
+echo "0 0" >> input.list
 echo "6e9" >> input.list
 
 # idir

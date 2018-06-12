@@ -4,19 +4,18 @@
 #PJM -g xg18i004
 #PJM -N sphericalize
 #PJM -j
-#PJM -L node=3
-#PJM --mpi proc=144
+#PJM -L node=48
+#PJM --mpi proc=3072
 #PJM --omp thread=1
 
-echo "../r004m/run.s1.00_h015-060/"  > input.list
-echo "../r004m/run.s1.00_h015-060/init1d/" >> input.list
-echo "128 128" >> input.list
+echo "../r004m/run.b1.00_h030-060_0.60/findunbound"  > input.list
+#echo "../r004m/run.b1.00_h030-060_0.60/findbound"  > input.list
+echo "./"    >> input.list
+echo "1e13 1e8"  >> input.list
+echo "50 50" >> input.list
 
 # idir
 # odir
 # tbgn tend
-# normal vector and distance of the projection surface
-# parallel displacement on the projection surface
-# width of the projection surface
 
 mpiexec.hydra -n ${PJM_MPI_PROC} ./run input.list
