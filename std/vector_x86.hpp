@@ -312,6 +312,8 @@ struct v4df {
     typedef double _v4df __attribute__((vector_size(32)))
 	__attribute__((aligned(32)));
     _v4df val;
+
+    static const int nvector;
     
     static inline int getVectorLength() {
         return 4;
@@ -648,6 +650,8 @@ struct v8df {
 	__attribute__((aligned(64)));
     _v8df val;
     
+    static const int nvector;
+    
     static inline int getVectorLength() {
         return 8;
     }
@@ -743,4 +747,12 @@ inline v8sf _mm512_extractf32x8_ps(v16sf rhs, int imm8) {
 }
 #endif
 
+#endif
+
+#if 1
+const int v4df::nvector = 4;
+typedef v4df vndf;
+#else
+const int v4df::nvector = 8;
+typedef v8df vndf;
 #endif

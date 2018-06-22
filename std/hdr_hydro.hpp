@@ -134,29 +134,29 @@ struct calcHydro {
                       const HydroEPJ * epj,
                       const PS::S32 njp,
                       Hydro * hydro) {
-        v4df (*rcp)(v4df)   = v4df::rcp_4th;
-        v4df (*rsqrt)(v4df) = v4df::rsqrt_4th;
+        vndf (*rcp)(vndf)   = vndf::rcp_4th;
+        vndf (*rsqrt)(vndf) = vndf::rsqrt_4th;
 
-        PS::S32 nvector = v4df::getVectorLength();
+        PS::S32 nvector = vndf::getVectorLength();
 
         for(PS::S32 i = 0; i < nip; i += nvector) {
-            PS::F64 buf_id[nvector] __attribute__((aligned(32)));
-            PS::F64 buf_px[nvector] __attribute__((aligned(32)));
-            PS::F64 buf_py[nvector] __attribute__((aligned(32)));
-            PS::F64 buf_pz[nvector] __attribute__((aligned(32)));
-            PS::F64 buf_vx[nvector] __attribute__((aligned(32)));
-            PS::F64 buf_vy[nvector] __attribute__((aligned(32)));
-            PS::F64 buf_vz[nvector] __attribute__((aligned(32)));
-            PS::F64 buf_hi[nvector] __attribute__((aligned(32)));
-            PS::F64 buf_pp[nvector] __attribute__((aligned(32)));
-            PS::F64 buf_pc[nvector] __attribute__((aligned(32)));
-            PS::F64 buf_bs[nvector] __attribute__((aligned(32)));
-            PS::F64 buf_dn[nvector] __attribute__((aligned(32)));
-            PS::F64 buf_cs[nvector] __attribute__((aligned(32)));
-            PS::F64 buf_al[nvector] __attribute__((aligned(32)));
-            PS::F64 buf_au[nvector] __attribute__((aligned(32)));
-            PS::F64 buf_eg[nvector] __attribute__((aligned(32)));
-            PS::F64 buf_et[nvector] __attribute__((aligned(32)));
+            PS::F64 buf_id[nvector] __attribute__((aligned(vndf::nvector*8)));
+            PS::F64 buf_px[nvector] __attribute__((aligned(vndf::nvector*8)));
+            PS::F64 buf_py[nvector] __attribute__((aligned(vndf::nvector*8)));
+            PS::F64 buf_pz[nvector] __attribute__((aligned(vndf::nvector*8)));
+            PS::F64 buf_vx[nvector] __attribute__((aligned(vndf::nvector*8)));
+            PS::F64 buf_vy[nvector] __attribute__((aligned(vndf::nvector*8)));
+            PS::F64 buf_vz[nvector] __attribute__((aligned(vndf::nvector*8)));
+            PS::F64 buf_hi[nvector] __attribute__((aligned(vndf::nvector*8)));
+            PS::F64 buf_pp[nvector] __attribute__((aligned(vndf::nvector*8)));
+            PS::F64 buf_pc[nvector] __attribute__((aligned(vndf::nvector*8)));
+            PS::F64 buf_bs[nvector] __attribute__((aligned(vndf::nvector*8)));
+            PS::F64 buf_dn[nvector] __attribute__((aligned(vndf::nvector*8)));
+            PS::F64 buf_cs[nvector] __attribute__((aligned(vndf::nvector*8)));
+            PS::F64 buf_al[nvector] __attribute__((aligned(vndf::nvector*8)));
+            PS::F64 buf_au[nvector] __attribute__((aligned(vndf::nvector*8)));
+            PS::F64 buf_eg[nvector] __attribute__((aligned(vndf::nvector*8)));
+            PS::F64 buf_et[nvector] __attribute__((aligned(vndf::nvector*8)));
             PS::S32 nii = std::min(nip - i, nvector);
             for(PS::S32 ii = 0; ii < nii; ii++) {
                 buf_id[ii] = epi[i+ii].id;
@@ -177,12 +177,12 @@ struct calcHydro {
                 buf_eg[ii] = epi[i+ii].thrm;
                 buf_et[ii] = epi[i+ii].eta;
             }
-            v4df id_i;
-            v4df px_i, py_i, pz_i;
-            v4df vx_i, vy_i, vz_i;
-            v4df hi_i, pp_i, pc_i;
-            v4df bs_i, dn_i, cs_i, al_i, au_i, eg_i;
-            v4df et_i;
+            vndf id_i;
+            vndf px_i, py_i, pz_i;
+            vndf vx_i, vy_i, vz_i;
+            vndf hi_i, pp_i, pc_i;
+            vndf bs_i, dn_i, cs_i, al_i, au_i, eg_i;
+            vndf et_i;
             id_i.load(buf_id);
             px_i.load(buf_px);
             py_i.load(buf_py);
@@ -200,87 +200,87 @@ struct calcHydro {
             au_i.load(buf_au);
             eg_i.load(buf_eg);
             et_i.load(buf_et);
-            v4df hi4_i = hi_i * ND::calcVolumeInverse(hi_i);
-            v4df achx_i(0.);
-            v4df achy_i(0.);
-            v4df achz_i(0.);
-            v4df udot_i(0.);
-            v4df vsmx_i(0.);
-            v4df difu_i(0.);
-            v4df g1x_i(0.);
-            v4df g1y_i(0.);
-            v4df g1z_i(0.);
+            vndf hi4_i = hi_i * ND::calcVolumeInverse(hi_i);
+            vndf achx_i(0.);
+            vndf achy_i(0.);
+            vndf achz_i(0.);
+            vndf udot_i(0.);
+            vndf vsmx_i(0.);
+            vndf difu_i(0.);
+            vndf g1x_i(0.);
+            vndf g1y_i(0.);
+            vndf g1z_i(0.);
             for(PS::S32 j = 0; j < njp; j++) {
-                v4df dpx_ij = px_i - v4df(epj[j].pos[0]);
-                v4df dpy_ij = py_i - v4df(epj[j].pos[1]);
-                v4df dpz_ij = pz_i - v4df(epj[j].pos[2]);
-                v4df dvx_ij = vx_i - v4df(epj[j].vel[0]);
-                v4df dvy_ij = vy_i - v4df(epj[j].vel[1]);
-                v4df dvz_ij = vz_i - v4df(epj[j].vel[2]);
+                vndf dpx_ij = px_i - vndf(epj[j].pos[0]);
+                vndf dpy_ij = py_i - vndf(epj[j].pos[1]);
+                vndf dpz_ij = pz_i - vndf(epj[j].pos[2]);
+                vndf dvx_ij = vx_i - vndf(epj[j].vel[0]);
+                vndf dvy_ij = vy_i - vndf(epj[j].vel[1]);
+                vndf dvz_ij = vz_i - vndf(epj[j].vel[2]);
 
-                v4df r2_ij = dpx_ij * dpx_ij + dpy_ij * dpy_ij + dpz_ij * dpz_ij;
-                v4df ri_ij = ((id_i != v4df(epj[j].id)) & rsqrt(r2_ij));
-                v4df r1_ij = r2_ij * ri_ij;
-                v4df q_i   = r1_ij * hi_i;
-                v4df q_j   = r1_ij * epj[j].hinv;
+                vndf r2_ij = dpx_ij * dpx_ij + dpy_ij * dpy_ij + dpz_ij * dpz_ij;
+                vndf ri_ij = ((id_i != vndf(epj[j].id)) & rsqrt(r2_ij));
+                vndf r1_ij = r2_ij * ri_ij;
+                vndf q_i   = r1_ij * hi_i;
+                vndf q_j   = r1_ij * epj[j].hinv;
 
-                v4df hi4_j = v4df(epj[j].hinv) * ND::calcVolumeInverse(epj[j].hinv);
-                v4df dw_i  = hi4_i * SK::kernel1st(q_i);
-                v4df dw_j  = hi4_j * SK::kernel1st(q_j);
-                v4df ka_ij = (dw_i + dw_j) * v4df(epj[j].mass);
+                vndf hi4_j = vndf(epj[j].hinv) * ND::calcVolumeInverse(epj[j].hinv);
+                vndf dw_i  = hi4_i * SK::kernel1st(q_i);
+                vndf dw_j  = hi4_j * SK::kernel1st(q_j);
+                vndf ka_ij = (dw_i + dw_j) * vndf(epj[j].mass);
 
-                v4df rv_ij  = dpx_ij * dvx_ij + dpy_ij * dvy_ij + dpz_ij * dvz_ij;
-                v4df w_ij   = rv_ij * ri_ij;
-                v4df w0_ij  = ((w_ij < v4df(0.)) & w_ij);
-                v4df vs_ij  = cs_i + v4df(epj[j].vsnd) - v4df(3.) * w0_ij;
-                v4df rhi_ij = rcp(dn_i + v4df(epj[j].dens));
-                v4df av0_ij = (bs_i + v4df(epj[j].bswt)) * (al_i + v4df(epj[j].alph))
+                vndf rv_ij  = dpx_ij * dvx_ij + dpy_ij * dvy_ij + dpz_ij * dvz_ij;
+                vndf w_ij   = rv_ij * ri_ij;
+                vndf w0_ij  = ((w_ij < vndf(0.)) & w_ij);
+                vndf vs_ij  = cs_i + vndf(epj[j].vsnd) - vndf(3.) * w0_ij;
+                vndf rhi_ij = rcp(dn_i + vndf(epj[j].dens));
+                vndf av0_ij = (bs_i + vndf(epj[j].bswt)) * (al_i + vndf(epj[j].alph))
                     * vs_ij * w0_ij;
                                 
-                vsmx_i  = v4df::max(vsmx_i, vs_ij);
+                vsmx_i  = vndf::max(vsmx_i, vs_ij);
 
-                v4df ta_ij = (pc_i + v4df(epj[j].presc) - v4df(0.5) * av0_ij * rhi_ij)
+                vndf ta_ij = (pc_i + vndf(epj[j].presc) - vndf(0.5) * av0_ij * rhi_ij)
                     * ka_ij * ri_ij;
                 achx_i -= ta_ij * dpx_ij;
                 achy_i -= ta_ij * dpy_ij;
                 achz_i -= ta_ij * dpz_ij;
 
-                v4df vsu2_ij  = v4df::fabs(pp_i - v4df(epj[j].pres)) * rhi_ij * v4df(2.);
-                v4df vsui_ij  = ((vsu2_ij != 0.) & rsqrt(vsu2_ij));
-                v4df vsu_ij   = vsu2_ij * vsui_ij;
-                v4df du_ij    = eg_i - v4df(epj[j].thrm);
+                vndf vsu2_ij  = vndf::fabs(pp_i - vndf(epj[j].pres)) * rhi_ij * vndf(2.);
+                vndf vsui_ij  = ((vsu2_ij != 0.) & rsqrt(vsu2_ij));
+                vndf vsu_ij   = vsu2_ij * vsui_ij;
+                vndf du_ij    = eg_i - vndf(epj[j].thrm);
 
                 udot_i += ka_ij * (pc_i * w_ij
-                                   - rhi_ij * (v4df(0.25) * av0_ij * w0_ij
-                                               - (au_i + v4df(epj[j].alphu)) * vsu_ij * du_ij));
+                                   - rhi_ij * (vndf(0.25) * av0_ij * w0_ij
+                                               - (au_i + vndf(epj[j].alphu)) * vsu_ij * du_ij));
 
                 difu_i += rhi_ij * du_ij * ka_ij * ri_ij;
 
-                v4df dg_ij = v4df(epj[j].mass) * ri_ij * (et_i * dw_i + v4df(epj[j].eta) * dw_j);
+                vndf dg_ij = vndf(epj[j].mass) * ri_ij * (et_i * dw_i + vndf(epj[j].eta) * dw_j);
                 g1x_i += dg_ij * dpx_ij;
                 g1y_i += dg_ij * dpy_ij;
                 g1z_i += dg_ij * dpz_ij;
                     
             }
 
-            achx_i *= v4df(0.5);
-            achy_i *= v4df(0.5);
-            achz_i *= v4df(0.5);
-            udot_i *= v4df(0.5);
-            difu_i *= v4df(2.);
-            g1x_i  *= v4df(0.5);
-            g1y_i  *= v4df(0.5);
-            g1z_i  *= v4df(0.5);
+            achx_i *= vndf(0.5);
+            achy_i *= vndf(0.5);
+            achz_i *= vndf(0.5);
+            udot_i *= vndf(0.5);
+            difu_i *= vndf(2.);
+            g1x_i  *= vndf(0.5);
+            g1y_i  *= vndf(0.5);
+            g1z_i  *= vndf(0.5);
 
-            PS::F64 buf_ax[nvector] __attribute__((aligned(32)));
-            PS::F64 buf_ay[nvector] __attribute__((aligned(32)));
-            PS::F64 buf_az[nvector] __attribute__((aligned(32)));
-            PS::F64 buf_du[nvector] __attribute__((aligned(32)));
-            PS::F64 buf_vs[nvector] __attribute__((aligned(32)));
-            PS::F64 buf_df[nvector] __attribute__((aligned(32)));
-            PS::F64 buf_gx[nvector] __attribute__((aligned(32)));
-            PS::F64 buf_gy[nvector] __attribute__((aligned(32)));
-            PS::F64 buf_gz[nvector] __attribute__((aligned(32)));
+            PS::F64 buf_ax[nvector] __attribute__((aligned(vndf::nvector*8)));
+            PS::F64 buf_ay[nvector] __attribute__((aligned(vndf::nvector*8)));
+            PS::F64 buf_az[nvector] __attribute__((aligned(vndf::nvector*8)));
+            PS::F64 buf_du[nvector] __attribute__((aligned(vndf::nvector*8)));
+            PS::F64 buf_vs[nvector] __attribute__((aligned(vndf::nvector*8)));
+            PS::F64 buf_df[nvector] __attribute__((aligned(vndf::nvector*8)));
+            PS::F64 buf_gx[nvector] __attribute__((aligned(vndf::nvector*8)));
+            PS::F64 buf_gy[nvector] __attribute__((aligned(vndf::nvector*8)));
+            PS::F64 buf_gz[nvector] __attribute__((aligned(vndf::nvector*8)));
             achx_i.store(buf_ax);
             achy_i.store(buf_ay);
             achz_i.store(buf_az);

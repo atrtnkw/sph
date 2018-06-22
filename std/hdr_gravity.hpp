@@ -199,14 +199,14 @@ struct calcGravity {
                       const PS::S32 njp,
                       Gravity *gravity) {
 
-        v4df (*rsqrt)(v4df) = v4df::rsqrt_4th;
-        PS::S32 nvector = v4df::getVectorLength();
+        vndf (*rsqrt)(vndf) = vndf::rsqrt_4th;
+        PS::S32 nvector = vndf::getVectorLength();
 
         for(PS::S32 i = 0; i < nip; i += nvector) {
-            PS::F64 buf_px[nvector] __attribute__((aligned(32)));
-            PS::F64 buf_py[nvector] __attribute__((aligned(32)));
-            PS::F64 buf_pz[nvector] __attribute__((aligned(32)));
-            PS::F64 buf_e2[nvector] __attribute__((aligned(32)));
+            PS::F64 buf_px[nvector] __attribute__((aligned(vndf::nvector*8)));
+            PS::F64 buf_py[nvector] __attribute__((aligned(vndf::nvector*8)));
+            PS::F64 buf_pz[nvector] __attribute__((aligned(vndf::nvector*8)));
+            PS::F64 buf_e2[nvector] __attribute__((aligned(vndf::nvector*8)));
             const PS::S32 nii = std::min(nip - i, nvector);
             for(PS::S32 ii = 0; ii < nii; ii++) {
                 buf_px[ii] = epi[i+ii].pos[0];
@@ -214,34 +214,34 @@ struct calcGravity {
                 buf_pz[ii] = epi[i+ii].pos[2];
                 buf_e2[ii] = epi[i+ii].eps2;
             }
-            v4df px_i;
-            v4df py_i;
-            v4df pz_i;
-            v4df e2_i;
+            vndf px_i;
+            vndf py_i;
+            vndf pz_i;
+            vndf e2_i;
             px_i.load(buf_px);
             py_i.load(buf_py);
             pz_i.load(buf_pz);
             e2_i.load(buf_e2);
-            v4df ax_i(0.0);
-            v4df ay_i(0.0);
-            v4df az_i(0.0);
-            v4df pt_i(0.0);
-            v4df et_i(0.0);
+            vndf ax_i(0.0);
+            vndf ay_i(0.0);
+            vndf az_i(0.0);
+            vndf pt_i(0.0);
+            vndf et_i(0.0);
             for(PS::S32 j = 0; j < njp; j++) {
-                v4df dpx_ij = px_i - v4df(epj[j].pos[0]);
-                v4df dpy_ij = py_i - v4df(epj[j].pos[1]);
-                v4df dpz_ij = pz_i - v4df(epj[j].pos[2]);
+                vndf dpx_ij = px_i - vndf(epj[j].pos[0]);
+                vndf dpy_ij = py_i - vndf(epj[j].pos[1]);
+                vndf dpz_ij = pz_i - vndf(epj[j].pos[2]);
 
-                v4df r2_ij  = dpx_ij * dpx_ij + dpy_ij * dpy_ij + dpz_ij * dpz_ij;
-                v4df re2_i  = r2_ij + e2_i;
-                v4df rei_i  = rsqrt(re2_i);
-                v4df rei3_i = rei_i * rei_i * rei_i;
-                v4df re2_j  = r2_ij + v4df(epj[j].eps2);
-                v4df rei_j  = rsqrt(re2_j);
-                v4df rei3_j = rei_j * rei_j * rei_j;
+                vndf r2_ij  = dpx_ij * dpx_ij + dpy_ij * dpy_ij + dpz_ij * dpz_ij;
+                vndf re2_i  = r2_ij + e2_i;
+                vndf rei_i  = rsqrt(re2_i);
+                vndf rei3_i = rei_i * rei_i * rei_i;
+                vndf re2_j  = r2_ij + vndf(epj[j].eps2);
+                vndf rei_j  = rsqrt(re2_j);
+                vndf rei3_j = rei_j * rei_j * rei_j;
 
-                v4df m_j    = v4df(epj[j].mass);
-                v4df dg2_ij = m_j * (rei3_i + rei3_j);
+                vndf m_j    = vndf(epj[j].mass);
+                vndf dg2_ij = m_j * (rei3_i + rei3_j);
 
                 pt_i -= m_j    * (rei_i  + rei_j);
                 ax_i -= dpx_ij * dg2_ij;
@@ -250,16 +250,16 @@ struct calcGravity {
                 et_i += m_j    * rei3_i;
 
             }
-            ax_i *= v4df(0.5);
-            ay_i *= v4df(0.5);
-            az_i *= v4df(0.5);
-            pt_i *= v4df(0.5);
+            ax_i *= vndf(0.5);
+            ay_i *= vndf(0.5);
+            az_i *= vndf(0.5);
+            pt_i *= vndf(0.5);
 
-            PS::F64 buf_ax[nvector] __attribute__((aligned(32)));
-            PS::F64 buf_ay[nvector] __attribute__((aligned(32)));
-            PS::F64 buf_az[nvector] __attribute__((aligned(32)));
-            PS::F64 buf_pt[nvector] __attribute__((aligned(32)));
-            PS::F64 buf_et[nvector] __attribute__((aligned(32)));
+            PS::F64 buf_ax[nvector] __attribute__((aligned(vndf::nvector*8)));
+            PS::F64 buf_ay[nvector] __attribute__((aligned(vndf::nvector*8)));
+            PS::F64 buf_az[nvector] __attribute__((aligned(vndf::nvector*8)));
+            PS::F64 buf_pt[nvector] __attribute__((aligned(vndf::nvector*8)));
+            PS::F64 buf_et[nvector] __attribute__((aligned(vndf::nvector*8)));
 
             ax_i.store(buf_ax);
             ay_i.store(buf_ay);

@@ -86,22 +86,22 @@ struct calcDensity {
                       const PS::S32 njp,
                       Density *density) {
 
-        v4df (*rcp)(v4df)   = v4df::rcp_4th;
-        v4df (*rsqrt)(v4df) = v4df::rsqrt_4th;
+        vndf (*rcp)(vndf)   = vndf::rcp_4th;
+        vndf (*rsqrt)(vndf) = vndf::rsqrt_4th;
 
-        const PS::S32 nvector = v4df::getVectorLength();
+        const PS::S32 nvector = vndf::nvector;
         
         for(PS::S32 i = 0; i < nip; i += nvector) {
             const PS::S64 nii = std::min(nip - i, nvector);
 
-            PS::F64 buf_id[nvector] __attribute__((aligned(32)));
-            PS::F64 buf_px[nvector] __attribute__((aligned(32)));
-            PS::F64 buf_py[nvector] __attribute__((aligned(32)));
-            PS::F64 buf_pz[nvector] __attribute__((aligned(32)));
-            PS::F64 buf_vx[nvector] __attribute__((aligned(32)));
-            PS::F64 buf_vy[nvector] __attribute__((aligned(32)));
-            PS::F64 buf_vz[nvector] __attribute__((aligned(32)));
-            PS::F64 buf_hs[nvector] __attribute__((aligned(32)));
+            PS::F64 buf_id[nvector] __attribute__((aligned(vndf::nvector*8)));
+            PS::F64 buf_px[nvector] __attribute__((aligned(vndf::nvector*8)));
+            PS::F64 buf_py[nvector] __attribute__((aligned(vndf::nvector*8)));
+            PS::F64 buf_pz[nvector] __attribute__((aligned(vndf::nvector*8)));
+            PS::F64 buf_vx[nvector] __attribute__((aligned(vndf::nvector*8)));
+            PS::F64 buf_vy[nvector] __attribute__((aligned(vndf::nvector*8)));
+            PS::F64 buf_vz[nvector] __attribute__((aligned(vndf::nvector*8)));
+            PS::F64 buf_hs[nvector] __attribute__((aligned(vndf::nvector*8)));
             for(PS::S32 ii = 0; ii < nii; ii++) {
                 buf_id[ii] = epi[i+ii].id;
                 buf_px[ii] = epi[i+ii].pos[0];
@@ -113,14 +113,14 @@ struct calcDensity {
                 buf_hs[ii] = epi[i+ii].ksr;
             }
 
-            v4df id_i;
-            v4df px_i;
-            v4df py_i;
-            v4df pz_i;
-            v4df vx_i;
-            v4df vy_i;
-            v4df vz_i;
-            v4df hs_i;
+            vndf id_i;
+            vndf px_i;
+            vndf py_i;
+            vndf pz_i;
+            vndf vx_i;
+            vndf vy_i;
+            vndf vz_i;
+            vndf hs_i;
             id_i.load(buf_id);
             px_i.load(buf_px);
             py_i.load(buf_py);
@@ -131,31 +131,31 @@ struct calcDensity {
             hs_i.load(buf_hs);
 
             for(PS::S32 repeat = 0; repeat < 3; repeat++) {
-                v4df hi_i  = rcp(hs_i);
-                v4df hi3_i = ND::calcVolumeInverse(hi_i);
-                v4df hi4_i = hi_i * hi3_i;
-                v4df rh_i(0.);
-                v4df nj_i(0.);
+                vndf hi_i  = rcp(hs_i);
+                vndf hi3_i = ND::calcVolumeInverse(hi_i);
+                vndf hi4_i = hi_i * hi3_i;
+                vndf rh_i(0.);
+                vndf nj_i(0.);
 
                 for(PS::S32 j = 0; j < njp; j++) {
-                    v4df dx_ij = px_i - v4df(epj[j].pos[0]);
-                    v4df dy_ij = py_i - v4df(epj[j].pos[1]);
-                    v4df dz_ij = pz_i - v4df(epj[j].pos[2]);
+                    vndf dx_ij = px_i - vndf(epj[j].pos[0]);
+                    vndf dy_ij = py_i - vndf(epj[j].pos[1]);
+                    vndf dz_ij = pz_i - vndf(epj[j].pos[2]);
 
-                    v4df r2_ij = dx_ij * dx_ij + dy_ij * dy_ij + dz_ij * dz_ij;
+                    vndf r2_ij = dx_ij * dx_ij + dy_ij * dy_ij + dz_ij * dz_ij;
 
-                    v4df r1_ij = v4df::sqrt(r2_ij);
-                    v4df q_i   = r1_ij * hi_i;
+                    vndf r1_ij = vndf::sqrt(r2_ij);
+                    vndf q_i   = r1_ij * hi_i;
 
-                    v4df kw0 = SK::kernel0th(q_i);
-                    v4df rhj = v4df(epj[j].mass) * hi3_i * kw0;
+                    vndf kw0 = SK::kernel0th(q_i);
+                    vndf rhj = vndf(epj[j].mass) * hi3_i * kw0;
 
                     rh_i += rhj;
-                    nj_i += ((q_i < 1.) & v4df(1.));                    
+                    nj_i += ((q_i < 1.) & vndf(1.));                    
                 }
 
-                PS::F64 buf_dens[nvector] __attribute__((aligned(32)));
-                PS::F64 buf_nj[nvector]   __attribute__((aligned(32)));
+                PS::F64 buf_dens[nvector] __attribute__((aligned(vndf::nvector*8)));
+                PS::F64 buf_nj[nvector]   __attribute__((aligned(vndf::nvector*8)));
                 rh_i.store(buf_dens);
                 nj_i.store(buf_nj);
                 for(PS::S32 ii = 0; ii < nii; ii++) {
@@ -170,39 +170,39 @@ struct calcDensity {
                 hs_i.load(buf_hs);
             }
             
-            v4df hi_i  = rcp(hs_i);
-            v4df hi4_i = hi_i * ND::calcVolumeInverse(hi_i);
-            v4df grdh_i(0.);
-            v4df divv_i(0.);
-            v4df rotx_i(0.);
-            v4df roty_i(0.);
-            v4df rotz_i(0.);
+            vndf hi_i  = rcp(hs_i);
+            vndf hi4_i = hi_i * ND::calcVolumeInverse(hi_i);
+            vndf grdh_i(0.);
+            vndf divv_i(0.);
+            vndf rotx_i(0.);
+            vndf roty_i(0.);
+            vndf rotz_i(0.);
             for(PS::S32 j = 0; j < njp; j++) {
-                v4df dpx_ij = px_i - v4df(epj[j].pos[0]);
-                v4df dpy_ij = py_i - v4df(epj[j].pos[1]);
-                v4df dpz_ij = pz_i - v4df(epj[j].pos[2]);
-                v4df dvx_ij = vx_i - v4df(epj[j].vel[0]);
-                v4df dvy_ij = vy_i - v4df(epj[j].vel[1]);
-                v4df dvz_ij = vz_i - v4df(epj[j].vel[2]);
+                vndf dpx_ij = px_i - vndf(epj[j].pos[0]);
+                vndf dpy_ij = py_i - vndf(epj[j].pos[1]);
+                vndf dpz_ij = pz_i - vndf(epj[j].pos[2]);
+                vndf dvx_ij = vx_i - vndf(epj[j].vel[0]);
+                vndf dvy_ij = vy_i - vndf(epj[j].vel[1]);
+                vndf dvz_ij = vz_i - vndf(epj[j].vel[2]);
 
-                v4df r2_ij = dpx_ij * dpx_ij + dpy_ij * dpy_ij + dpz_ij * dpz_ij;
-                v4df ri_ij = rsqrt(r2_ij);
-                ri_ij = ((id_i != v4df(epj[j].id)) & ri_ij);
-                v4df r1_ij = r2_ij * ri_ij;
-                v4df q_i = r1_ij * hi_i;
+                vndf r2_ij = dpx_ij * dpx_ij + dpy_ij * dpy_ij + dpz_ij * dpz_ij;
+                vndf ri_ij = rsqrt(r2_ij);
+                ri_ij = ((id_i != vndf(epj[j].id)) & ri_ij);
+                vndf r1_ij = r2_ij * ri_ij;
+                vndf q_i = r1_ij * hi_i;
 
-                v4df kw0 = SK::kernel0th(q_i);
-                v4df kw1 = SK::kernel1st(q_i);
+                vndf kw0 = SK::kernel0th(q_i);
+                vndf kw1 = SK::kernel1st(q_i);
 
-                v4df m_j(epj[j].mass);
-                v4df ghj = v4df(RP::NumberOfDimension) * kw0;
+                vndf m_j(epj[j].mass);
+                vndf ghj = vndf(RP::NumberOfDimension) * kw0;
                 ghj += q_i * kw1;
                 grdh_i -= ghj * hi4_i * m_j;
 
-                v4df dw_ij  = m_j * hi4_i * kw1 * ri_ij;
-                v4df dwx_ij = dw_ij * dpx_ij;
-                v4df dwy_ij = dw_ij * dpy_ij;
-                v4df dwz_ij = dw_ij * dpz_ij;
+                vndf dw_ij  = m_j * hi4_i * kw1 * ri_ij;
+                vndf dwx_ij = dw_ij * dpx_ij;
+                vndf dwy_ij = dw_ij * dpy_ij;
+                vndf dwz_ij = dw_ij * dpz_ij;
 
                 divv_i -= dvx_ij * dwx_ij;
                 divv_i -= dvy_ij * dwy_ij;
@@ -216,17 +216,17 @@ struct calcDensity {
                 rotz_i -= dvy_ij * dwx_ij;                 
             }
 
-            v4df dens_i(density[i].dens, density[i+1].dens, density[i+2].dens, density[i+3].dens);
-            v4df deni_i = rcp(dens_i);
-            v4df omgi_i = rcp(v4df(1.) + hs_i * deni_i * grdh_i * rcp(RP::NumberOfDimension));
-            v4df rot2_i = rotx_i * rotx_i + roty_i * roty_i + rotz_i * rotz_i;
-            v4df rotv_i = rot2_i * ((rot2_i != 0.) & rsqrt(rot2_i));
+            vndf dens_i(density[i].dens, density[i+1].dens, density[i+2].dens, density[i+3].dens);
+            vndf deni_i = rcp(dens_i);
+            vndf omgi_i = rcp(vndf(1.) + hs_i * deni_i * grdh_i * rcp(RP::NumberOfDimension));
+            vndf rot2_i = rotx_i * rotx_i + roty_i * roty_i + rotz_i * rotz_i;
+            vndf rotv_i = rot2_i * ((rot2_i != 0.) & rsqrt(rot2_i));
             rotv_i *= deni_i * omgi_i;
             divv_i *= deni_i * omgi_i;
 
-            PS::F64 buf_divv[nvector] __attribute__((aligned(32)));
-            PS::F64 buf_rotv[nvector] __attribute__((aligned(32)));
-            PS::F64 buf_omgi[nvector] __attribute__((aligned(32)));
+            PS::F64 buf_divv[nvector] __attribute__((aligned(vndf::nvector*8)));
+            PS::F64 buf_rotv[nvector] __attribute__((aligned(vndf::nvector*8)));
+            PS::F64 buf_omgi[nvector] __attribute__((aligned(vndf::nvector*8)));
             divv_i.store(buf_divv);
             rotv_i.store(buf_rotv);
             omgi_i.store(buf_omgi);

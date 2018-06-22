@@ -1,18 +1,18 @@
 namespace NthDimension {
 #ifdef USE_IDEAL
 
-    v4df (*calcVolumeInverse)(const v4df hi);
+    vndf (*calcVolumeInverse)(const vndf hi);
     PS::F64 (*calcPowerOfDimInverse)(const PS::F64 mass,
                                      const PS::F64 dens);
     PS::F64mat (*invertMatrix)(const PS::F64mat & tau);
 
-    inline v4df calcVolumeInverse1D(const v4df hi) {
+    inline vndf calcVolumeInverse1D(const vndf hi) {
         return hi;
     }
-    inline v4df calcVolumeInverse2D(const v4df hi) {
+    inline vndf calcVolumeInverse2D(const vndf hi) {
         return hi * hi;
     }
-    inline v4df calcVolumeInverse3D(const v4df hi) {
+    inline vndf calcVolumeInverse3D(const vndf hi) {
         return hi * hi * hi;
     }
 
@@ -86,7 +86,7 @@ namespace NthDimension {
 
 #ifdef FOR_TUBE_TEST
 
-    inline v4df calcVolumeInverse(const v4df hi) {
+    inline vndf calcVolumeInverse(const vndf hi) {
         return hi;
     }
 
@@ -112,7 +112,7 @@ namespace NthDimension {
 
 #ifdef USE_INTRINSICS
 
-    inline v4df calcVolumeInverse(const v4df hi) {
+    inline vndf calcVolumeInverse(const vndf hi) {
         return hi * hi * hi;
     }
 
