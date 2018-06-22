@@ -10,8 +10,14 @@
 
 echo "../r004m/run.b1.00_h030-060_0.60/findunbound"  > input.list
 echo "./"             >> input.list
-echo "1e13 1e8 128."  >> input.list
-echo "-1. -2. 0."       >> input.list
+echo "1e13 1e8 8."  >> input.list
+#echo "+1. +1. 0."       >> input.list
+#echo "-1. +1. 0."       >> input.list
+#echo "-1.7321 -1. 0."       >> input.list
+#echo "-1. -1.7321 0."       >> input.list
+#echo "+1. -1. 0."       >> input.list
+#echo "0. 0.  1."       >> input.list
+echo "0. 0. -1."       >> input.list
 echo "50 50"          >> input.list
 
 # idir

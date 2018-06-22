@@ -154,9 +154,10 @@ void sphericalizeWhiteDwarf(PS::F64 rmax,
             for(PS::S64 k = 0; k < NR::NumberOfNucleon; k++) {
                 mele[k] += sglb[ibin].mele[k];
             }
-            //if(nshl < 10000 && ibin != nbin - 1) {
+            if(nshl < 10000 && ibin != nbin - 1) {
+            //if(nshl < 1000 && ibin != nbin - 1) {
             //if(nshl < 100 && ibin != nbin - 1) {
-            if(nshl < 10 && ibin != nbin - 1) {
+            //if(nshl < 10 && ibin != nbin - 1) {
                 continue;
             }
 

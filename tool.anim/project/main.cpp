@@ -188,7 +188,7 @@ void projectOnPlane(char * ofile,
         if(plane.calcDistance(sph[i].pos) > sph[i].ksr) {
             continue;
         }
-#if 0
+#if 1
         PS::F64vec pvec  = plane.calcCoordinateOnPlane(sph[i].pos);
 #else
         PS::F64vec pvec  = plane.calcCoordinateOnPlane(sph[i].vel);
