@@ -187,6 +187,10 @@ struct v8sf {
         return v8sf(_mm256_cmp_ps(val, rhs.val, _CMP_GE_OS));
     }
 
+#ifdef __AVX512F__
+    v8df cvtps2pd();
+#endif
+
     static inline v8sf rcp_0th(const v8sf rhs) {
         return _mm256_rcp_ps(rhs.val);
     }
@@ -647,7 +651,7 @@ struct v16sf {
 
 struct v8df {
     typedef double _v8df __attribute__((vector_size(64)))
-	__attribute__((aligned(64)));
+        __attribute__((aligned(64)));
     _v8df val;
     
     static const int nvector;
@@ -664,16 +668,16 @@ struct v8df {
     v8df() : val(_mm512_setzero_pd()) {}
     v8df(const double x) : val(_mm512_set1_pd(x)) {}
     v8df(const double x1, const double y1, const double z1, const double w1,
-	 const double x0, const double y0, const double z0, const double w0)
+         const double x0, const double y0, const double z0, const double w0)
         : val(_mm512_set_pd(w1, z1, y1, x1, w0, z0, y0, x0)) {}
     v8df(const _v8df _val) : val(_val) {}
     operator _v8df() {return val;}
     v8df(v4df rhs0) {
-	val = _mm512_broadcast_f64x4(rhs0);
+        val = _mm512_broadcast_f64x4(rhs0);
     }
     v8df(v4df rhs0, v4df rhs1) {
-	v8df temp(rhs0);
-	val = _mm512_insertf64x4(temp, rhs1, 1);
+        v8df temp(rhs0);
+        val = _mm512_insertf64x4(temp, rhs1, 1);
     }
     
     v8df operator + (const v8df rhs) const {
@@ -704,6 +708,67 @@ struct v8df {
         val = v8df(_mm512_div_pd(val, rhs.val));
         return (*this);
     }
+
+    v8df operator & (const v8df rhs) {
+        return v8df(_mm512_and_pd(val, rhs.val));
+    }
+
+    static v8df max(const v8df a, const v8df b) {
+        return v8df(_mm512_max_pd(a.val, b.val));
+    }
+
+    v8sf cvtpd2ps() {
+        return _mm512_cvtpd_ps(val);
+    }
+
+    static v8df rcp_0th(v8df rhs) {
+        v8df x0 = (v8sf::rcp_0th(rhs.cvtpd2ps())).cvtps2pd();
+        return x0;
+    }
+    static v8df rcp_1st(v8df rhs) {
+        v8df x0 = (v8sf::rcp_0th(rhs.cvtpd2ps())).cvtps2pd();
+        v8df h  = v8df(1.) - rhs * x0;
+        return x0 + h * x0;
+    }
+    static v8df rcp_4th(v8df rhs) {
+        v8df x0 = (v8sf::rcp_0th(rhs.cvtpd2ps())).cvtps2pd();
+        v8df h  = v8df(1.) - rhs * x0;
+        return (v8df(1.) + h) * (v8df(1.) + h * h) * x0;
+    }
+
+    static v8df sqrt(const v8df rhs) {
+        return v8df(_mm512_sqrt_pd(rhs.val));
+    }
+    static v8df rsqrt_0th(v8df rhs) {
+        v8df x0 = (v8sf::rsqrt_0th(rhs.cvtpd2ps())).cvtps2pd();
+        return x0;
+    }
+    static v8df rsqrt_1st(v8df rhs) {
+        v8df x0 = (v8sf::rsqrt_0th(rhs.cvtpd2ps())).cvtps2pd();
+        v8df h  = v8df(1.) - rhs * x0 * x0;
+        return x0 + v8df(0.5) * h * x0;
+    }
+    static v8df rsqrt_2nd(v8df rhs) {
+        v8df x0 = (v8sf::rsqrt_0th(rhs.cvtpd2ps())).cvtps2pd();
+        v8df h  = v8df(1.) - rhs * x0 * x0;
+        return x0 + (v8df(0.5) + v8df(0.375) * h) * h * x0;
+    }
+    static v8df rsqrt_3rd(v8df rhs) {
+        v8df x0 = (v8sf::rsqrt_0th(rhs.cvtpd2ps())).cvtps2pd();
+        v8df h  = v8df(1.) - rhs * x0 * x0;
+        return x0 + (v8df(0.5) + (v8df(0.375) + v8df(0.3125) * h) * h) * h * x0;
+    }
+    static v8df rsqrt_4th(v8df rhs) {
+        v8df x0 = (v8sf::rsqrt_0th(rhs.cvtpd2ps())).cvtps2pd();
+        v8df h  = v8df(1.) - rhs * x0 * x0;
+        return x0
+            + (v8df(0.5) + (v8df(0.375) + (v8df(0.3125) + v8df(0.2734375) * h) * h) * h) * h * x0;
+    }
+
+    static v8df fabs(v8df rhs) {
+        v8df signmask(-0.0);
+        return _mm512_andnot_pd(signmask, rhs);
+    }
     
     inline void store(double *p) const {
         _mm512_store_pd(p, val);
@@ -733,6 +798,10 @@ struct v8df {
     }    
 };
 
+v8df v8sf::cvtps2pd() {
+    return _mm512_cvtps_pd(val);
+}
+
 #ifndef __AVX512DQ__
 inline v8sf _mm512_extractf32x8_ps(v16sf rhs, int imm8) {
     v4sf x0, x1;
@@ -749,10 +818,11 @@ inline v8sf _mm512_extractf32x8_ps(v16sf rhs, int imm8) {
 
 #endif
 
-#if 1
+
+#ifdef __AVX512F__
+const int v8df::nvector = 8;
+typedef v8df vndf;
+#else
 const int v4df::nvector = 4;
 typedef v4df vndf;
-#else
-const int v4df::nvector = 8;
-typedef v8df vndf;
 #endif

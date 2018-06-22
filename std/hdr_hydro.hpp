@@ -219,7 +219,13 @@ struct calcHydro {
                 vndf dvz_ij = vz_i - vndf(epj[j].vel[2]);
 
                 vndf r2_ij = dpx_ij * dpx_ij + dpy_ij * dpy_ij + dpz_ij * dpz_ij;
+#ifdef __AVX512F__
+                vndf ri_ij = _mm512_mask_mov_pd(vndf(0.),
+                    _mm512_cmp_pd_mask(id_i, vndf(epj[j].id), _CMP_NEQ_OQ),
+                    rsqrt(r2_ij));
+#else
                 vndf ri_ij = ((id_i != vndf(epj[j].id)) & rsqrt(r2_ij));
+#endif
                 vndf r1_ij = r2_ij * ri_ij;
                 vndf q_i   = r1_ij * hi_i;
                 vndf q_j   = r1_ij * epj[j].hinv;
@@ -231,7 +237,13 @@ struct calcHydro {
 
                 vndf rv_ij  = dpx_ij * dvx_ij + dpy_ij * dvy_ij + dpz_ij * dvz_ij;
                 vndf w_ij   = rv_ij * ri_ij;
+#ifdef __AVX512F__
+                vndf w0_ij  = _mm512_mask_mov_pd(vndf(0.),
+                    _mm512_cmp_pd_mask(w_ij, vndf(0.), _CMP_LT_OS),
+                    w_ij);
+#else
                 vndf w0_ij  = ((w_ij < vndf(0.)) & w_ij);
+#endif
                 vndf vs_ij  = cs_i + vndf(epj[j].vsnd) - vndf(3.) * w0_ij;
                 vndf rhi_ij = rcp(dn_i + vndf(epj[j].dens));
                 vndf av0_ij = (bs_i + vndf(epj[j].bswt)) * (al_i + vndf(epj[j].alph))
@@ -246,7 +258,13 @@ struct calcHydro {
                 achz_i -= ta_ij * dpz_ij;
 
                 vndf vsu2_ij  = vndf::fabs(pp_i - vndf(epj[j].pres)) * rhi_ij * vndf(2.);
+#ifdef __AVX512F__
+                vndf vsui_ij  = _mm512_mask_mov_pd(vndf(0.),
+                    _mm512_cmp_pd_mask(vsu2_ij, vndf(0.), _CMP_NEQ_OQ),
+                    rsqrt(vsu2_ij));
+#else
                 vndf vsui_ij  = ((vsu2_ij != 0.) & rsqrt(vsu2_ij));
+#endif
                 vndf vsu_ij   = vsu2_ij * vsui_ij;
                 vndf du_ij    = eg_i - vndf(epj[j].thrm);
 

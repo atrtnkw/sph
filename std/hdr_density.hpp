@@ -151,7 +151,13 @@ struct calcDensity {
                     vndf rhj = vndf(epj[j].mass) * hi3_i * kw0;
 
                     rh_i += rhj;
+#ifdef __AVX512F__
+                    nj_i += _mm512_mask_mov_pd(vndf(0.),
+                                               _mm512_cmp_pd_mask(q_i, vndf(1.), _CMP_LT_OS),
+                                               vndf(1.));
+#else
                     nj_i += ((q_i < 1.) & vndf(1.));                    
+#endif
                 }
 
                 PS::F64 buf_dens[nvector] __attribute__((aligned(vndf::nvector*8)));
@@ -187,7 +193,13 @@ struct calcDensity {
 
                 vndf r2_ij = dpx_ij * dpx_ij + dpy_ij * dpy_ij + dpz_ij * dpz_ij;
                 vndf ri_ij = rsqrt(r2_ij);
+#ifdef __AVX512F__
+                ri_ij = _mm512_mask_mov_pd(vndf(0.),
+                    _mm512_cmp_pd_mask(id_i, vndf(epj[j].id), _CMP_NEQ_UQ),
+                    ri_ij);
+#else
                 ri_ij = ((id_i != vndf(epj[j].id)) & ri_ij);
+#endif
                 vndf r1_ij = r2_ij * ri_ij;
                 vndf q_i = r1_ij * hi_i;
 
@@ -216,11 +228,26 @@ struct calcDensity {
                 rotz_i -= dvy_ij * dwx_ij;                 
             }
 
+#ifdef __AVX512F__
+            PS::F64 buf_dens[nvector] __attribute__((aligned(vndf::nvector*8)));
+            for(PS::S32 ii = 0; ii < nii; ii++) {
+                buf_dens[ii] = density[i+ii].dens;
+            }
+            vndf dens_i;
+            dens_i.load(buf_dens);
+#else
             vndf dens_i(density[i].dens, density[i+1].dens, density[i+2].dens, density[i+3].dens);
+#endif
             vndf deni_i = rcp(dens_i);
             vndf omgi_i = rcp(vndf(1.) + hs_i * deni_i * grdh_i * rcp(RP::NumberOfDimension));
             vndf rot2_i = rotx_i * rotx_i + roty_i * roty_i + rotz_i * rotz_i;
+#ifdef __AVX512F__
+            vndf rotv_i = rot2_i * _mm512_mask_mov_pd(vndf(0.),
+                _mm512_cmp_pd_mask(rot2_i, vndf(0.), _CMP_NEQ_UQ),
+                rsqrt(rot2_i));
+#else
             vndf rotv_i = rot2_i * ((rot2_i != 0.) & rsqrt(rot2_i));
+#endif
             rotv_i *= deni_i * omgi_i;
             divv_i *= deni_i * omgi_i;
 
