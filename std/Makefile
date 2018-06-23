@@ -1,6 +1,6 @@
 ###### AT_PLATFORM ########
-use_xc  = yes
-#use_ofp  = yes
+#use_xc  = yes
+use_ofp  = yes
 ###### AT_EOS #############
 use_ideal = no
 ###### AT_MPI_OPENMP ######
@@ -8,7 +8,6 @@ use_mpi = yes
 use_omp = yes
 ###########################
 ###### AT_FLAGS ##############################
-CFLAGS += -DUSE_INTRINSICS
 #CFLAGS += -DFOR_TUBE_TEST
 #CFLAGS += -DCOULOMB_CORRECTION
 #CFLAGS += -DNON_SYNCHRONIZED_BINARY
@@ -22,6 +21,7 @@ CCC = CC
 CNN = cc
 FCC = ftn
 LNK = ${CCC}
+CFLAGS += -DUSE_INTRINSICS
 #CFLAGS += -O3 -march=core-avx2 -ffast-math -funroll-loops #-Wall
 CFLAGS += -O3 -march=skylake-avx512 -ffast-math -funroll-loops
 CLIBS  += -lstdc++ -lm
