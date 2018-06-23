@@ -382,51 +382,51 @@ struct v4df {
         return _mm256_cvtpd_ps(val);
     }
 
-    static v4df rcp_0th(v4df rhs) {
+    static inline v4df rcp_0th(v4df rhs) {
         v4df x0 = (v4sf::rcp_0th(rhs.cvtpd2ps())).cvtps2pd();
         return x0;
     }
-    static v4df rcp_1st(v4df rhs) {
+    static inline v4df rcp_1st(v4df rhs) {
         v4df x0 = (v4sf::rcp_0th(rhs.cvtpd2ps())).cvtps2pd();
         v4df h  = v4df(1.) - rhs * x0;
         return x0 + h * x0;
     }
-    static v4df rcp_4th(v4df rhs) {
+    static inline v4df rcp_4th(v4df rhs) {
         v4df x0 = (v4sf::rcp_0th(rhs.cvtpd2ps())).cvtps2pd();
         v4df h  = v4df(1.) - rhs * x0;
         return (v4df(1.) + h) * (v4df(1.) + h * h) * x0;
     }
 
-    static v4df sqrt(const v4df rhs) {
+    static inline v4df sqrt(const v4df rhs) {
         return v4df(_mm256_sqrt_pd(rhs.val));
     }
-    static v4df rsqrt_0th(v4df rhs) {
+    static inline v4df rsqrt_0th(v4df rhs) {
         v4df x0 = (v4sf::rsqrt_0th(rhs.cvtpd2ps())).cvtps2pd();
         return x0;
     }
-    static v4df rsqrt_1st(v4df rhs) {
+    static inline v4df rsqrt_1st(v4df rhs) {
         v4df x0 = (v4sf::rsqrt_0th(rhs.cvtpd2ps())).cvtps2pd();
         v4df h  = v4df(1.) - rhs * x0 * x0;
         return x0 + v4df(0.5) * h * x0;
     }
-    static v4df rsqrt_2nd(v4df rhs) {
+    static inline v4df rsqrt_2nd(v4df rhs) {
         v4df x0 = (v4sf::rsqrt_0th(rhs.cvtpd2ps())).cvtps2pd();
         v4df h  = v4df(1.) - rhs * x0 * x0;
         return x0 + (v4df(0.5) + v4df(0.375) * h) * h * x0;
     }
-    static v4df rsqrt_3rd(v4df rhs) {
+    static inline v4df rsqrt_3rd(v4df rhs) {
         v4df x0 = (v4sf::rsqrt_0th(rhs.cvtpd2ps())).cvtps2pd();
         v4df h  = v4df(1.) - rhs * x0 * x0;
         return x0 + (v4df(0.5) + (v4df(0.375) + v4df(0.3125) * h) * h) * h * x0;
     }
-    static v4df rsqrt_4th(v4df rhs) {
+    static inline v4df rsqrt_4th(v4df rhs) {
         v4df x0 = (v4sf::rsqrt_0th(rhs.cvtpd2ps())).cvtps2pd();
         v4df h  = v4df(1.) - rhs * x0 * x0;
         return x0
             + (v4df(0.5) + (v4df(0.375) + (v4df(0.3125) + v4df(0.2734375) * h) * h) * h) * h * x0;
     }
 
-    static v4df fabs(v4df rhs) {
+    static inline v4df fabs(v4df rhs) {
         v4df signmask(-0.0);
         return _mm256_andnot_pd(signmask, rhs);
     }
@@ -713,7 +713,7 @@ struct v8df {
         return v8df(_mm512_and_pd(val, rhs.val));
     }
 
-    static v8df max(const v8df a, const v8df b) {
+    static inline v8df max(const v8df a, const v8df b) {
         return v8df(_mm512_max_pd(a.val, b.val));
     }
 
@@ -721,51 +721,51 @@ struct v8df {
         return _mm512_cvtpd_ps(val);
     }
 
-    static v8df rcp_0th(v8df rhs) {
+    static inline v8df rcp_0th(v8df rhs) {
         v8df x0 = (v8sf::rcp_0th(rhs.cvtpd2ps())).cvtps2pd();
         return x0;
     }
-    static v8df rcp_1st(v8df rhs) {
+    static inline v8df rcp_1st(v8df rhs) {
         v8df x0 = (v8sf::rcp_0th(rhs.cvtpd2ps())).cvtps2pd();
         v8df h  = v8df(1.) - rhs * x0;
         return x0 + h * x0;
     }
-    static v8df rcp_4th(v8df rhs) {
+    static inline v8df rcp_4th(v8df rhs) {
         v8df x0 = (v8sf::rcp_0th(rhs.cvtpd2ps())).cvtps2pd();
         v8df h  = v8df(1.) - rhs * x0;
         return (v8df(1.) + h) * (v8df(1.) + h * h) * x0;
     }
 
-    static v8df sqrt(const v8df rhs) {
+    static inline v8df sqrt(const v8df rhs) {
         return v8df(_mm512_sqrt_pd(rhs.val));
     }
-    static v8df rsqrt_0th(v8df rhs) {
+    static inline v8df rsqrt_0th(v8df rhs) {
         v8df x0 = (v8sf::rsqrt_0th(rhs.cvtpd2ps())).cvtps2pd();
         return x0;
     }
-    static v8df rsqrt_1st(v8df rhs) {
+    static inline v8df rsqrt_1st(v8df rhs) {
         v8df x0 = (v8sf::rsqrt_0th(rhs.cvtpd2ps())).cvtps2pd();
         v8df h  = v8df(1.) - rhs * x0 * x0;
         return x0 + v8df(0.5) * h * x0;
     }
-    static v8df rsqrt_2nd(v8df rhs) {
+    static inline v8df rsqrt_2nd(v8df rhs) {
         v8df x0 = (v8sf::rsqrt_0th(rhs.cvtpd2ps())).cvtps2pd();
         v8df h  = v8df(1.) - rhs * x0 * x0;
         return x0 + (v8df(0.5) + v8df(0.375) * h) * h * x0;
     }
-    static v8df rsqrt_3rd(v8df rhs) {
+    static inline v8df rsqrt_3rd(v8df rhs) {
         v8df x0 = (v8sf::rsqrt_0th(rhs.cvtpd2ps())).cvtps2pd();
         v8df h  = v8df(1.) - rhs * x0 * x0;
         return x0 + (v8df(0.5) + (v8df(0.375) + v8df(0.3125) * h) * h) * h * x0;
     }
-    static v8df rsqrt_4th(v8df rhs) {
+    static inline v8df rsqrt_4th(v8df rhs) {
         v8df x0 = (v8sf::rsqrt_0th(rhs.cvtpd2ps())).cvtps2pd();
         v8df h  = v8df(1.) - rhs * x0 * x0;
         return x0
             + (v8df(0.5) + (v8df(0.375) + (v8df(0.3125) + v8df(0.2734375) * h) * h) * h) * h * x0;
     }
 
-    static v8df fabs(v8df rhs) {
+    static inline v8df fabs(v8df rhs) {
         v8df signmask(-0.0);
         return _mm512_andnot_pd(signmask, rhs);
     }
@@ -775,6 +775,12 @@ struct v8df {
     }
     inline void load(double const *p) {
         val = _mm512_load_pd(p);
+    }
+    
+    static inline v4df reduce(v8df rhs) {
+	v4df x0 = _mm512_extractf64x4_pd(rhs, 0);
+	v4df x1 = _mm512_extractf64x4_pd(rhs, 1);
+	return v4df(x0 + x1);
     }
 
     // terrible implementation (A. Tanikawa)

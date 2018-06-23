@@ -78,6 +78,213 @@ public:
 
 #ifdef USE_INTRINSICS
 
+//#define USE_SIMDI4J2
+#ifdef USE_SIMDI4J2
+
+struct calcDensity {
+
+    static const PS::S64 njarraymax = 65536;
+
+    void operator () (const DensityEPI *epi,
+                      const PS::S32 nip,
+                      const DensityEPJ *epj,
+                      const PS::S32 njp,
+                      Density *density) {
+
+        static __thread PS::S32 idj[njarraymax];
+        static __thread PS::F64 mj[njarraymax];
+        static __thread PS::F64 pxj[njarraymax];
+        static __thread PS::F64 pyj[njarraymax];
+        static __thread PS::F64 pzj[njarraymax];
+        static __thread PS::F64 vxj[njarraymax];
+        static __thread PS::F64 vyj[njarraymax];
+        static __thread PS::F64 vzj[njarraymax];
+
+        v8df (*rcp)(v8df)   = v8df::rcp_4th;
+        v8df (*rsqrt)(v8df) = v8df::rsqrt_4th;
+
+        const PS::S32 nivec   = 4;
+        const PS::S32 njvec   = 2;
+        const PS::S32 njarray = (njp / njvec + 1) * njvec;
+        assert(njarray <= njarraymax);
+        for(PS::S32 j = 0; j < njarray; j += njvec) {
+            for(PS::S32 jj = 0; jj < njvec; jj++) {
+                idj[j+jj] = epj[j+jj].id;
+                mj[j+jj]  = epj[j+jj].mass;
+                pxj[j+jj] = epj[j+jj].pos[0];
+                pyj[j+jj] = epj[j+jj].pos[1];
+                pzj[j+jj] = epj[j+jj].pos[2];
+                vxj[j+jj] = epj[j+jj].vel[0];
+                vyj[j+jj] = epj[j+jj].vel[1];
+                vzj[j+jj] = epj[j+jj].vel[2];
+            }
+        }
+        if(njarray > njp) {
+            idj[njarray-1]      = -1;
+            mj[njarray-1]       = 0.;
+            pxj[njarray-1]      = 1e+30;
+        }
+
+        for(PS::S32 i = 0; i < nip; i += nivec) {
+            const PS::S32 nii = std::min(nip - i, nivec);
+            PS::F64 buf_id[nivec] __attribute__((aligned(nivec*8)));
+            PS::F64 buf_px[nivec] __attribute__((aligned(nivec*8)));
+            PS::F64 buf_py[nivec] __attribute__((aligned(nivec*8)));
+            PS::F64 buf_pz[nivec] __attribute__((aligned(nivec*8)));
+            PS::F64 buf_vx[nivec] __attribute__((aligned(nivec*8)));
+            PS::F64 buf_vy[nivec] __attribute__((aligned(nivec*8)));
+            PS::F64 buf_vz[nivec] __attribute__((aligned(nivec*8)));
+            PS::F64 buf_hs[nivec] __attribute__((aligned(nivec*8)));
+            for(PS::S32 ii = 0; ii < nii; ii++) {
+                buf_id[ii] = epi[i+ii].id;
+                buf_px[ii] = epi[i+ii].pos[0];
+                buf_py[ii] = epi[i+ii].pos[1];
+                buf_pz[ii] = epi[i+ii].pos[2];
+                buf_vx[ii] = epi[i+ii].vel[0];
+                buf_vy[ii] = epi[i+ii].vel[1];
+                buf_vz[ii] = epi[i+ii].vel[2];
+                buf_hs[ii] = epi[i+ii].ksr;
+            }
+            v4df id_i;
+            v4df px_i;
+            v4df py_i;
+            v4df pz_i;
+            v4df vx_i;
+            v4df vy_i;
+            v4df vz_i;
+            v4df hs_i;
+            id_i.load(buf_id);
+            px_i.load(buf_px);
+            py_i.load(buf_py);
+            pz_i.load(buf_pz);
+            vx_i.load(buf_vx);
+            vy_i.load(buf_vy);
+            vz_i.load(buf_vz);
+            hs_i.load(buf_hs);
+
+            for(PS::S32 repeat = 0; repeat < 3; repeat++) {
+                v8df hi_i  = rcp(v8df(hs_i));
+                v8df hi3_i = ND::calcVolumeInverse(hi_i);
+                v8df hi4_i = hi_i * hi3_i;
+                v8df rh_i(0.);
+                v8df nj_i(0.);
+                for(PS::S32 j = 0; j < njarray; j += njvec) {
+                    v8df dx_ij = v8df(px_i) - v8df(v4df(pxj[j]), v4df(pxj[j+1]));
+                    v8df dy_ij = v8df(py_i) - v8df(v4df(pyj[j]), v4df(pyj[j+1]));
+                    v8df dz_ij = v8df(pz_i) - v8df(v4df(pzj[j]), v4df(pzj[j+1]));
+                    v8df r2_ij = dx_ij * dx_ij + dy_ij * dy_ij + dz_ij * dz_ij;
+                    v8df r1_ij = v8df::sqrt(r2_ij);
+                    v8df q_i   = r1_ij * hi_i;
+                    v8df kw0   = SK::kernel0th(q_i);
+                    v8df rhj   = v8df(v4df(mj[j]), v4df(mj[j+1])) * hi3_i * kw0;
+                    rh_i += rhj;
+                    nj_i += _mm512_mask_mov_pd(v8df(0.),
+                                               _mm512_cmp_pd_mask(q_i, v8df(1.), _CMP_LT_OS),
+                                               v8df(1.));
+                }
+                PS::F64 buf_dens[nivec] __attribute__((aligned(nivec*8)));
+                PS::F64 buf_nj[nivec]   __attribute__((aligned(nivec*8)));
+                v8df::reduce(rh_i).store(buf_dens);
+                v8df::reduce(nj_i).store(buf_nj);
+                for(PS::S32 ii = 0; ii < nii; ii++) {
+                    buf_hs[ii] = SK::eta * SK::ksrh
+                        * ND::calcPowerOfDimInverse(epi[i+ii].mass, buf_dens[ii]);
+                    buf_hs[ii] = std::min(buf_hs[ii], RP::KernelSupportRadiusMaximum);
+                    density[i+ii].dens = buf_dens[ii];
+                    density[i+ii].np   = (PS::S64)buf_nj[ii];
+                    density[i+ii].ksr  = buf_hs[ii];
+                    density[i+ii].itr  = (buf_hs[ii] > epi[i+ii].rs) ? true : false;
+                }
+                hs_i.load(buf_hs);
+            }
+
+            v8df hi_i  = rcp(v8df(hs_i));
+            v8df hi4_i = hi_i * ND::calcVolumeInverse(hi_i);
+            v8df grdh_i(0.);
+            v8df divv_i(0.);
+            v8df rotx_i(0.);
+            v8df roty_i(0.);
+            v8df rotz_i(0.);
+            for(PS::S32 j = 0; j < njarray; j += njvec) {
+                v8df dpx_ij = v8df(px_i) - v8df(v4df(pxj[j]), v4df(pxj[j+1]));
+                v8df dpy_ij = v8df(py_i) - v8df(v4df(pyj[j]), v4df(pyj[j+1]));
+                v8df dpz_ij = v8df(pz_i) - v8df(v4df(pzj[j]), v4df(pzj[j+1]));
+                v8df dvx_ij = v8df(vx_i) - v8df(v4df(vxj[j]), v4df(vxj[j+1]));
+                v8df dvy_ij = v8df(vy_i) - v8df(v4df(vyj[j]), v4df(vyj[j+1]));
+                v8df dvz_ij = v8df(vz_i) - v8df(v4df(vzj[j]), v4df(vzj[j+1]));
+
+                v8df r2_ij = dpx_ij * dpx_ij + dpy_ij * dpy_ij + dpz_ij * dpz_ij;
+                v8df ri_ij = rsqrt(r2_ij);
+                ri_ij = _mm512_mask_mov_pd(v8df(0.),
+                                           _mm512_cmp_pd_mask(v8df(id_i),
+                                                              v8df(v4df(idj[j]), v4df(idj[j+1])),
+                                                              _CMP_NEQ_UQ),
+                                           ri_ij);
+                v8df r1_ij = r2_ij * ri_ij;
+                v8df q_i = r1_ij * hi_i;
+
+                v8df kw0 = SK::kernel0th(q_i);
+                v8df kw1 = SK::kernel1st(q_i);
+
+                v8df m_j(v4df(mj[j]), v4df(mj[j+1]));
+                v8df ghj = v8df(RP::NumberOfDimension) * kw0;
+                ghj += q_i * kw1;
+                grdh_i -= ghj * hi4_i * m_j;
+
+                v8df dw_ij  = m_j * hi4_i * kw1 * ri_ij;
+                v8df dwx_ij = dw_ij * dpx_ij;
+                v8df dwy_ij = dw_ij * dpy_ij;
+                v8df dwz_ij = dw_ij * dpz_ij;
+
+                divv_i -= dvx_ij * dwx_ij;
+                divv_i -= dvy_ij * dwy_ij;
+                divv_i -= dvz_ij * dwz_ij;
+
+                rotx_i += dvy_ij * dwz_ij;
+                roty_i += dvz_ij * dwx_ij;
+                rotz_i += dvx_ij * dwy_ij;
+                rotx_i -= dvz_ij * dwy_ij;
+                roty_i -= dvx_ij * dwz_ij;
+                rotz_i -= dvy_ij * dwx_ij;                 
+            }
+
+            v4df grdh = v8df::reduce(grdh_i);
+            v4df divv = v8df::reduce(divv_i);
+            v4df rotx = v8df::reduce(rotx_i);
+            v4df roty = v8df::reduce(roty_i);
+            v4df rotz = v8df::reduce(rotz_i);
+            PS::F64 buf_dens[nivec] __attribute__((aligned(nivec*8)));
+            for(PS::S32 ii = 0; ii < nii; ii++) {
+                buf_dens[ii] = density[i+ii].dens;
+            }
+            v4df dens;
+            dens.load(buf_dens);
+            v4df deni = v4df::rcp_4th(dens);
+            v4df omgi = v4df::rcp_4th(v4df(1.) + hs_i * deni * grdh
+                                      * v4df::rcp_4th(RP::NumberOfDimension));
+            v4df rot2 = rotx * rotx + roty * roty + rotz * rotz;
+            v4df rotv = rot2 * _mm256_mask_mov_pd(v4df(0.),
+                                                  _mm256_cmp_pd_mask(rot2, v4df(0.), _CMP_NEQ_UQ),
+                                                  v4df::rsqrt_4th(rot2));
+            rotv *= deni * omgi;
+            divv *= deni * omgi;
+            PS::F64 buf_divv[nivec] __attribute__((aligned(nivec*8)));
+            PS::F64 buf_rotv[nivec] __attribute__((aligned(nivec*8)));
+            PS::F64 buf_omgi[nivec] __attribute__((aligned(nivec*8)));
+            divv.store(buf_divv);
+            rotv.store(buf_rotv);
+            omgi.store(buf_omgi);
+            for(PS::S32 ii = 0; ii < nii; ii++) {
+                density[i+ii].divv = buf_divv[ii];
+                density[i+ii].rotv = buf_rotv[ii];
+                density[i+ii].grdh = buf_omgi[ii];
+            }
+        }
+    }
+};
+
+#else
+
 struct calcDensity {
 
     void operator () (const DensityEPI *epi,
@@ -265,6 +472,8 @@ struct calcDensity {
         }        
     }
 };
+
+#endif
 
 #else
 
