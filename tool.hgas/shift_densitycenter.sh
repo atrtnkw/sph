@@ -5,7 +5,7 @@ then
 fi
 
 file=$1
-colden=17
+colden=16
 
 awk 'BEGIN{xc=yc=zc=0.;dn=0.;}
 {xc+=$(colden)*$4;yc+=$(colden)*$5;zc+=$(colden)*$6;dn+=$(colden)}
