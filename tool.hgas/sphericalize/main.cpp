@@ -136,6 +136,18 @@ void sphericalizeWhiteDwarf(PS::F64 rmax,
         if(ibin >= nbin) {
             continue;
         }
+        ///////////// Ad hoc method //////////////
+        if(sph[i].istar == 0 && sph[i].cmps[1] > 0.2 && rad1 < 3e10) {
+            for(PS::S64 k = 0; k < NR::NumberOfNucleon; k++) {
+                if(k != 12) {
+                    sph[i].cmps[k] = 0.;
+                } else {
+                    sph[i].cmps[k] = 1.;
+                }
+            }
+            //continue;
+        }
+        //////////////////////////////////////////
         sloc[ibin].increment(sph[i]);
     }
 

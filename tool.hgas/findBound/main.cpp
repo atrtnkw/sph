@@ -209,7 +209,8 @@ int main(int argc, char ** argv) {
         sph.readParticleAscii(sfile, "%s_p%06d_i%06d.dat");
 
         char ofile[1024];
-        sprintf(ofile, "%s/sph_t%04d_p%06d_i%06d.dat.bound",
+        //sprintf(ofile, "%s/sph_t%04d_p%06d_i%06d.dat.bound",
+        sprintf(ofile, "%s/sph_t%04d_p%06d_i%06d.dat",
                 odir, itime, PS::Comm::getNumberOfProc(), PS::Comm::getRank());
         findBoundParticle(hfile, ofile, itime, searchmode, printmode, excludedID, sph);
 

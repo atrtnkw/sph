@@ -148,6 +148,7 @@ void projectOnPlane(char * ofile,
                     Plane & plane,
                     Tsph  & sph) {
     const  PS::S64 nmax = 256;
+//    const  PS::S64 nmax = 128;
     static PS::S64 ptcl[nmax][nmax];
     static PS::F64 dens[nmax][nmax];
     static PS::F64 temp[nmax][nmax];
@@ -201,10 +202,29 @@ void projectOnPlane(char * ofile,
         if(iy < 0 || nmax <= iy) {
             continue;
         }
+        ///////////// Ad hoc method //////////////
+        /*
+        {
+            PS::F64 rad1 = sqrt(sph[i].pos * sph[i].pos);
+            if(sph[i].istar == 0 && sph[i].cmps[1] > 0.2 && rad1 < 3e10) {
+            //if(sph[i].istar == 0 && sph[i].cmps[1] > 0.2 && rad1 < 7e8) {
+                for(PS::S64 k = 0; k < NR::NumberOfNucleon; k++) {
+                    if(k != 12) {
+                        sph[i].cmps[k] = 0.;
+                    } else {
+                        sph[i].cmps[k] = 1.;
+                    }
+                }
+                //printf("hoge\n");
+            }
+        }
+        */
+        //////////////////////////////////////////
         ptcl[ix][iy] += 1;
         dens[ix][iy] += sph[i].dens;
         temp[ix][iy] += sph[i].temp;
         tmax[ix][iy] += sph[i].tempmax[0];
+        //tmax[ix][iy] += sph[i].entr;
         xhe4[ix][iy] += sph[i].cmps[0];
         xc12[ix][iy] += sph[i].cmps[1];
         xo16[ix][iy] += sph[i].cmps[2];
