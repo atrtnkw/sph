@@ -10,6 +10,25 @@ clobe=$3
 ftype=$4
 gravc=0.000000066738480
 
+if ! test -e $large
+then
+    echo "Error: Not found $large" >&2
+    exit
+fi
+
+if ! test -e $small
+then
+    echo "Error: Not found $small" >&2
+    exit
+fi
+
+touch $ftype.log
+if ! test -e $ftype.log
+then
+    echo "Error: Not found $ftype.log" >&2
+    exit
+fi
+
 m1=`awk 'BEGIN{mtot=0.0;}{mtot+=$3}END{printf("%lf\n", mtot);}' $large`
 m2=`awk 'BEGIN{mtot=0.0;}{mtot+=$3}END{printf("%lf\n", mtot);}' $small`
 

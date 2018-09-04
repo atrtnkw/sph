@@ -10,8 +10,8 @@
 
 NPARALLEL=1
 NPROCESS=$NPARALLEL
-ifile="../r008m/run.s1.00_h030-060/nohot/s1.00_h030-060.data"
-tfile="../r008m/run.s1.00_h030-060/init/s1.00_h030-060"
+ifile="../r004m/run.b1.00_h025-050_0.90_h010-100/nohot/s1.00_h025-050.data"
+tfile="../r004m/run.b1.00_h025-050_0.90_h010-100/inhot/s1.00_h025-050"
 iflag=0
 size=1e8
 #size=5e7
@@ -19,8 +19,8 @@ size=1e8
 spotx=0.0
 spoty=0.0
 #spotz=4.2e8 #s1.00_h100-100
-spotz=3.6e8 #s1.00_h050-100
-#spotz=3.6e8 #s1.00_h025-100
+#spotz=3.6e8 #s1.00_h050-100
+spotz=3.6e8 #s1.00_h025-100
 
 export OMP_NUM_THREADS=`echo "$NPARALLEL / $NPROCESS" | bc`
 
