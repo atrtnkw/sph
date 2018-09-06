@@ -26,4 +26,4 @@ for time in range(tbgn,tend,dtsp):
     ad = ds.h.all_data()
     obj = open(ofile, 'w')
     for i in range(ad["temp"].size):
-        print ("%e %e %e %e %e %e" % (ad["x"][i], ad["y"][i], ad["z"][i], ad["dens"][i], ad["temp"][i], ad["pres"][i]), file=obj)
+        print ("%e %e %e %e %e %e %e" % (ad["x"][i], ad["y"][i], ad["z"][i], ad["dens"][i], ad["temp"][i], ad["pres"][i], ad["ener"][i]), file=obj)
