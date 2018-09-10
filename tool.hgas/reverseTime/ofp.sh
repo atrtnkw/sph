@@ -8,10 +8,10 @@
 #PJM --mpi proc=3072
 #PJM --omp thread=1
 
-echo "../r004m/run.b1.00_h030-060_0.60/mod0016/"  > input.list
+echo "../r004m/run.b1.00_h050-050_0.90/time000-005/"  > input.list
 echo "./hoge" >> input.list
 echo "0 0" >> input.list
-echo "../r004m/run.b1.00_h030-060_0.60/findunbound/sph_t0050.id.1" >> input.list
+echo "../r004m/run.b1.00_h050-050_0.90/anly/t0050_unbound.1/sph_t0050.id.1" >> input.list
 
 # idir
 # odir
