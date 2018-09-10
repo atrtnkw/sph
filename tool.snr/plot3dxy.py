@@ -23,7 +23,8 @@ for time in range(tbgn,tend,dtsp):
         continue
 
     ds = load(ifile)
-    ad = ds.r[:,:,0.00390625]
+#    ad = ds.r[:,:,0.00390625]
+    ad = ds.r[:,:,3.90625e16]
     obj = open(ofile, 'w')
     for i in range(ad["temp"].size):
         print ("%e %e %e %e %e %e %e" % (ad["x"][i], ad["y"][i], ad["z"][i], ad["dens"][i], ad["temp"][i], ad["pres"][i], ad["ener"][i]), file=obj)
