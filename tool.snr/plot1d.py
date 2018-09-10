@@ -27,5 +27,4 @@ for time in range(tbgn,tend,dtsp):
     obj = open(ofile, 'w')
     for i in range(ad["temp"].size):
         print ("%e %e %e %e %e %e" % (ad["r"][i], ad["dens"][i], ad["temp"][i], ad["pres"][i], ad["ener"][i], ad["velx"][i]), file=obj)
-#        print ("%e %e %e %e %e %e" % (ad["x"][i], ad["dens"][i], ad["temp"][i], ad["pres"][i], ad["ener"][i], ad["velx"][i]), file=obj)
 
