@@ -35,7 +35,7 @@ END{
             velr = 0.;
         }
 #        printf("%+e %+e %+e %+e\n", r, dens, pres, velr);
-        printf("%+e %+e %+e\n", dens, pres, velr);
+         printf("%+e %+e %+e\n", dens, pres, velr);
     }
 }
 

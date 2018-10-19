@@ -2,16 +2,16 @@
 #PJM -L rscgrp=regular-cache
 #PJM -L elapse=01:00:00
 #PJM -g xg18i004
-#PJM -N findBound
+#PJM -N reverseTime
 #PJM -j
 #PJM -L node=48
 #PJM --mpi proc=3072
 #PJM --omp thread=1
 
-echo "../r004m/run.b1.00_h050-050_0.90/time000-005/"  > input.list
+echo "../r004m/run.b1.00_h030-060_0.60_h010-100/time000.00-005.00/"  > input.list
 echo "./hoge" >> input.list
 echo "0 0" >> input.list
-echo "../r004m/run.b1.00_h050-050_0.90/anly/t0050_unbound.1/sph_t0050.id.1" >> input.list
+echo "../r004m/run.b1.00_h030-060_0.60_h010-100/anly/t0050_unbound.1/sph_t0050.id.1" >> input.list
 
 # idir
 # odir

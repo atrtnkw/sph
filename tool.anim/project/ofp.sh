@@ -8,12 +8,12 @@
 #PJM --mpi proc=3072
 #PJM --omp thread=1
 
-echo "../r004m/run.b1.00_h050-050_0.90_h010-100/time000-005"  > input.list
-echo "../r004m/run.b1.00_h050-050_0.90_h010-100/anim000-005" >> input.list
-echo "0 20" >> input.list
+echo "../r004m/run.b1.00_h030-060_0.60_h010-100/time010.00-050.00/"  > input.list
+echo "../r004m/run.b1.00_h030-060_0.60_h010-100/anim010.00-050.00/" >> input.list
+echo "2 10" >> input.list
 echo "0 0 1 0" >> input.list
 echo "0 0" >> input.list
-echo "5e9" >> input.list
+echo "2e11" >> input.list
 
 # idir
 # odir
