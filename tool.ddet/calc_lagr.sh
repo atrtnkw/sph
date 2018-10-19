@@ -21,3 +21,5 @@ echo "# $cx $cy $cz" > $ofile
 awk '{if($2==sid){printf("%+e %10d\n", sqrt(($4-cx)**2+($5-cy)**2+($6-cz)**2), $1)}}' \
     sid=$sid cx=$cx cy=$cy cz=$cz $ifile \
     | sort -g >> $ofile
+
+rm -f tmp.*
