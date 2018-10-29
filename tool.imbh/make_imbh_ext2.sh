@@ -14,6 +14,12 @@ ofile=$6
 echo "sh $0 $bhmas $ifile $radius $irirt $ibeta $ofile" >&2
 echo "sh $0 $bhmas $ifile $radius $irirt $ibeta $ofile" > "$ofile".log
 
+if ! test -e "$ofile".log
+then
+    echo "Error: Not found $ofile.log" >&2
+    exit
+fi
+
 bneps=1e6
 gravc=0.000000066738480
 msn=`echo "1.9891 * 10^33" | bc`
