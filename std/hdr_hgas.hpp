@@ -981,11 +981,17 @@ void writeHexa(char * const filename,
 template <class Tdinfo,
           class Tsph,
           class Tbhns,
-          class Tmsls>
+          class Tmsls,
+          class Tdensity,
+          class Thydro,
+          class Tgravity>
 void outputData(Tdinfo & dinfo,
                 Tsph & sph,
                 Tbhns & bhns,
-                Tmsls & msls) {
+                Tmsls & msls,
+                Tdensity & density,
+                Thydro & hydro,
+                Tgravity & gravity) {
     if(RP::Time - (PS::S64)(RP::Time / RP::TimestepAscii) * RP::TimestepAscii == 0.) {
         char filename[64];
         if(RP::Time == 0.) {
@@ -1035,6 +1041,7 @@ void outputData(Tdinfo & dinfo,
         fflush(RP::FilePointerForLog);
         WT::dump(RP::Time, RP::FilePointerForTime);
         fflush(RP::FilePointerForTime);
+        PWT::dumpPreparedWallclockTime(RP::Time, stdout, density, hydro, gravity);
     }
 #ifdef NBODYLIKE
     }
@@ -1445,7 +1452,7 @@ void loopSimulation(Tdinfo & dinfo,
         }
         ////////////
         WT::reduceInterProcess();
-        outputData(dinfo, sph, bhns, msls);
+        outputData(dinfo, sph, bhns, msls, density, hydro, gravity);
         WT::clear();
         RP::Timestep = calcTimestep(sph);
         if(RP::FlagDamping == 2) {
@@ -1501,12 +1508,18 @@ void loopSimulation(Tdinfo & dinfo,
 template <class Tdinfo,
           class Tsph,
           class Tbhns,
-          class Tmsls>
+          class Tmsls,
+          class Tdensity,
+          class Thydro,
+          class Tgravity>
 void finalizeSimulation(Tdinfo & dinfo,
                         Tsph & sph,
                         Tbhns & bhns,
-                        Tmsls & msls) {
-    outputData(dinfo, sph, bhns, msls);
+                        Tmsls & msls,
+                        Tdensity & density,
+                        Thydro & hydro,
+                        Tgravity & gravity) {
+    outputData(dinfo, sph, bhns, msls, density, hydro, gravity);
     if(PS::Comm::getRank() == 0) {
         fclose(RP::FilePointerForLog);
         fclose(RP::FilePointerForTime);

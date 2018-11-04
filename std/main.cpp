@@ -376,7 +376,7 @@ int main(int argc, char **argv)
 
     loopSimulation(dinfo, sph, bhns, msls, density, hydro, gravity);
 
-    finalizeSimulation(dinfo, sph, bhns, msls);
+    finalizeSimulation(dinfo, sph, bhns, msls, density, hydro, gravity);
 
     PS::Finalize();
 

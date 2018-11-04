@@ -216,3 +216,34 @@ public:
 };
 
 typedef WallclockTime WT;
+
+namespace PreparedWallclockTime {
+    template <class Tdensity,
+              class Thydro,
+              class Tgravity>
+    void dumpPreparedWallclockTime(PS::F64 time,
+                                   FILE * fp,
+                                   Tdensity & density,
+                                   Thydro & hydro,
+                                   Tgravity & gravity) {
+        PS::TimeProfile DensityTime = density.getTimeProfile();
+        PS::TimeProfile HydroTime   = hydro.getTimeProfile();
+        PS::TimeProfile GravityTime = gravity.getTimeProfile();
+        PS::F64 DensityTimeTotal = DensityTime.getTotalTime();
+        PS::F64 HydroTimeTotal   = HydroTime.getTotalTime();
+        PS::F64 GravityTimeTotal = GravityTime.getTotalTime();
+        density.clearTimeProfile();
+        hydro.clearTimeProfile();
+        gravity.clearTimeProfile();
+        fprintf(fp, "%16.10f", time);
+        fprintf(fp, " %+e", DensityTimeTotal);
+        fprintf(fp, " %+e", HydroTimeTotal);
+        fprintf(fp, " %+e", GravityTimeTotal);
+        fprintf(fp, "\n");
+        DensityTime.clear();
+        HydroTime.clear();
+        GravityTime.clear();
+    }
+};
+namespace PWT = PreparedWallclockTime;
+
