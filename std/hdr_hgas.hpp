@@ -305,6 +305,10 @@ public:
                 cvt(this->tempmax[2]));
         fprintf(fp, "\n");
     }
+
+    void readBinary(FILE *fp) {
+        return;
+    }
     
     void referEquationOfState() {
         /*

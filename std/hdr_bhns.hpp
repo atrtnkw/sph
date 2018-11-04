@@ -119,6 +119,10 @@ public:
         fprintf(fp, "\n");
     }
 
+    void readBinary(FILE *fp) {
+        return;
+    }
+    
     inline void addAdditionalForceDamping2() {
         this->acc  -= RP::RotationalVelocity ^ (RP::RotationalVelocity ^ this->pos)
             + 2. * (RP::RotationalVelocity ^ this->vel);
