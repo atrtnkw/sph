@@ -218,6 +218,27 @@ public:
 typedef WallclockTime WT;
 
 namespace PreparedWallclockTime {
+
+    template <class Ttreeforforce>
+    void dumpTreeForForce(Ttreeforforce & func,
+                          FILE * fp) {
+        PS::TimeProfile FuncTime = func.getTimeProfile();
+        PS::F64 FuncTimeTotal = FuncTime.getTotalTime();
+        fprintf(fp, " %+.2e %+.2e %+.2e %+.2e %+.2e %+.2e %+.2e %+.2e %+.2e %+.2e %+.2e\n",
+                FuncTimeTotal,
+                FuncTime.make_local_tree,
+                FuncTime.make_global_tree,
+                FuncTime.calc_force,
+                FuncTime.calc_moment_local_tree,
+                FuncTime.calc_moment_global_tree,
+                FuncTime.make_LET_1st,
+                FuncTime.make_LET_2nd,
+                FuncTime.exchange_LET_1st,
+                FuncTime.exchange_LET_2nd,
+                FuncTime.calc_force__core__walk_tree);
+        func.clearTimeProfile();
+    }
+
     template <class Tdensity,
               class Thydro,
               class Tgravity>
@@ -226,23 +247,11 @@ namespace PreparedWallclockTime {
                                    Tdensity & density,
                                    Thydro & hydro,
                                    Tgravity & gravity) {
-        PS::TimeProfile DensityTime = density.getTimeProfile();
-        PS::TimeProfile HydroTime   = hydro.getTimeProfile();
-        PS::TimeProfile GravityTime = gravity.getTimeProfile();
-        PS::F64 DensityTimeTotal = DensityTime.getTotalTime();
-        PS::F64 HydroTimeTotal   = HydroTime.getTotalTime();
-        PS::F64 GravityTimeTotal = GravityTime.getTotalTime();
-        density.clearTimeProfile();
-        hydro.clearTimeProfile();
-        gravity.clearTimeProfile();
-        fprintf(fp, "%16.10f", time);
-        fprintf(fp, " %+e", DensityTimeTotal);
-        fprintf(fp, " %+e", HydroTimeTotal);
-        fprintf(fp, " %+e", GravityTimeTotal);
+        fprintf(fp, "Time: %16.10f\n", time);
+        dumpTreeForForce(density, fp);
+        dumpTreeForForce(hydro, fp);
+        dumpTreeForForce(gravity, fp);
         fprintf(fp, "\n");
-        DensityTime.clear();
-        HydroTime.clear();
-        GravityTime.clear();
     }
 };
 namespace PWT = PreparedWallclockTime;

@@ -1,5 +1,6 @@
 #!/bin/sh
-#PJM -L rscgrp=regular-cache
+##PJM -L rscgrp=regular-cache
+#PJM -L rscgrp=debug-cache
 #PJM -L elapse=00:30:00
 #PJM -g xg18i004
 #PJM -N project
@@ -8,12 +9,12 @@
 #PJM --mpi proc=3072
 #PJM --omp thread=1
 
-echo "../../../ddet2/"  > input.list
-echo "../r004m/run.b1.00_h030-060_0.45_tight/anim000.00-005.00/" >> input.list
-echo "27 80" >> input.list
+echo "../r004m/run.b1.00_h030-060_0.45_tight/time010.00-050.00"  > input.list
+echo "../r004m/run.b1.00_h030-060_0.45_tight/anim010.00-050.00" >> input.list
+echo "10 10" >> input.list
 echo "0 0 1 0" >> input.list
 echo "0 0" >> input.list
-echo "8e9" >> input.list
+echo "2e11" >> input.list
 
 # idir
 # odir

@@ -336,6 +336,9 @@ int main(int argc, char ** argv) {
             }
         }
         if(fp == NULL) {
+            if(PS::Comm::getRank() == 0) {
+                fprintf(stderr, "Not found %s\n", tfile);
+            }
             continue;
         }
         fclose(fp);
