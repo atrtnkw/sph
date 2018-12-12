@@ -1,4 +1,4 @@
-use_i9 = yes
+include ~/setting/setting.mk
 
 ifeq ($(use_i9),yes)
 FCC = gfortran
