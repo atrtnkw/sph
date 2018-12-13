@@ -1,11 +1,11 @@
-if test $# -ne 1
+if test $# -ne 2
 then
-    echo "sh $0 <Z/Zsun>" >&2
+    echo "sh $0 <idir> <Z/Zsun>" >&2
     exit
 fi
 
-metl=$1
-idir=init
+idir=$1
+metl=$2
 odir=data
 zsun=0.012
 
@@ -28,7 +28,10 @@ fi
 
 for file in $files
 do
-    id=`echo $file | cut -c 8-17`
+    nc=`echo $file | wc | awk '{print $3}'`
+    cb=`echo "$nc - 13" | bc`
+    cf=`echo "$nc - 4"  | bc`
+    id=`echo $file | cut -c $cb-$cf`
     echo -e ""   > input
     echo -e "6" >> input
     echo -e "9" >> input
