@@ -15,7 +15,7 @@ then
     exit
 fi
 
-xne22=`echo "1.11 * $zsun" | bc -l`
+xne22=`echo "1.11 * $zsun * $metl" | bc -l`
 xc12=`echo "(1 - $xne22) / 2" | bc -l`
 xo16=$xc12
 
