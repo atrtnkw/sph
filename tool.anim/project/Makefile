@@ -39,7 +39,8 @@ FCC = gfortran
 endif
 
 ifeq ($(use_ofp), yes)
-HOME_DIR = /home/x10049
+#HOME_DIR = /home/x10049
+HOME_DIR = ${HOME}
 FDPS_DIR = ${HOME}/fdps/src
 SPH_DIR = ${HOME_DIR}/git-sph/std
 CCC = mpiicpc
