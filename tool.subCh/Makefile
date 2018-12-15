@@ -1,4 +1,4 @@
-Data = subCh* amr*
+Data = subCh* amr* mesh*
 
 move:
 	mkdir temp
