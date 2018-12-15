@@ -1,4 +1,9 @@
 BEGIN{
+    # obstacle or not
+    flag = 1
+    xlow = 5e7
+    xhgh = 7e7
+    dnob = 1e8
     # base parameter
     dnbs = 1e7;
     tpbs = 1e8;
@@ -22,6 +27,13 @@ BEGIN{
             dn = dnbs;
             vx = vxbs;
             tp = tpbs;
+        }
+        if(flag == 1) {
+            if(xlow <= px && px < xhgh) {
+                dn = dnob;
+                vx = vxbs;
+                tp = tpbs;
+            }
         }
         printf("%+e %+e %+e %+e\n", px, dn, tp, vx);
     }
