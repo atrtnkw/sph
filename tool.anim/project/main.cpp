@@ -147,8 +147,8 @@ template <class Tsph>
 void projectOnPlane(char * ofile,
                     Plane & plane,
                     Tsph  & sph) {
+//    const  PS::S64 nmax = 512;
     const  PS::S64 nmax = 256;
-//    const  PS::S64 nmax = 128;
     static PS::S64 ptcl[nmax][nmax];
     static PS::F64 dens[nmax][nmax];
     static PS::F64 temp[nmax][nmax];

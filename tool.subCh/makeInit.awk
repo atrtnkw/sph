@@ -3,7 +3,7 @@ BEGIN{
     flag = 1
     xlow = 5e7
     xhgh = 7e7
-    dnob = 3e7
+    dnob = 5e7
     # base parameter
     dnbs = 1e7;
     tpbs = 1e8;

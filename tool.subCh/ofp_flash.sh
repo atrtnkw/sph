@@ -1,6 +1,6 @@
 #!/bin/sh
 #PJM -L rscgrp=regular-cache
-#PJM -L elapse=01:00:00
+#PJM -L elapse=48:00:00
 #PJM -g xg18i004
 #PJM -N subCh
 #PJM -j
