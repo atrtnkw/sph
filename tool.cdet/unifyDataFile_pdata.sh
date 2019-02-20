@@ -1,11 +1,12 @@
-if test $# -ne 2
+if test $# -ne 3
 then
-    echo "sh $0 <bdir> <nfile>" >&2
+    echo "sh $0 <bdir> <odir> <nfile>" >&2
     exit
 fi
 
 bdir=$1
-nfile=$2
+odir=$2
+nfile=$3
 
 for n in $(seq -f "%04g" 1 1 $nfile)
 do
@@ -23,11 +24,11 @@ do
         fi
         ifile="$idir"/pdata."$n"
         echo $ifile >&2
-#        awk '{if($1>tend&&NR%16==0) print $0}' tend=$tend $ifile >> tmp.dat
-        awk '{if(NR%16==0) print $0}' $ifile >> tmp.dat
+        awk '{if($1>tend&&NR%16==0) print $0}' tend=$tend $ifile >> tmp.dat
         tend=`tail -n1 tmp.dat | awk '{print $1}'`
     done
-    exit
+    ofile="$odir"/id000000"$n".in
+    mv tmp.dat $ofile
 done
 
 rm -f tmp.dat
