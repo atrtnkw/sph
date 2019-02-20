@@ -146,23 +146,28 @@ public:
 template <class Tsph>
 void calcDensityCenter(Tsph  & sph,
                        PS::F64vec & xdens_g,
-                       PS::F64vec & vdens_g) {
+                       PS::F64vec & vdens_g,
+                       PS::F64vec & adens_g) {
     PS::F64    tdens = 0.;
     PS::F64vec xdens = 0.;
     PS::F64vec vdens = 0.;
+    PS::F64vec adens = 0.;
 
     for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
         tdens += sph[i].dens;
         xdens += sph[i].dens * sph[i].pos;
         vdens += sph[i].dens * sph[i].vel;
+        adens += sph[i].dens * sph[i].acc;
     }
 
     PS::F64    tdens_g = PS::Comm::getSum(tdens);
     xdens_g = PS::Comm::getSum(xdens);
     vdens_g = PS::Comm::getSum(vdens);
+    adens_g = PS::Comm::getSum(adens);
 
     xdens_g = xdens_g / tdens_g;
     vdens_g = vdens_g / tdens_g;
+    adens_g = adens_g / tdens_g;
 
     return;
 }
@@ -171,12 +176,12 @@ template <class Tsph>
 void projectOnPlane(char * ofile,
                     Plane & plane,
                     Tsph  & sph) {
-//    const  PS::S64 nmax = 512;
     const  PS::S64 nmax = 256;
     static PS::S64 ptcl[nmax][nmax];
     static PS::F64 dens[nmax][nmax];
     static PS::F64 temp[nmax][nmax];
     static PS::F64 omgz[nmax][nmax];
+    //static PS::F64 domz[nmax][nmax];
     static PS::F64 istr[nmax][nmax];
     
     PS::F64 wdth  = plane.getWidth();
@@ -189,19 +194,24 @@ void projectOnPlane(char * ofile,
             dens[i][j] = 0.;
             temp[i][j] = 0.;
             omgz[i][j] = 0.;
+            //domz[i][j] = 0.;
             istr[i][j] = 0.;
         }
     }
 
     PS::F64vec xdens = 0.;
     PS::F64vec vdens = 0.;
-    calcDensityCenter(sph, xdens, vdens);
+    PS::F64vec adens = 0.;
+    calcDensityCenter(sph, xdens, vdens, adens);
 
     for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
         sph[i].pos -= xdens;
         sph[i].vel -= vdens;
+        sph[i].acc -= adens;
         PS::F64vec omg_i  = sph[i].pos ^ sph[i].vel;
         PS::F64    omgz_i = (1. / (sph[i].pos[0] * sph[i].pos[0] + sph[i].pos[1] * sph[i].pos[1])) * omg_i[2];
+        //PS::F64vec trq_i  = sph[i].pos ^ sph[i].acc;
+        //PS::F64    domz_i = trq_i[2] / (sph[i].pos[0] * sph[i].pos[0] + sph[i].pos[1] * sph[i].pos[1]);
         if(plane.calcDistance(sph[i].pos) > sph[i].ksr) {
             continue;
         }
@@ -218,6 +228,7 @@ void projectOnPlane(char * ofile,
         dens[ix][iy] += sph[i].dens;
         temp[ix][iy] += sph[i].temp;
         omgz[ix][iy] += omgz_i;
+        //domz[ix][iy] += domz_i;
         istr[ix][iy] += (sph[i].istar + 1);
     }
 
@@ -225,6 +236,7 @@ void projectOnPlane(char * ofile,
     static PS::F64 dens_g[nmax][nmax];
     static PS::F64 temp_g[nmax][nmax];
     static PS::F64 omgz_g[nmax][nmax];
+    //static PS::F64 domz_g[nmax][nmax];
     static PS::F64 istr_g[nmax][nmax];
 
     PS::S64 ierr = 0;
@@ -232,6 +244,7 @@ void projectOnPlane(char * ofile,
     ierr = MPI_Allreduce(dens, dens_g, nmax*nmax, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
     ierr = MPI_Allreduce(temp, temp_g, nmax*nmax, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
     ierr = MPI_Allreduce(omgz, omgz_g, nmax*nmax, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    //ierr = MPI_Allreduce(domz, domz_g, nmax*nmax, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
     ierr = MPI_Allreduce(istr, istr_g, nmax*nmax, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
     for(PS::S64 i = 0; i < nmax; i++) {
@@ -240,6 +253,7 @@ void projectOnPlane(char * ofile,
             dens_g[i][j] *= pinv;
             temp_g[i][j] *= pinv;
             omgz_g[i][j] *= pinv;
+            //domz_g[i][j] *= pinv;
             istr_g[i][j] *= pinv;
         }
     }
@@ -250,6 +264,12 @@ void projectOnPlane(char * ofile,
             for(PS::S64 j = 0; j < nmax; j++) {
                 PS::F64 px = dx * (PS::F64)i - 0.5 * wdth;
                 PS::F64 pz = dx * (PS::F64)j - 0.5 * wdth;
+#if 0
+                fprintf(fp, "%+e %+e %+e %+e %+e %+e %+e\n",
+                        px, pz,
+                        dens_g[i][j], temp_g[i][j], omgz_g[i][j],
+                        domz_g[i][j], istr_g[i][j]);
+#endif
                 fprintf(fp, "%+e %+e %+e %+e %+e %+e\n",
                         px, pz,
                         dens_g[i][j], temp_g[i][j], omgz_g[i][j],
