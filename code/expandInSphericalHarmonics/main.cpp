@@ -69,38 +69,35 @@ namespace SphericalHarmonics {
     PS::F64 MaximumRadius     = 1e+11;
     PS::S64 NumberOfBinPerDex = 10;
 
-    PS::S64 NumberOfBin;
-    PS::F64 *m00re;
-    PS::F64 *m10re;
-    PS::F64 *m11re;
-    PS::F64 *m11im;
-    PS::S64 *nptcl;
-    PS::F64 *m00re_g;
-    PS::F64 *m10re_g;
-    PS::F64 *m11re_g;
-    PS::F64 *m11im_g;
-    PS::S64 *nptcl_g;
+    PS::S64 NumberOfBin = 0;
+    const PS::S64 MaximumNumberOfBin = 64;
+    static PS::F64 m00re[MaximumNumberOfBin];
+    static PS::F64 m10re[MaximumNumberOfBin];
+    static PS::F64 m11re[MaximumNumberOfBin];
+    static PS::F64 m11im[MaximumNumberOfBin];
+    static PS::S64 nptcl[MaximumNumberOfBin];
+    static PS::F64 m00re_g[MaximumNumberOfBin];
+    static PS::F64 m10re_g[MaximumNumberOfBin];
+    static PS::F64 m11re_g[MaximumNumberOfBin];
+    static PS::F64 m11im_g[MaximumNumberOfBin];
+    static PS::S64 nptcl_g[MaximumNumberOfBin];
 
     void initialize() {
         FirstTime = false;
         PS::F64 temp = log10(MaximumRadius / MinimumRadius) * NumberOfBinPerDex;
         NumberOfBin = (temp - (PS::S64)temp == 0.) ? (PS::S64)temp : (PS::S64)(temp + 1.);
-        m00re   = (PS::F64 *) malloc(sizeof(PS::F64) * NumberOfBin);
-        m10re   = (PS::F64 *) malloc(sizeof(PS::F64) * NumberOfBin);
-        m11re   = (PS::F64 *) malloc(sizeof(PS::F64) * NumberOfBin);
-        m11im   = (PS::F64 *) malloc(sizeof(PS::F64) * NumberOfBin);
-        nptcl   = (PS::S64 *) malloc(sizeof(PS::S64) * NumberOfBin);
-        m00re_g = (PS::F64 *) malloc(sizeof(PS::F64) * NumberOfBin);
-        m10re_g = (PS::F64 *) malloc(sizeof(PS::F64) * NumberOfBin);
-        m11re_g = (PS::F64 *) malloc(sizeof(PS::F64) * NumberOfBin);
-        m11im_g = (PS::F64 *) malloc(sizeof(PS::F64) * NumberOfBin);
-        nptcl_g = (PS::S64 *) malloc(sizeof(PS::S64) * NumberOfBin);
+        assert(NumberOfBin <= MaximumNumberOfBin);
         for(PS::S64 i = 0; i < NumberOfBin; i++) {
             m00re[i] = 0.;
             m10re[i] = 0.;
             m11re[i] = 0.;
             m11im[i] = 0.;
             nptcl[i] = 0;
+            m00re_g[i] = 0.;
+            m10re_g[i] = 0.;
+            m11re_g[i] = 0.;
+            m11im_g[i] = 0.;
+            nptcl_g[i] = 0.;
         }
     }
 
@@ -111,6 +108,11 @@ namespace SphericalHarmonics {
             m11re[i] = 0.;
             m11im[i] = 0.;
             nptcl[i] = 0;
+            m00re_g[i] = 0.;
+            m10re_g[i] = 0.;
+            m11re_g[i] = 0.;
+            m11im_g[i] = 0.;
+            nptcl_g[i] = 0.;
         }
     }
 

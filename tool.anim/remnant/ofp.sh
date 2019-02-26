@@ -1,7 +1,6 @@
 #!/bin/sh
-##PJM -L rscgrp=regular-cache
-#PJM -L rscgrp=debug-cache
-#PJM -L elapse=00:30:00
+#PJM -L rscgrp=regular-flat
+#PJM -L elapse=02:00:00
 #PJM -g xg18i004
 #PJM -N remnant1
 #PJM -j
@@ -9,13 +8,15 @@
 #PJM --mpi proc=128
 #PJM --omp thread=1
 
-echo "../../../wdmrg2"  > input.list
-echo "../r008k/run.b0.90-0.60_norot/xyplane/" >> input.list
-echo "0 500 100" >> input.list
-echo "0 0 1 0" >> input.list # for xyplane
-#echo "0 1 0 0" >> input.list # for xzplane
-echo "0 0" >> input.list
-echo "4e9" >> input.list
+lfile=input.list1
+
+echo "../../../wdmrg/t00000-01000"  > $lfile
+echo "./small.entr" >> $lfile
+echo "0 1000 1" >> $lfile
+
+echo "0 0 1 0" >> $lfile # for xyplane
+echo "0 0" >> $lfile
+echo "6e9" >> $lfile
 
 # idir
 # odir
@@ -24,4 +25,4 @@ echo "4e9" >> input.list
 # parallel displacement on the projection surface
 # width of the projection surface
 
-mpiexec.hydra -n ${PJM_MPI_PROC} ./run input.list
+mpiexec.hydra -n ${PJM_MPI_PROC} ./run $lfile

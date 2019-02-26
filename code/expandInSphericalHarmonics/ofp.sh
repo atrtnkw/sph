@@ -10,9 +10,9 @@
 
 lfile=input.list1
 
-echo "../../../wdmrg/t00000-01000"  > $lfile
-echo "../r008k/run.b0.90-0.60_corot/harmonics" >> $lfile
-echo "0 100 100" >> $lfile
+echo "../../../wdmrg/t01000-10000"  > $lfile
+echo "../r008k/run.b0.90-0.60_corot/harmonics/t01000-10000" >> $lfile
+echo "365 400 1" >> $lfile
 
 # idir
 # odir
