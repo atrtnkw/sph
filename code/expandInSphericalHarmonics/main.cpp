@@ -63,6 +63,8 @@ namespace SphericalHarmonics {
     PS::F64 CoefficientY00 = 0.5 * sqrt(1.0 / M_PI);
     PS::F64 CoefficientY10 = 0.5 * sqrt(3.0 / M_PI);
     PS::F64 CoefficientY11 = 0.5 * sqrt(1.5 / M_PI);
+    PS::F64 CoefficientY20 = sqrt( 5. / (16. * M_PI));
+    PS::F64 CoefficientY22 = sqrt(15. / (32. * M_PI));
 
     bool    FirstTime         = true;
     PS::F64 MinimumRadius     = 1e+08;
@@ -75,11 +77,17 @@ namespace SphericalHarmonics {
     static PS::F64 m10re[MaximumNumberOfBin];
     static PS::F64 m11re[MaximumNumberOfBin];
     static PS::F64 m11im[MaximumNumberOfBin];
+    static PS::F64 m20re[MaximumNumberOfBin];
+    static PS::F64 m22re[MaximumNumberOfBin];
+    static PS::F64 m22im[MaximumNumberOfBin];
     static PS::S64 nptcl[MaximumNumberOfBin];
     static PS::F64 m00re_g[MaximumNumberOfBin];
     static PS::F64 m10re_g[MaximumNumberOfBin];
     static PS::F64 m11re_g[MaximumNumberOfBin];
     static PS::F64 m11im_g[MaximumNumberOfBin];
+    static PS::F64 m20re_g[MaximumNumberOfBin];
+    static PS::F64 m22re_g[MaximumNumberOfBin];
+    static PS::F64 m22im_g[MaximumNumberOfBin];
     static PS::S64 nptcl_g[MaximumNumberOfBin];
 
     void initialize() {
@@ -92,6 +100,9 @@ namespace SphericalHarmonics {
             m10re[i] = 0.;
             m11re[i] = 0.;
             m11im[i] = 0.;
+            m20re[i] = 0.;
+            m22re[i] = 0.;
+            m22im[i] = 0.;
             nptcl[i] = 0;
             m00re_g[i] = 0.;
             m10re_g[i] = 0.;
@@ -107,6 +118,9 @@ namespace SphericalHarmonics {
             m10re[i] = 0.;
             m11re[i] = 0.;
             m11im[i] = 0.;
+            m20re[i] = 0.;
+            m22re[i] = 0.;
+            m22im[i] = 0.;
             nptcl[i] = 0;
             m00re_g[i] = 0.;
             m10re_g[i] = 0.;
@@ -134,10 +148,18 @@ namespace SphericalHarmonics {
         PS::F64 cosphi   = isph.pos[0] * crinv;
         PS::F64 sinphi   = isph.pos[1] * crinv;
 
+        PS::F64 costheta_sq   = costheta * costheta;
+        PS::F64 sintheta_sq   = sintheta * sintheta;
+        PS::F64 cosphi_2times = cosphi * cosphi - sinphi * sinphi;
+        PS::F64 sinphi_2times = 2. * sinphi * cosphi;
+
         m00re[ibin] += isph.mass * CoefficientY00;
         m10re[ibin] += isph.mass * CoefficientY10 * costheta;
         m11re[ibin] += isph.mass * CoefficientY11 * sintheta * cosphi;
         m11im[ibin] += isph.mass * CoefficientY11 * sintheta * sinphi;
+        m20re[ibin] += isph.mass * CoefficientY20 * (3. * costheta_sq - 1.);
+        m22re[ibin] += isph.mass * CoefficientY22 * sintheta_sq * cosphi_2times;
+        m22im[ibin] += isph.mass * CoefficientY22 * sintheta_sq * sinphi_2times;
         nptcl[ibin] += 1;
     }
 
@@ -147,6 +169,9 @@ namespace SphericalHarmonics {
         ierr = MPI_Allreduce(m10re, m10re_g, NumberOfBin, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
         ierr = MPI_Allreduce(m11re, m11re_g, NumberOfBin, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
         ierr = MPI_Allreduce(m11im, m11im_g, NumberOfBin, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+        ierr = MPI_Allreduce(m20re, m20re_g, NumberOfBin, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+        ierr = MPI_Allreduce(m22re, m22re_g, NumberOfBin, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+        ierr = MPI_Allreduce(m22im, m22im_g, NumberOfBin, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
         ierr = MPI_Allreduce(nptcl, nptcl_g, NumberOfBin, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
     }
 
@@ -154,8 +179,11 @@ namespace SphericalHarmonics {
         for(PS::S64 i = 0; i < NumberOfBin; i++) {
             PS::F64 r = (i == 0) ? (0.5 * MinimumRadius)
                 : (MinimumRadius * pow(10., (i - 0.5) / NumberOfBinPerDex));
-            fprintf(fp, "%+e %+e %+e %+e %+e %8d\n",
-                    r, m00re_g[i], m10re_g[i], m11re_g[i], m11im_g[i], nptcl_g[i]);
+            fprintf(fp, "%+e %+e %+e %+e %+e %+e %+e %+e %8d\n",
+                    r,
+                    m00re_g[i], m10re_g[i], m11re_g[i], m11im_g[i],
+                    m20re_g[i], m22re_g[i], m22im_g[i],
+                    nptcl_g[i]);
         }
     }
 

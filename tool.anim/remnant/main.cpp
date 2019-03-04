@@ -154,6 +154,9 @@ void calcDensityCenter(Tsph  & sph,
     PS::F64vec adens = 0.;
 
     for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
+        if(sph[i].istar != 0) {
+            continue;
+        }
         tdens += sph[i].dens;
         xdens += sph[i].dens * sph[i].pos;
         vdens += sph[i].dens * sph[i].vel;

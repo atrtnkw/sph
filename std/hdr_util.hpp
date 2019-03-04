@@ -33,6 +33,36 @@ void calcCenterOfMass(Tsph & sph,
     vc *= minv;    
 }
 
+#if 0
+template <class Tsph>
+void calcDensityCenter(Tsph & sph,
+                      PS::F64vec & xc,
+                      PS::F64vec & vc,
+                      PS::S64 istar = -1) {
+    PS::F64    dloc = 0.;
+    PS::F64vec xloc = 0.;
+    PS::F64vec vloc = 0.;
+
+    assert(istar < 2);
+
+    PS::S32 nloc = sph.getNumberOfParticleLocal();
+    for(PS::S32 i = 0; i < nloc; i++) {
+        if(sph[i].istar == istar || istar < 0) {
+            dloc += sph[i].dens;
+            xloc += sph[i].dens * sph[i].pos;
+            vloc += sph[i].dens * sph[i].vel;
+        }
+    }
+
+    PS::F64 dc = PS::Comm::getSum(dloc);
+    xc = PS::Comm::getSum(xloc);
+    vc = PS::Comm::getSum(vloc);
+    PS::F64 dinv = 1. / dc;
+    xc *= dinv;
+    vc *= dinv;    
+}
+#endif
+
 template <class Tsph>
 void calcCenterOfMassOfAcceleration(Tsph & sph,
                                     PS::F64    & mc,
@@ -489,7 +519,6 @@ PS::F64 calcDetonationVelocity(Tsph & sph) {
 template <class Tsph>
 PS::F64 calcKernelSupportRadiusMaximum(Tsph & sph) {
     PS::F64 ksrmax = RP::KernelSupportRadiusMaximum;
-//    if(RP::FlagBinary == 0) {
     if(RP::FlagBinary == 0 || RP::FlagBinary == 2) {
         PS::F64 mc;
         PS::F64vec xc, vc;
@@ -498,8 +527,10 @@ PS::F64 calcKernelSupportRadiusMaximum(Tsph & sph) {
         PS::F64 dnsumloc = 0.;
         for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
             PS::F64vec dx = sph[i].pos - xc;
-            r2sumloc += (sph[i].dens * (dx * dx));
-            dnsumloc +=  sph[i].dens;
+            //r2sumloc += (sph[i].dens * (dx * dx));
+            //dnsumloc +=  sph[i].dens;
+            r2sumloc += ((dx * dx));
+            dnsumloc +=  1.;
         }
         PS::F64 r2sumglb = PS::Comm::getSum(r2sumloc);
         PS::F64 dnsumglb = PS::Comm::getSum(dnsumloc);
@@ -518,8 +549,6 @@ PS::F64 calcKernelSupportRadiusMaximum(Tsph & sph) {
         PS::F64 r2sumglb = PS::Comm::getSum(r2sumloc);
         PS::F64 dnsumglb = PS::Comm::getSum(dnsumloc);
         ksrmax = sqrt(r2sumglb / dnsumglb);
-//    } else if(RP::FlagBinary == 2) {
-//        ;
     } else {
         assert(NULL);
     }
