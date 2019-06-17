@@ -19,22 +19,31 @@ enum KernelType {CubicSpline = 0, WendlandC2 = 1, WendlandC4 = 2};
 #include "hdr_hgas.hpp"
 #include "hdr_bhns.hpp"
 
+//#define RadialVelocity
+
 namespace AssignToMesh {
 //    const PS::S64 NumberOfMesh    = 64;
+#if not defined RadialVelocity
     const PS::S64 NumberOfMesh    = 256;
+#else
+    const PS::S64 NumberOfMesh    = 128;
+#endif
     const PS::S64 NumberOfMesh2   = NumberOfMesh * NumberOfMesh;
     const PS::S64 NumberOfMesh3   = NumberOfMesh * NumberOfMesh2;
     const PS::F64 HalfLengthOfBox = 2.e11;
     const PS::F64 WidthOfMesh     = (2. * HalfLengthOfBox) / ((PS::F64)NumberOfMesh);
     const PS::F64 WidthOfMeshInv  = 1. / WidthOfMesh;
-    static PS::F64 dens_l[NumberOfMesh][NumberOfMesh][NumberOfMesh];
-    static PS::F64 dens_g[NumberOfMesh][NumberOfMesh][NumberOfMesh];
-    static PS::F64 uene_l[NumberOfMesh][NumberOfMesh][NumberOfMesh];
-    static PS::F64 uene_g[NumberOfMesh][NumberOfMesh][NumberOfMesh];
-    static PS::F64 cn12_l[NumberOfMesh][NumberOfMesh][NumberOfMesh];
-    static PS::F64 cn12_g[NumberOfMesh][NumberOfMesh][NumberOfMesh];
-    static PS::F64 ni56_l[NumberOfMesh][NumberOfMesh][NumberOfMesh];
-    static PS::F64 ni56_g[NumberOfMesh][NumberOfMesh][NumberOfMesh];
+#if not defined RadialVelocity
+#else
+    static PS::F32 velr_l[NumberOfMesh][NumberOfMesh][NumberOfMesh];
+    static PS::F32 velr_g[NumberOfMesh][NumberOfMesh][NumberOfMesh];
+#endif
+    static PS::F32 dens_l[NumberOfMesh][NumberOfMesh][NumberOfMesh];
+    static PS::F32 dens_g[NumberOfMesh][NumberOfMesh][NumberOfMesh];
+    static PS::F32 uene_l[NumberOfMesh][NumberOfMesh][NumberOfMesh];
+    static PS::F32 uene_g[NumberOfMesh][NumberOfMesh][NumberOfMesh];
+    static PS::F32 cmps_l[NR::NumberOfNucleon][NumberOfMesh][NumberOfMesh][NumberOfMesh];
+    static PS::F32 cmps_g[NR::NumberOfNucleon][NumberOfMesh][NumberOfMesh][NumberOfMesh];
 
     PS::S64 getIndex(PS::F64 x) {
         PS::F64 fx = (x + HalfLengthOfBox) * WidthOfMeshInv - 0.5;
@@ -119,7 +128,8 @@ void obtainDensityCenter(Tsph & sph,
 }
 
 template <class Tsph>
-void assignToMesh(Tsph & sph) {
+void assignToMesh(char * ofile,
+                  Tsph & sph) {
     using namespace AssignToMesh;
 
     PS::F64vec pcenter(0.);
@@ -131,25 +141,31 @@ void assignToMesh(Tsph & sph) {
             for(PS::S64 ix = 0; ix < NumberOfMesh; ix++) {
                 dens_l[iz][iy][ix] = 0.;
                 uene_l[iz][iy][ix] = 0.;
-                cn12_l[iz][iy][ix] = 0.;
-                ni56_l[iz][iy][ix] = 0.;
+#if not defined RadialVelocity
+#else
+                velr_l[iz][iy][ix] = 0.;
+#endif
+                for(PS::S64 k = 0; k < NR::NumberOfNucleon; k++) {
+                    cmps_l[k][iz][iy][ix] = 0.;
+                }
             }
         }
     }
 
     for(PS::S64 ip = 0; ip < sph.getNumberOfParticleLocal(); ip++) {
+        PS::F64vec pptcl = sph[ip].pos - pcenter;
         PS::F64vec vptcl = sph[ip].vel - vcenter;
         PS::F64    eptcl = 0.5 * (vptcl * vptcl) + sph[ip].pot;
         if(eptcl < 0.) {
             continue;
         }
 
-        PS::S64 ixmin = getIndex(sph[ip].pos[0] - sph[ip].ksr);
-        PS::S64 ixmax = getIndex(sph[ip].pos[0] + sph[ip].ksr);
-        PS::S64 iymin = getIndex(sph[ip].pos[1] - sph[ip].ksr);
-        PS::S64 iymax = getIndex(sph[ip].pos[1] + sph[ip].ksr);
-        PS::S64 izmin = getIndex(sph[ip].pos[2] - sph[ip].ksr);
-        PS::S64 izmax = getIndex(sph[ip].pos[2] + sph[ip].ksr);
+        PS::S64 ixmin = getIndex(pptcl[0] - sph[ip].ksr);
+        PS::S64 ixmax = getIndex(pptcl[0] + sph[ip].ksr);
+        PS::S64 iymin = getIndex(pptcl[1] - sph[ip].ksr);
+        PS::S64 iymax = getIndex(pptcl[1] + sph[ip].ksr);
+        PS::S64 izmin = getIndex(pptcl[2] - sph[ip].ksr);
+        PS::S64 izmax = getIndex(pptcl[2] + sph[ip].ksr);
         assert(0 <= ixmin && ixmin < NumberOfMesh);
         assert(0 <= ixmax && ixmax < NumberOfMesh);
         assert(0 <= iymin && iymin < NumberOfMesh);
@@ -162,7 +178,7 @@ void assignToMesh(Tsph & sph) {
                     PS::F64vec pos(getPosition(ix),
                                    getPosition(iy),
                                    getPosition(iz));
-                    PS::F64vec dr = pos - sph[ip].pos;
+                    PS::F64vec dr = pos - pptcl;
                     PS::F64 dr2   = dr * dr;
                     PS::F64 dr1   = sqrt(dr2);
                     PS::F64 hinv1 = 1. / sph[ip].ksr;
@@ -174,30 +190,57 @@ void assignToMesh(Tsph & sph) {
                     PS::F64 dinv = 1. / sph[ip].dens;
                     PS::F64 ksph = sph[ip].mass * dinv * kw0;
                     uene_l[iz][iy][ix] += ksph * sph[ip].uene;
-                    cn12_l[iz][iy][ix] += ksph * sph[ip].cmps[1];
-                    ni56_l[iz][iy][ix] += ksph * sph[ip].cmps[12];
+                    for(PS::S64 k = 0; k < NR::NumberOfNucleon; k++) {
+                        cmps_l[k][iz][iy][ix] += ksph * sph[ip].cmps[k];
+                    }
+
+#if not defined RadialVelocity
+#else
+                    PS::F64 ri = 1. / sqrt(pptcl * pptcl);
+                    PS::F64 vr = (pptcl * vptcl) * ri;
+                    velr_l[iz][iy][ix] += ksph * vr;
+#endif
                 }            
             }            
         }
     }
 
     PS::S64 ierr = 0;
-    ierr = MPI_Allreduce(dens_l, dens_g, NumberOfMesh3, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-    ierr = MPI_Allreduce(uene_l, uene_g, NumberOfMesh3, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-    ierr = MPI_Allreduce(cn12_l, cn12_g, NumberOfMesh3, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-    ierr = MPI_Allreduce(ni56_l, ni56_g, NumberOfMesh3, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    ierr = MPI_Allreduce(dens_l, dens_g, NumberOfMesh3, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
+    ierr = MPI_Allreduce(uene_l, uene_g, NumberOfMesh3, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
+    for(PS::S64 k = 0; k < NR::NumberOfNucleon; k++) {
+        ierr = MPI_Allreduce(cmps_l[k], cmps_g[k], NumberOfMesh3, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
+    }
+#if not defined RadialVelocity
+#else
+    ierr = MPI_Allreduce(velr_l, velr_g, NumberOfMesh3, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
+#endif
 
     if(PS::Comm::getRank() == 0) {
-        FILE * fp = fopen("hoge.dat", "w");
+        FILE * fp = fopen(ofile, "w");
         for(PS::S64 iy = 0; iy < NumberOfMesh; iy++) {
             for(PS::S64 ix = 0; ix < NumberOfMesh; ix++) {
                 PS::F64 mx = getPosition(ix);
                 PS::F64 my = getPosition(iy);
-                fprintf(fp, "%+e %+e %+e %+e %+e %+e\n", mx, my,
+#if not defined RadialVelocity
+                fprintf(fp, "%+e %+e %+e %+e", mx, my,
+                        dens_g[NumberOfMesh/2][iy][ix],
+                        uene_g[NumberOfMesh/2][iy][ix]);
+#else
+                fprintf(fp, "%+e %+e %+e %+e %+e", mx, my,
                         dens_g[NumberOfMesh/2][iy][ix],
                         uene_g[NumberOfMesh/2][iy][ix],
-                        cn12_g[NumberOfMesh/2][iy][ix],
-                        ni56_g[NumberOfMesh/2][iy][ix]);
+                        velr_g[NumberOfMesh/2][iy][ix]);
+#endif
+                PS::F32 norm = 0.;
+                for(PS::S64 k = 0; k < NR::NumberOfNucleon; k++) {
+                    norm += cmps_g[k][NumberOfMesh/2][iy][ix];
+                }
+                PS::F32 ninv = (norm != 0.) ? (1. / norm) : 0.;
+                for(PS::S64 k = 0; k < NR::NumberOfNucleon; k++) {
+                    fprintf(fp, " %+.2e", cmps_g[k][NumberOfMesh/2][iy][ix] * ninv);
+                }
+                fprintf(fp, "\n");
             }
         }
         fclose(fp);
@@ -246,7 +289,9 @@ int main(int argc, char ** argv) {
         sprintf(sfile, "%s/t%02d/sph_t%04d", idir, tdir, itime);
         sph.readParticleAscii(sfile, "%s_p%06d_i%06d.dat");
 
-        assignToMesh(sph);
+        char ofile[1024];
+        sprintf(ofile, "%s/init_t%04d.dat", odir, itime);
+        assignToMesh(ofile, sph);
 
     }
 
