@@ -30,7 +30,7 @@ namespace AssignToMesh {
 #endif
     const PS::S64 NumberOfMesh2   = NumberOfMesh * NumberOfMesh;
     const PS::S64 NumberOfMesh3   = NumberOfMesh * NumberOfMesh2;
-    const PS::F64 HalfLengthOfBox = 2.e11;
+    const PS::F64 HalfLengthOfBox = 3.e11;
     const PS::F64 WidthOfMesh     = (2. * HalfLengthOfBox) / ((PS::F64)NumberOfMesh);
     const PS::F64 WidthOfMeshInv  = 1. / WidthOfMesh;
 #if not defined RadialVelocity
