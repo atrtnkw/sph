@@ -9,21 +9,25 @@
 #PJM --mpi proc=3072
 #PJM --omp thread=1
 
-echo "../r004m/run.b1.00_h030-060_0.60/time000.00-001.00"  > input.list
-echo "../r004m/run.b1.00_h030-060_0.60/heDetonation"  >> input.list
-echo "0 16"     >> input.list
-echo "0"        >> input.list
-echo "4.6e8"    >> input.list
-#echo "4.5e8"    >> input.list
-#echo "5.0e8"    >> input.list
-echo "90. 270." >> input.list
+odir=../r004m/run.b1.00_h050-050_0.90_h060-100/heDetonation
+
+echo "../r004m/run.b1.00_h050-050_0.90_h060-100/time000.00-005.00"  > input.list
+echo "$odir"  >> input.list
+echo "36 60"     >> input.list
+echo "1"        >> input.list
+echo "5.0e8"    >> input.list
+echo "30. 210." >> input.list
 
 # idir
 # odir
 # tbgn tend
 # targetWD
-# rcore drcore
-# dtheta phibgn phiend
-# carbonFraction
+# rcore
+# phi0 phi1
 
+if ! test -e $odir
+then
+    mkdir $odir
+fi
+cp input.list $odir
 mpiexec.hydra -n ${PJM_MPI_PROC} ./run input.list

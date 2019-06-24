@@ -24,41 +24,62 @@ namespace TargetWhiteDwarf{
     static PS::F64    dens_l[NumberOfMesh], dens_g[NumberOfMesh];
     static PS::F64    temp_l[NumberOfMesh], temp_g[NumberOfMesh];
     static PS::F64    vsnd_l[NumberOfMesh], vsnd_g[NumberOfMesh];
-    static PS::F64    vphi_l[NumberOfMesh], vphi_g[NumberOfMesh];
-    static PS::F64    rphi[NumberOfMesh];
+    static PS::F64    vrad_l[NumberOfMesh], vrad_g[NumberOfMesh];
     static PS::F64vec mesh[NumberOfMesh];
 
     PS::S64 TargetId;
-    PS::F64 TargetRadius;
-    PS::F64 Phi0;
-    PS::F64 Phi1;
-
-    PS::F64 CoreRadius;
-    PS::F64 ShellThickness;
-    PS::F64 DeltaTheta;
-    PS::F64 MinimumPhi;
-    PS::F64 MaximumPhi;
-    PS::F64 CarbonFraction;
+    PS::F64 Radius;
+    PS::F64 Phi;
+    PS::F64 M0, M1;
+    PS::F64 BinaryRadius;
+    PS::F64 BinaryVelocity;
+    PS::F64 BinaryOmega;
 
     void putMeshPoint() {
-        PS::F64 dPhi = (Phi1 - Phi0) / (PS::F64)NumberOfMesh;
+#if 1
+        PS::F64 dRadius = (2. * Radius) / NumberOfMesh;
         for(PS::S64 i = 0; i < NumberOfMesh; i++) {
-            PS::F64 iPhi   = Phi0 + dPhi * (i + 0.5);
-            rphi[i]    = TargetRadius * iPhi;
-            mesh[i][0] = TargetRadius * cos(iPhi);
-            mesh[i][1] = TargetRadius * sin(iPhi);
+            mesh[i][0] = cos(Phi) * ((0.5 + (PS::F64)i) * dRadius - Radius);
+            mesh[i][1] = sin(Phi) * ((0.5 + (PS::F64)i) * dRadius - Radius);
             mesh[i][2] = 0.;
         }
+#else
+        PS::F64 dRadius = Radius / NumberOfMesh;
+        for(PS::S64 i = 0; i < NumberOfMesh; i++) {
+            mesh[i][0] = cos(Phi) * ((0.5 + (PS::F64)i) * dRadius);
+            mesh[i][1] = sin(Phi) * ((0.5 + (PS::F64)i) * dRadius);
+            mesh[i][2] = 0.;
+        }
+#endif
     }
 
     void readRunParameter(FILE * fp) {
         fscanf(fp, "%lld", &TargetId);
-        fscanf(fp, "%lf", &TargetRadius);
-        fscanf(fp, "%lf%lf", &Phi0, &Phi1);
-        Phi0 *= M_PI / 180.;
-        Phi1 *= M_PI / 180.;
+        fscanf(fp, "%lf%lf", &Radius, &Phi);
+        fscanf(fp, "%lf%lf", &M0, &M1);
+        fscanf(fp, "%lf", &BinaryRadius);
+        fscanf(fp, "%lf", &BinaryVelocity);
+        Phi        *= M_PI / 180.;
+        BinaryOmega = BinaryVelocity / BinaryRadius;
         putMeshPoint();
     }
+
+    void obtainCoordinateCenter(PS::F64 time,
+                                PS::F64vec & pcenter,
+                                PS::F64vec & vcenter) {
+        if(TargetId == 0) {
+            PS::F64 ratio = M1 / (M0 + M1);
+            pcenter[0] = + ratio * BinaryRadius * cos(BinaryOmega * time);
+            pcenter[1] = + ratio * BinaryRadius * sin(BinaryOmega * time);
+            pcenter[2] = 0.;
+            vcenter[0] = - ratio * BinaryRadius * sin(BinaryOmega * time) * BinaryOmega;
+            vcenter[1] = + ratio * BinaryRadius * cos(BinaryOmega * time) * BinaryOmega;
+            vcenter[2] = 0.;
+        } else {
+            assert(NULL);
+        }
+    }
+
 }
 
 class SPHAnalysis : public HelmholtzGas {
@@ -112,40 +133,8 @@ public:
 };
 
 template <class Tsph>
-void obtainDensityCenter(Tsph & sph,
-                         PS::F64vec & pcenter,
-                         PS::F64vec & vcenter) {
-    using namespace TargetWhiteDwarf;
-
-    PS::S64 NotTargetId = (TargetId + 1) % 2;
-
-    PS::S64    np   = 0;
-    PS::F64    dloc = 0.;
-    PS::F64vec ploc(0.);
-    PS::F64vec vloc(0.);
-    for(PS::S64 ip = 0; ip < sph.getNumberOfParticleLocal(); ip++) {
-        if(sph[ip].istar == NotTargetId) { // Temporary
-            continue;
-        }
-        np++;
-        dloc += sph[ip].dens;
-        ploc += sph[ip].dens * sph[ip].pos;
-        vloc += sph[ip].dens * sph[ip].vel;
-    }
-
-    PS::F64    dglb;
-    PS::F64vec pglb;
-    PS::F64vec vglb;
-    PS::S64 ierr = 0;
-    ierr = MPI_Allreduce(&dloc, &dglb, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-    ierr = MPI_Allreduce(&ploc, &pglb, 3, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-    ierr = MPI_Allreduce(&vloc, &vglb, 3, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-    pcenter = pglb / dglb;
-    vcenter = vglb / dglb;
-}
-
-template <class Tsph>
 void extractHeDetonation(char * ofile,
+                         PS::F64 time,
                          Tsph & sph) {
     using namespace TargetWhiteDwarf;
 
@@ -153,13 +142,20 @@ void extractHeDetonation(char * ofile,
         dens_l[i] = 0.;
         temp_l[i] = 0.;
         vsnd_l[i] = 0.;
-        vphi_l[i] = 0.;
+        vrad_l[i] = 0.;
     }
 
     PS::F64vec pcenter(0.);
     PS::F64vec vcenter(0.);
-    obtainDensityCenter(sph, pcenter, vcenter);
+    obtainCoordinateCenter(time, pcenter, vcenter);
 
+    if(PS::Comm::getRank() == 0) {
+        printf("t: %+e\n", time);
+        printf("x: %+e %+e %+e\n", pcenter[0], pcenter[1], pcenter[2]);
+        printf("v: %+e %+e %+e\n", vcenter[0], vcenter[1], vcenter[2]);
+    }
+
+    PS::F64vec raxis(cos(TargetWhiteDwarf::Phi), sin(TargetWhiteDwarf::Phi), 0.);
     for(PS::S64 ip = 0; ip < sph.getNumberOfParticleLocal(); ip++) {
         sph[ip].pos -= pcenter;
         sph[ip].vel -= vcenter;
@@ -178,10 +174,7 @@ void extractHeDetonation(char * ofile,
             PS::F64 ksph = sph[ip].mass * dinv * kw0;
             temp_l[jp] += ksph * sph[ip].temp;
             vsnd_l[jp] += ksph * sph[ip].vsnd;
-
-            PS::F64 ivphi = (sph[ip].pos[0] * sph[ip].vel[1] - sph[ip].pos[1] * sph[ip].vel[0])
-                / sqrt(sph[ip].pos[0] * sph[ip].pos[0] + sph[ip].pos[1] * sph[ip].pos[1]);
-            vphi_l[jp] += ksph * ivphi;
+            vrad_l[jp] += ksph * (raxis * sph[ip].vel);
         }
 
     } 
@@ -190,17 +183,29 @@ void extractHeDetonation(char * ofile,
     ierr = MPI_Allreduce(dens_l, dens_g, NumberOfMesh, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
     ierr = MPI_Allreduce(temp_l, temp_g, NumberOfMesh, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
     ierr = MPI_Allreduce(vsnd_l, vsnd_g, NumberOfMesh, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-    ierr = MPI_Allreduce(vphi_l, vphi_g, NumberOfMesh, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    ierr = MPI_Allreduce(vrad_l, vrad_g, NumberOfMesh, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
     if(PS::Comm::getRank() == 0) {
         FILE * fp = fopen(ofile, "w");
+#if 1
+        PS::F64 dRadius = (2. * Radius) / NumberOfMesh;
         for(PS::S64 i = 0; i < NumberOfMesh; i++) {
-            PS::F64 xlen = rphi[i] - TargetRadius * Phi0;
+            PS::F64 xlen = (0.5 + (PS::F64)i) * dRadius - Radius;
             fprintf(fp, " %+e %+e %+e", xlen,      mesh[i][0], mesh[i][1]);
             fprintf(fp, " %+e %+e %+e", dens_g[i], temp_g[i],  vsnd_g[i]);
-            fprintf(fp, " %+e"        , vphi_g[i]);
+            fprintf(fp, " %+e"        , vrad_g[i]);
             fprintf(fp, "\n");
         }
+#else
+        PS::F64 dRadius = Radius / NumberOfMesh;
+        for(PS::S64 i = 0; i < NumberOfMesh; i++) {
+            PS::F64 xlen = (0.5 + (PS::F64)i) * dRadius;
+            fprintf(fp, " %+e %+e %+e", xlen,      mesh[i][0], mesh[i][1]);
+            fprintf(fp, " %+e %+e %+e", dens_g[i], temp_g[i],  vsnd_g[i]);
+            fprintf(fp, " %+e"        , vrad_g[i]);
+            fprintf(fp, "\n");
+        }
+#endif
         fclose(fp);
     }
 
@@ -215,11 +220,11 @@ int main(int argc, char ** argv) {
     sph.setNumberOfParticleLocal(0);
 
     char idir[1024], odir[1024];
-    PS::S64 ibgn, iend;
+    PS::S64 ibgn, iend, nsnap;
     FILE * fp = fopen(argv[1], "r");
     fscanf(fp, "%s", idir);
     fscanf(fp, "%s", odir);
-    fscanf(fp, "%lld%lld", &ibgn, &iend);
+    fscanf(fp, "%lld%lld%lld", &ibgn, &iend, &nsnap);
     TargetWhiteDwarf::readRunParameter(fp);
     fclose(fp);
 
@@ -250,7 +255,7 @@ int main(int argc, char ** argv) {
 
         char ofile[1024];
         sprintf(ofile, "%s/mesh_t%04d.dat", odir, itime);
-        extractHeDetonation(ofile, sph);
+        extractHeDetonation(ofile, itime/(PS::F64)nsnap, sph);
 
     }
 
