@@ -21,10 +21,13 @@ enum KernelType {CubicSpline = 0, WendlandC2 = 1, WendlandC4 = 2};
 
 namespace TargetWhiteDwarf{
     const  PS::S64    NumberOfMesh = 256;
+    //const  PS::S64    NumberOfMesh = 1024;
     static PS::F64    dens_l[NumberOfMesh], dens_g[NumberOfMesh];
     static PS::F64    temp_l[NumberOfMesh], temp_g[NumberOfMesh];
     static PS::F64    vsnd_l[NumberOfMesh], vsnd_g[NumberOfMesh];
     static PS::F64    vphi_l[NumberOfMesh], vphi_g[NumberOfMesh];
+    static PS::F64    cmps_l[NumberOfMesh][NR::NumberOfNucleon];
+    static PS::F64    cmps_g[NumberOfMesh][NR::NumberOfNucleon];
     static PS::F64    rphi[NumberOfMesh];
     static PS::F64vec mesh[NumberOfMesh];
 
@@ -154,6 +157,9 @@ void extractHeDetonation(char * ofile,
         temp_l[i] = 0.;
         vsnd_l[i] = 0.;
         vphi_l[i] = 0.;
+        for(PS::S64 k = 0; k < NR::NumberOfNucleon; k++) {
+            cmps_l[i][k] = 0.;
+        }
     }
 
     PS::F64vec pcenter(0.);
@@ -182,6 +188,9 @@ void extractHeDetonation(char * ofile,
             PS::F64 ivphi = (sph[ip].pos[0] * sph[ip].vel[1] - sph[ip].pos[1] * sph[ip].vel[0])
                 / sqrt(sph[ip].pos[0] * sph[ip].pos[0] + sph[ip].pos[1] * sph[ip].pos[1]);
             vphi_l[jp] += ksph * ivphi;
+            for(PS::S64 k = 0; k < NR::NumberOfNucleon; k++) {
+                cmps_l[jp][k] += ksph * sph[ip].cmps[k];
+            }
         }
 
     } 
@@ -191,14 +200,19 @@ void extractHeDetonation(char * ofile,
     ierr = MPI_Allreduce(temp_l, temp_g, NumberOfMesh, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
     ierr = MPI_Allreduce(vsnd_l, vsnd_g, NumberOfMesh, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
     ierr = MPI_Allreduce(vphi_l, vphi_g, NumberOfMesh, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    ierr = MPI_Allreduce(cmps_l, cmps_g, NumberOfMesh*NR::NumberOfNucleon, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
     if(PS::Comm::getRank() == 0) {
         FILE * fp = fopen(ofile, "w");
         for(PS::S64 i = 0; i < NumberOfMesh; i++) {
             PS::F64 xlen = rphi[i] - TargetRadius * Phi0;
+            PS::F64 cmps = 0.;
+            for(PS::S64 k = 0; k < NR::NumberOfNucleon; k++) {
+                cmps += cmps_g[i][k];
+            }
             fprintf(fp, " %+e %+e %+e", xlen,      mesh[i][0], mesh[i][1]);
             fprintf(fp, " %+e %+e %+e", dens_g[i], temp_g[i],  vsnd_g[i]);
-            fprintf(fp, " %+e"        , vphi_g[i]);
+            fprintf(fp, " %+e %+e %+e", vphi_g[i], cmps_g[i][0]/cmps, cmps_g[i][1]/cmps);
             fprintf(fp, "\n");
         }
         fclose(fp);

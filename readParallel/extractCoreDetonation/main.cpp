@@ -20,11 +20,13 @@ enum KernelType {CubicSpline = 0, WendlandC2 = 1, WendlandC4 = 2};
 #include "hdr_bhns.hpp"
 
 namespace TargetWhiteDwarf{
-    const  PS::S64    NumberOfMesh = 256;
+    const  PS::S64    NumberOfMesh = 1024;
     static PS::F64    dens_l[NumberOfMesh], dens_g[NumberOfMesh];
     static PS::F64    temp_l[NumberOfMesh], temp_g[NumberOfMesh];
     static PS::F64    vsnd_l[NumberOfMesh], vsnd_g[NumberOfMesh];
     static PS::F64    vrad_l[NumberOfMesh], vrad_g[NumberOfMesh];
+    static PS::F64    cmps_l[NumberOfMesh][NR::NumberOfNucleon];
+    static PS::F64    cmps_g[NumberOfMesh][NR::NumberOfNucleon];
     static PS::F64vec mesh[NumberOfMesh];
 
     PS::S64 TargetId;
@@ -76,7 +78,13 @@ namespace TargetWhiteDwarf{
             vcenter[1] = + ratio * BinaryRadius * cos(BinaryOmega * time) * BinaryOmega;
             vcenter[2] = 0.;
         } else {
-            assert(NULL);
+            PS::F64 ratio = M0 / (M0 + M1);
+            pcenter[0] = - ratio * BinaryRadius * cos(BinaryOmega * time);
+            pcenter[1] = - ratio * BinaryRadius * sin(BinaryOmega * time);
+            pcenter[2] = 0.;
+            vcenter[0] = + ratio * BinaryRadius * sin(BinaryOmega * time) * BinaryOmega;
+            vcenter[1] = - ratio * BinaryRadius * cos(BinaryOmega * time) * BinaryOmega;
+            vcenter[2] = 0.;
         }
     }
 
@@ -143,6 +151,9 @@ void extractHeDetonation(char * ofile,
         temp_l[i] = 0.;
         vsnd_l[i] = 0.;
         vrad_l[i] = 0.;
+        for(PS::S64 k = 0; k < NR::NumberOfNucleon; k++) {
+            cmps_l[i][k] = 0.;
+        }
     }
 
     PS::F64vec pcenter(0.);
@@ -175,6 +186,9 @@ void extractHeDetonation(char * ofile,
             temp_l[jp] += ksph * sph[ip].temp;
             vsnd_l[jp] += ksph * sph[ip].vsnd;
             vrad_l[jp] += ksph * (raxis * sph[ip].vel);
+            for(PS::S64 k = 0; k < NR::NumberOfNucleon; k++) {
+                cmps_l[jp][k] += ksph * sph[ip].cmps[k];
+            }
         }
 
     } 
@@ -184,6 +198,7 @@ void extractHeDetonation(char * ofile,
     ierr = MPI_Allreduce(temp_l, temp_g, NumberOfMesh, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
     ierr = MPI_Allreduce(vsnd_l, vsnd_g, NumberOfMesh, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
     ierr = MPI_Allreduce(vrad_l, vrad_g, NumberOfMesh, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    ierr = MPI_Allreduce(cmps_l, cmps_g, NumberOfMesh*NR::NumberOfNucleon, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
     if(PS::Comm::getRank() == 0) {
         FILE * fp = fopen(ofile, "w");
@@ -191,9 +206,13 @@ void extractHeDetonation(char * ofile,
         PS::F64 dRadius = (2. * Radius) / NumberOfMesh;
         for(PS::S64 i = 0; i < NumberOfMesh; i++) {
             PS::F64 xlen = (0.5 + (PS::F64)i) * dRadius - Radius;
+            PS::F64 cmps = 0.;
+            for(PS::S64 k = 0; k < NR::NumberOfNucleon; k++) {
+                cmps += cmps_g[i][k];
+            }
             fprintf(fp, " %+e %+e %+e", xlen,      mesh[i][0], mesh[i][1]);
             fprintf(fp, " %+e %+e %+e", dens_g[i], temp_g[i],  vsnd_g[i]);
-            fprintf(fp, " %+e"        , vrad_g[i]);
+            fprintf(fp, " %+e %+e %+e"    , vrad_g[i], cmps_g[i][0]/cmps, cmps_g[i][1]/cmps);
             fprintf(fp, "\n");
         }
 #else
