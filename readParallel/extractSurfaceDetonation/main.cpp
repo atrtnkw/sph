@@ -20,8 +20,8 @@ enum KernelType {CubicSpline = 0, WendlandC2 = 1, WendlandC4 = 2};
 #include "hdr_bhns.hpp"
 
 namespace TargetWhiteDwarf{
-    const  PS::S64    NumberOfMesh = 256;
-    //const  PS::S64    NumberOfMesh = 1024;
+    //const  PS::S64    NumberOfMesh = 256;
+    const  PS::S64    NumberOfMesh = 1024;
     static PS::F64    dens_l[NumberOfMesh], dens_g[NumberOfMesh];
     static PS::F64    temp_l[NumberOfMesh], temp_g[NumberOfMesh];
     static PS::F64    vsnd_l[NumberOfMesh], vsnd_g[NumberOfMesh];
