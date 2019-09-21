@@ -272,7 +272,11 @@ void assignToMesh(char * ofile,
                         norm += cmps_g[k][NumberOfMesh/2][iy][ix];
                     }
                     PS::F32 ninv = (norm != 0.) ? (1. / norm) : 0.;
-                    fprintf(fp, "%+e %+e %+e %+e", mx, my, mz, cmps_g[12][iz][iy][ix] * ninv);
+                    fprintf(fp, " %+e %+e %+e", mx, my, mz);
+                    fprintf(fp, " %+e %+e %+e %+e", dens_g[iz][iy][ix], uene_g[iz][iy][ix], temp_g[iz][iy][ix], entr_g[iz][iy][ix]);
+                    for(PS::S64 k = 0; k < NR::NumberOfNucleon; k++) {
+                        fprintf(fp, " %+.2e", cmps_g[k][NumberOfMesh/2][iy][ix] * ninv);
+                    }
 #endif
                     fprintf(fp, "\n");
                 }
