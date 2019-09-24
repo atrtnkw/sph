@@ -43,6 +43,7 @@ public:
     void writeLine(FILE * fp) {
         fprintf(fp, "%16.10f %10d %+e %+e\n", this->time, this->id, this->temp, this->dens);
     }
+
 };
 
 class SPHAnalysis : public HelmholtzGas {
@@ -120,6 +121,31 @@ void sortQuicklyParticleRecord(TypeSort * prec,
     }
 }
 
+template <class TypeSort>
+void sortQuicklyParticleRecordTime(TypeSort * prec,
+                                   PS::S64 left,
+                                   PS::S64 right) {
+    PS::S64 i    = left;
+    PS::S64 j    = right;
+    PS::F64 axis = prec[(i+j)/2].time;
+    while(1) {
+        while(prec[i].time < axis) i++;
+        while(prec[j].time > axis) j--;
+        if(i >= j) break;
+        TypeSort temp = prec[i];
+        prec[i] = prec[j];
+        prec[j] = temp;
+        i++;
+        j--;
+    }
+    if(left < i-1) {
+        sortQuicklyParticleRecordTime(prec, left, i-1);
+    }
+    if(j+1 < right) {
+        sortQuicklyParticleRecordTime(prec, j+1, right);
+    }
+}
+
 PS::S64 getRankToBeDistributed(PS::S64 id,
                                PS::S64 id1st,
                                PS::S64 idint,
@@ -138,27 +164,39 @@ int main(int argc, char ** argv) {
     static PS::S32 senddspls[nprocmax];
     static PS::S32 recvcount[nprocmax];
     static PS::S32 recvdspls[nprocmax];
+    assert(PS::Comm::getNumberOfProc() <= nprocmax);
 
     char idir[1024], ifile[1024];
     char odir[1024], ofile[1024];
-    PS::S64 nptcl, nstep;
+    PS::S64 nptcl;
     PS::S64 id1st, idint;
     FILE * fp = fopen(argv[1], "r");
-    fscanf(fp, "%s%s%lld%lld", idir, odir, &nptcl, &nstep);
+    fscanf(fp, "%s%s%lld", idir, odir, &nptcl);
     fscanf(fp, "%lld%lld", &id1st, &idint);
     fclose(fp);
 
-    sprintf(ifile, "%s/debug_p%06d.log", idir, PS::Comm::getRank());
-    fp = fopen(ifile, "r");
-    assert(fp);
+    // Count line in advance
     PS::S64 nline = 0;
-    ParticleRecord prectmp;
-    while(prectmp.readLine(fp)) nline++;
-    fclose(fp);
+    for(PS::S64 itime = 0; itime <= 99; itime++) {
+        char tfile[1024];
+        FILE *fp = NULL;
+        PS::S64 tdir = 0;
+        sprintf(tfile, "%s/t%02d/debug_p%06d.log", idir, itime, PS::Comm::getRank());
+        fp = fopen(tfile, "r");
+        if(fp == NULL) {
+            if(PS::Comm::getRank() == 0) fprintf(stderr, "Not found %s\n", tfile);
+            continue;
+        }
+        ParticleRecord prectmp;
+        while(prectmp.readLine(fp)) nline++;
+        fclose(fp);
+    }
+    PS::S64 nlinetot = PS::Comm::getSum(nline);
+    PS::S64 nstep    = nlinetot / nptcl;
 
+    // Allocate memory
     PS::S64 nlineloc = ((nline / 64) + 1) * 64;
     PS::S64 nlineglb = ((nptcl / PS::Comm::getNumberOfProc() + 1) * nstep / 64 + 1) * 64;
-
     ParticleRecord * precloc;
     ParticleRecord * precglb;
     int ret;
@@ -167,51 +205,70 @@ int main(int argc, char ** argv) {
     ret = posix_memalign((void **)&precglb, 64, sizeof(ParticleRecord)*nlineglb);
     assert(ret == 0);
 
-    fp = fopen(ifile, "r");
-    assert(fp);
-    for(PS::S64 i = 0; i < nline; i++) {
-        precloc[i].readLine(fp);
+    // Read data
+    for(PS::S64 itime = 0, i = 0; itime <= 99; itime++) {
+        char tfile[1024];
+        FILE *fp = NULL;
+        PS::S64 tdir = 0;
+        sprintf(tfile, "%s/t%02d/debug_p%06d.log", idir, itime, PS::Comm::getRank());
+        fp = fopen(tfile, "r");
+        if(fp == NULL) {
+            continue;
+        }
+        while(precloc[i].readLine(fp)) i++;
+        fclose(fp);
     }
-    fclose(fp);
 
+    // Sort ID
     if(nline > 0) {
         sortQuicklyParticleRecord(precloc, 0, nline-1);
     }
 
+    // Prepare data distribution
     for(PS::S64 i = 0; i < nline; i++) {
         PS::S64 iproc = getRankToBeDistributed(precloc[i].id, id1st, idint, nptcl);
         sendcount[iproc]++;
     }
-    for(PS::S64 i = 0, ndis = 0; i < PS::Comm::getNumberOfProc()+1; i++) {
-        senddspls[i] = ndis;
-        ndis += sendcount[i];
+    for(PS::S64 i = 0, nsend = 0; i < PS::Comm::getNumberOfProc()+1; i++) {
+        senddspls[i] = nsend;
+        nsend += sendcount[i];
     }
     ret = MPI_Alltoall(sendcount, 1, MPI_INT,
                        recvcount, 1, MPI_INT,
                        MPI_COMM_WORLD);
     assert(ret == MPI_SUCCESS);
-
-    for(PS::S64 i = 0, ndis = 0; i < PS::Comm::getNumberOfProc()+1; i++) {
-        recvdspls[i] = ndis;
-        ndis += recvcount[i];
+    for(PS::S64 i = 0, nrecv = 0; i < PS::Comm::getNumberOfProc()+1; i++) {
+        recvdspls[i] = nrecv;
+        nrecv += recvcount[i];
     }
+
+    // Distribute data
     ret = MPI_Alltoallv(precloc, sendcount, senddspls, ParticleRecordMPI,
                         precglb, recvcount, recvdspls, ParticleRecordMPI,
                         MPI_COMM_WORLD);
     assert(ret == MPI_SUCCESS);
 
-    /*
-    sprintf(ofile, "%s/hoge_p%06d.log", odir, PS::Comm::getRank());
-    fp = fopen(ofile, "w");
-    for(PS::S64 i = 0; i < PS::Comm::getNumberOfProc(); i++) {
-        fprintf(fp, "%8d %8d %8d %8d %8d\n", i, sendcount[i], senddspls[i], recvcount[i], recvdspls[i]);
+    // Sort time for each particle
+    PS::S64 nrecv = recvdspls[PS::Comm::getNumberOfProc()];
+    if(nrecv > 0) {
+        sortQuicklyParticleRecord(precglb, 0, nrecv-1);
     }
-    fclose(fp);
-    */
-    sprintf(ofile, "%s/hoge_p%06d.log", odir, PS::Comm::getRank());
+    for(PS::S64 i = 0; i < nrecv; i += nstep) {
+        sortQuicklyParticleRecordTime(precglb, i, i+nstep-1);
+    }
+
+    // Output particle data for each file
+    sprintf(ofile, "%s/prec%06d.dat", odir, PS::Comm::getRank());
     fp = fopen(ofile, "w");
-    for(PS::S64 i = 0; i < recvdspls[PS::Comm::getNumberOfProc()]; i++) {
+    PS::S64 pid   = -1;
+    PS::F64 ptime = -1.;
+    for(PS::S64 i = 0; i < nrecv; i++) {
+        if(precglb[i].id == pid && precglb[i].time == ptime) {
+            continue;
+        }
         precglb[i].writeLine(fp);
+        pid   = precglb[i].id;
+        ptime = precglb[i].time;
     }
     fclose(fp);
 
