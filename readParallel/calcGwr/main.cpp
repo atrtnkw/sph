@@ -100,6 +100,14 @@ PS::F64mat calcGwr(Tsph & sph) {
     PS::F64vec acenter(0.);
     obtainDensityCenter(sph, pcenter, vcenter, acenter);
 
+    if(PS::Comm::getRank() == 0) {
+        printf("center");
+        printf(" %+e %+e %+e", pcenter[0], pcenter[1], pcenter[2]);
+        printf(" %+e %+e %+e", vcenter[0], vcenter[1], vcenter[2]);
+        printf(" %+e %+e %+e", acenter[0], acenter[1], acenter[2]);
+        printf("\n");
+    }
+
     PS::F64mat quadloc = 0.;
 
     for(PS::S64 ip = 0; ip < sph.getNumberOfParticleLocal(); ip++) {
