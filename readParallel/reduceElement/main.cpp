@@ -132,12 +132,6 @@ int main(int argc, char ** argv) {
         sprintf(sfile, "%s/t%02d/sph_t%04d", idir, tdir, itime);
         sph.readParticleAscii(sfile, "%s_p%06d_i%06d.dat");
 
-        if(itime == 18 && PS::Comm::getRank() == 180) {
-            for(PS::S64 ip = 0; ip < sph.getNumberOfParticleLocal(); ip++) {
-                printf("hoge %10d %+e %+e\n", sph[ip].id, sph[ip].mass, sph[ip].cmps[12]);
-            }
-        }
-
         PS::F64 cmps[NR::NumberOfNucleon];
         reduceElement(sph, cmps);
         if(PS::Comm::getRank() == 0) {
