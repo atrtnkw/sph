@@ -19,7 +19,7 @@ enum KernelType {CubicSpline = 0, WendlandC2 = 1, WendlandC4 = 2};
 #include "hdr_hgas.hpp"
 #include "hdr_bhns.hpp"
 
-//#define RadialVelocity
+MPI_Datatype NucleonMPI;
 
 class SPHAnalysis : public HelmholtzGas {
 public:
@@ -44,7 +44,6 @@ public:
         fscanf(fp, "%lf%lf%lf", &this->vel[0], &this->vel[1], &this->vel[2]); //  9
         fscanf(fp, "%lf%lf%lf", &this->acc[0], &this->acc[1], &this->acc[2]); // 12
         fscanf(fp, "%lf%lf%lf", &this->uene, &this->alph, &this->alphu);      // 15
-//        fscanf(fp, "%lf%lf%6d", &this->dens, &this->ksr,  &this->np);         // 18
         fscanf(fp, "%lf%lf%lld", &this->dens, &this->ksr,  &this->np);        // 18
         fscanf(fp, "%lf%lf%lf", &this->vsnd, &this->pres, &this->temp);       // 21
         fscanf(fp, "%lf%lf%lf", &this->divv, &this->rotv, &this->bswt);       // 24
@@ -59,71 +58,32 @@ public:
         fscanf(fp, "%lf", &this->entr);
     }
 
-    void writeAscii(FILE * fp) {
-        fprintf(fp, "%6d %2d %+e",  this->id,     this->istar,  this->mass);
-        fprintf(fp, " %+e %+e %+e", this->pos[0], this->pos[1], this->pos[2]);
-        fprintf(fp, " %+e %+e %+e", this->vel[0], this->vel[1], this->vel[2]);
-        fprintf(fp, " %+e %+e %+e", this->uene,   this->dens,   this->pot);
-        for(PS::S32 k = 0; k < NuclearReaction::NumberOfNucleon; k++) {
-            fprintf(fp, " %+.3e", this->cmps[k]);
-        }
-        fprintf(fp, "\n");
-    }
-
 };
 
 template <class Tsph>
-void obtainDensityCenter(Tsph & sph,
-                         PS::F64vec & pcenter,
-                         PS::F64vec & vcenter) {
-    PS::S64    np   = 0;
-    PS::F64    dloc = 0.;
-    PS::F64vec ploc(0.);
-    PS::F64vec vloc(0.);
+void reduceElement(Tsph & sph,
+                   PS::F64 * cmpsglb) {
+
+    PS::F64 cmpsloc[NR::NumberOfNucleon];
+    for(PS::S64 k = 0; k < NR::NumberOfNucleon; k++) {
+        cmpsloc[k] = 0.;
+        cmpsglb[k] = 0.;
+    }
     for(PS::S64 ip = 0; ip < sph.getNumberOfParticleLocal(); ip++) {
-        if(sph[ip].istar == 0) {
-            continue;
+        for(PS::S64 k = 0; k < NR::NumberOfNucleon; k++) {
+            cmpsloc[k] += sph[ip].cmps[k] * sph[ip].mass;
         }
-        np++;
-        dloc += sph[ip].dens;
-        ploc += sph[ip].dens * sph[ip].pos;
-        vloc += sph[ip].dens * sph[ip].vel;
     }
 
-    PS::F64    dglb;
-    PS::F64vec pglb;
-    PS::F64vec vglb;
-    PS::S64 ierr = 0;
-    ierr = MPI_Allreduce(&dloc, &dglb, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-    ierr = MPI_Allreduce(&ploc, &pglb, 3, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-    ierr = MPI_Allreduce(&vloc, &vglb, 3, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-    pcenter = pglb / dglb;
-    vcenter = vglb / dglb;
-}
+    PS::S64 ret = MPI_Allreduce(cmpsloc, cmpsglb, NR::NumberOfNucleon,
+                                MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    assert(ret == MPI_SUCCESS);
 
-template <class Tsph>
-void shiftCenter(char * ofile,
-                 Tsph & sph) {
-    PS::F64vec pcenter(0.);
-    PS::F64vec vcenter(0.);
-    obtainDensityCenter(sph, pcenter, vcenter);
+    for(PS::S64 k = 0; k < NR::NumberOfNucleon; k++) {
+        cmpsglb[k] = cmpsglb[k] / CodeUnit::SolarMass;
+    }
 
-    FILE * fp = fopen(ofile, "w");
-    for(PS::S64 ip = 0; ip < sph.getNumberOfParticleLocal(); ip++) {
-        sph[ip].pos -= pcenter;
-        sph[ip].vel -= vcenter;
-        PS::F64    eptcl = 0.5 * (sph[ip].vel * sph[ip].vel) + sph[ip].pot;
-        if(eptcl < 0.) {
-            continue;
-        }
-
-        if(sph[ip].id % 512 != 0) {
-            continue;
-        }
-
-        sph[ip].writeAscii(fp);
-    }    
-    fclose(fp);
+    return;
 }
 
 int main(int argc, char ** argv) {
@@ -136,11 +96,16 @@ int main(int argc, char ** argv) {
 
     char idir[1024], odir[1024];
     PS::S64 ibgn, iend;
+    PS::F64 tsnap;
     FILE * fp = fopen(argv[1], "r");
     fscanf(fp, "%s", idir);
     fscanf(fp, "%s", odir);
-    fscanf(fp, "%lld%lld", &ibgn, &iend);
+    fscanf(fp, "%lld%lld%lf", &ibgn, &iend, &tsnap);
     fclose(fp);
+
+    char ofile[1024];
+    sprintf(ofile, "%s/element.dat", odir);
+    FILE * fpout = fopen(ofile, "w");
 
     for(PS::S64 itime = ibgn; itime <= iend; itime++) {        
         char tfile[1024];
@@ -167,12 +132,26 @@ int main(int argc, char ** argv) {
         sprintf(sfile, "%s/t%02d/sph_t%04d", idir, tdir, itime);
         sph.readParticleAscii(sfile, "%s_p%06d_i%06d.dat");
 
-        char ofile[1024];
-        sprintf(ofile, "%s/sph_t%04d_p%06d_i%06d.dat",
-                odir, itime, PS::Comm::getNumberOfProc(), PS::Comm::getRank());
-        shiftCenter(ofile, sph);
+        if(itime == 18 && PS::Comm::getRank() == 180) {
+            for(PS::S64 ip = 0; ip < sph.getNumberOfParticleLocal(); ip++) {
+                printf("hoge %10d %+e %+e\n", sph[ip].id, sph[ip].mass, sph[ip].cmps[12]);
+            }
+        }
+
+        PS::F64 cmps[NR::NumberOfNucleon];
+        reduceElement(sph, cmps);
+        if(PS::Comm::getRank() == 0) {
+            fprintf(fpout, "%+e", itime * tsnap);
+            for(PS::S64 k = 0; k < NR::NumberOfNucleon; k++) {
+                fprintf(fpout, " %+e", cmps[k]);
+            }
+            fprintf(fpout, "\n");
+            fflush(fpout);
+        }
 
     }
+
+    fclose(fpout);
 
     PS::Finalize();
 

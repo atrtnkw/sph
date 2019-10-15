@@ -113,7 +113,8 @@ public:
         fscanf(fp, "%lf%lf%lf", &this->vel[0], &this->vel[1], &this->vel[2]); //  9
         fscanf(fp, "%lf%lf%lf", &this->acc[0], &this->acc[1], &this->acc[2]); // 12
         fscanf(fp, "%lf%lf%lf", &this->uene, &this->alph, &this->alphu);      // 15
-        fscanf(fp, "%lf%lf%6d", &this->dens, &this->ksr,  &this->np);         // 18
+//        fscanf(fp, "%lf%lf%6d", &this->dens, &this->ksr,  &this->np);         // 18
+        fscanf(fp, "%lf%lf%lld", &this->dens, &this->ksr,  &this->np);        // 18
         fscanf(fp, "%lf%lf%lf", &this->vsnd, &this->pres, &this->temp);       // 21
         fscanf(fp, "%lf%lf%lf", &this->divv, &this->rotv, &this->bswt);       // 24
         fscanf(fp, "%lf%lf%lf", &this->pot,  &this->abar, &this->zbar);       // 27
