@@ -1439,7 +1439,9 @@ void loopSimulation(Tdinfo & dinfo,
     while(RP::Time < RP::TimeEnd) {
         ////////////
         {
-            writeTemperatureDensity(sph);
+            if(RP::NumberOfStep % 128 == 0) {
+                writeTemperatureDensity(sph);
+            }
             if(RP::Time == 0) {
                 for(PS::S32 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
                     sph[i].tempmax[0] = 0.;
