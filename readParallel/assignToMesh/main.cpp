@@ -20,7 +20,7 @@ enum KernelType {CubicSpline = 0, WendlandC2 = 1, WendlandC4 = 2};
 #include "hdr_bhns.hpp"
 
 namespace AssignToMesh {
-#define SurvivingWhiteDwarf
+//#define SurvivingWhiteDwarf
 #define Data2D
 #define LowResolution
 #ifdef LowResolution
