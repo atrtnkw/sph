@@ -105,10 +105,10 @@ int main(int argc, char ** argv) {
     sph.readParticleAscii(sfile, "%s_p%06d_i%06d.dat");
     
     char ofile[1024];
-    sprintf(ofile, "%s/ext_t%04d_p%06d_i%06d.dat", odir, itime, PS::Comm::getNumberOfProc(), PS::Comm::getRank());
+    sprintf(ofile, "%s/ext_t%04d_p%06d_i%06d.data", odir, itime, PS::Comm::getNumberOfProc(), PS::Comm::getRank());
     fp = fopen(ofile, "w");
     for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
-        if(sph[i].istar == 1 || (sph[i].id-id1st)%idint != 0) {
+        if((sph[i].id-id1st)%idint != 0) {
             continue;
         }
         fprintf(fp, "%10d %2d %+e", sph[i].id, sph[i].istar, sph[i].mass);

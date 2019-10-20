@@ -143,10 +143,48 @@ public:
 
 };
 
-/*
 class SPHDetailElement : public HelmholtzGas {
-}
-*/
+public:
+
+    static const PS::S64 NumberOfElement = 34;
+    PS::F64 elem[NumberOfElement];
+
+    SPHDetailElement() {
+        this->id    = 0;
+        this->istar = 0;
+        this->mass  = 0.;
+        this->pos   = 0.;
+        this->vel   = 0.;
+        this->dens  = 0.;
+        this->ksr   = 0.;
+        this->pot   = 0.;
+        for(PS::S64 k = 0; k < NumberOfElement; k++) {
+            this->elem[k] = 0.;
+        }
+    }
+
+    void readAscii(FILE * fp) {
+        fscanf(fp, "%lld%lld%lf", &this->id,     &this->istar,  &this->mass);   //   3
+        fscanf(fp, "%lf%lf%lf",   &this->pos[0], &this->pos[1], &this->pos[2]); //   6
+        fscanf(fp, "%lf%lf%lf",   &this->vel[0], &this->vel[1], &this->vel[2]); //   9
+        fscanf(fp, "%lf%lf%lf",   &this->dens,   &this->ksr,    &this->pot);    //  12
+        this->elem[9]  = 0.49179301803663630124; // C
+        this->elem[11] = 0.49179301803663630124; // O
+        this->elem[13] = 0.01342153152708231446; // Ne
+        this->elem[15] = 0.00070522296620528707; // Mg
+        this->elem[17] = 0.00066876453890332400; // Si
+        this->elem[19] = 0.00031136169559311488; // S
+        this->elem[29] = 0.00130708319894335710; // Fe
+        /*
+        if(this->istar == 0) {
+            for(PS::S64 k = 0; k < NumberOfElement; k++) {
+                fscanf(fp, "%lf", &this->elem[k]);
+            }
+        }
+        */
+    }
+
+};
 
 template <class Tsph>
 void obtainDensityCenter(Tsph & sph,
@@ -384,20 +422,26 @@ int main(int argc, char ** argv) {
     sph.createParticle(0);
     sph.setNumberOfParticleLocal(0);
 
-    char idir[1024], odir[1024];
-    PS::S64 ibgn, iend;
+    PS::ParticleSystem<SPHDetailElement> sphelem;
+    sphelem.initialize();
+    sphelem.createParticle(0);
+    sphelem.setNumberOfParticleLocal(0);
+
+    char idir[1024], odir[1024], etype[1024];
+    PS::S64 itime;
     FILE * fp = fopen(argv[1], "r");
     fscanf(fp, "%s", idir);
     fscanf(fp, "%s", odir);
-    fscanf(fp, "%lld%lld", &ibgn, &iend);
+    fscanf(fp, "%s", etype);
+    fscanf(fp, "%lld", &itime);
     fclose(fp);
 
-    for(PS::S64 itime = ibgn; itime <= iend; itime++) {        
+    {        
         char tfile[1024];
         FILE *fp = NULL;
         PS::S64 tdir = 0;
         for(PS::S64 iidir = 0; iidir < 100; iidir++) {
-            sprintf(tfile, "%s/t%02d/sph_t%04d_p%06d_i%06d.dat", idir, iidir, itime,
+            sprintf(tfile, "%s/t%02d/sph_t%04lld_p%06d_i%06d.dat", idir, iidir, itime,
                     PS::Comm::getNumberOfProc(), 0);
             fp = fopen(tfile, "r");
             if(fp != NULL) {
@@ -409,13 +453,25 @@ int main(int argc, char ** argv) {
             if(PS::Comm::getRank() == 0) {
                 fprintf(stderr, "Not found %s\n", tfile);
             }
-            continue;
+            PS::Finalize();
+            exit(0);
         }
         fclose(fp);
 
         char sfile[1024];
         sprintf(sfile, "%s/t%02d/sph_t%04d", idir, tdir, itime);
         sph.readParticleAscii(sfile, "%s_p%06d_i%06d.dat");
+
+        char efile[1024];
+        sphelem.readParticleAscii(etype, "%s_p%06d_i%06d.data");
+
+        /*
+        if(PS::Comm::getRank() == 3071) {
+            for(PS::S64 i = 0; i < sphelem.getNumberOfParticleLocal(); i++) {
+                printf("hoge %10d %2d %+e %+e %+e %+e %+e\n", sphelem[i].id, sphelem[i].istar, sphelem[i].pos[0], sphelem[i].pos[1], sphelem[i].pos[2], sphelem[i].elem[9], sphelem[i].elem[29]);
+            }
+        }
+        */
 
         char ofile[1024];
         sprintf(ofile, "%s/init3d_t%04d.dat", odir, itime);
