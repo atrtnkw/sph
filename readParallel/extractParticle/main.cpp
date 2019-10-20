@@ -111,7 +111,11 @@ int main(int argc, char ** argv) {
         if(sph[i].istar == 1 || (sph[i].id-id1st)%idint != 0) {
             continue;
         }
-        fprintf(fp, "%10d %+e %+e %+e\n", sph[i].id, sph[i].pos[0], sph[i].pos[1], sph[i].pos[2]);
+        fprintf(fp, "%10d %2d %+e", sph[i].id, sph[i].istar, sph[i].mass);
+        fprintf(fp, " %+e %+e %+e", sph[i].pos[0], sph[i].pos[1], sph[i].pos[2]);
+        fprintf(fp, " %+e %+e %+e", sph[i].vel[0], sph[i].vel[1], sph[i].vel[2]);
+        fprintf(fp, " %+e %+e %+e", sph[i].dens, sph[i].ksr, sph[i].pot);
+        fprintf(fp, "\n");
     }
     fclose(fp);
 

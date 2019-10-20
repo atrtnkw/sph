@@ -143,6 +143,11 @@ public:
 
 };
 
+/*
+class SPHDetailElement : public HelmholtzGas {
+}
+*/
+
 template <class Tsph>
 void obtainDensityCenter(Tsph & sph,
                          PS::F64vec & pcenter,
