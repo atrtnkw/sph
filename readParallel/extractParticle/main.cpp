@@ -72,11 +72,13 @@ int main(int argc, char ** argv) {
     PS::S64 ibgn, iend;
     PS::S64 itime;
     PS::S64 id1st, idint;
+    PS::S64 mode;
     FILE * fp = fopen(argv[1], "r");
     fscanf(fp, "%s", idir);
     fscanf(fp, "%s", odir);
     fscanf(fp, "%lld", &itime);
     fscanf(fp, "%lld%lld", &id1st, &idint);
+    fscanf(fp, "%lld", &mode);
     fclose(fp);
 
     char tfile[1024];
@@ -105,17 +107,23 @@ int main(int argc, char ** argv) {
     sph.readParticleAscii(sfile, "%s_p%06d_i%06d.dat");
     
     char ofile[1024];
-    sprintf(ofile, "%s/ext_t%04d_p%06d_i%06d.data", odir, itime, PS::Comm::getNumberOfProc(), PS::Comm::getRank());
+    sprintf(ofile, "%s/ext_t%04d_p%06d_i%06d.dat", odir, itime, PS::Comm::getNumberOfProc(), PS::Comm::getRank());
     fp = fopen(ofile, "w");
     for(PS::S64 i = 0; i < sph.getNumberOfParticleLocal(); i++) {
         if((sph[i].id-id1st)%idint != 0) {
             continue;
         }
-        fprintf(fp, "%10d %2d %+e", sph[i].id, sph[i].istar, sph[i].mass);
-        fprintf(fp, " %+e %+e %+e", sph[i].pos[0], sph[i].pos[1], sph[i].pos[2]);
-        fprintf(fp, " %+e %+e %+e", sph[i].vel[0], sph[i].vel[1], sph[i].vel[2]);
-        fprintf(fp, " %+e %+e %+e", sph[i].dens, sph[i].ksr, sph[i].pot);
-        fprintf(fp, "\n");
+        if(mode == 0) {
+            fprintf(fp, "%10d %2d %+e", sph[i].id, sph[i].istar, sph[i].mass);
+            fprintf(fp, " %+e %+e %+e", sph[i].pos[0], sph[i].pos[1], sph[i].pos[2]);
+            fprintf(fp, " %+e %+e %+e", sph[i].vel[0], sph[i].vel[1], sph[i].vel[2]);
+            fprintf(fp, " %+e %+e %+e", sph[i].dens, sph[i].ksr, sph[i].pot);
+            fprintf(fp, "\n");
+        } else {
+            if(sph[i].istar == 0 && sph[i].cmps[0] > 0.1) {
+                fprintf(fp, "%10d\n", sph[i].id);
+            }
+        }
     }
     fclose(fp);
 

@@ -19,6 +19,49 @@ enum KernelType {CubicSpline = 0, WendlandC2 = 1, WendlandC4 = 2};
 #include "hdr_hgas.hpp"
 #include "hdr_bhns.hpp"
 
+class SPHDetailElement : public HelmholtzGas {
+public:
+
+    static const PS::S64 NumberOfElement = 34;
+    PS::F64 elem[NumberOfElement];
+
+    SPHDetailElement() {
+        this->id    = 0;
+        this->istar = 0;
+        this->mass  = 0.;
+        this->pos   = 0.;
+        this->vel   = 0.;
+        this->dens  = 0.;
+        this->ksr   = 0.;
+        this->pot   = 0.;
+        for(PS::S64 k = 0; k < NumberOfElement; k++) {
+            this->elem[k] = 0.;
+        }
+    }
+
+    void readAscii(FILE * fp) {
+        fscanf(fp, "%lld%lld%lf", &this->id,     &this->istar,  &this->mass);   //   3
+        fscanf(fp, "%lf%lf%lf",   &this->pos[0], &this->pos[1], &this->pos[2]); //   6
+        fscanf(fp, "%lf%lf%lf",   &this->vel[0], &this->vel[1], &this->vel[2]); //   9
+        fscanf(fp, "%lf%lf%lf",   &this->dens,   &this->ksr,    &this->pot);    //  12
+        this->elem[9]  = 0.49179301803663630124; // C
+        this->elem[11] = 0.49179301803663630124; // O
+        this->elem[13] = 0.01342153152708231446; // Ne
+        this->elem[15] = 0.00070522296620528707; // Mg
+        this->elem[17] = 0.00066876453890332400; // Si
+        this->elem[19] = 0.00031136169559311488; // S
+        this->elem[29] = 0.00130708319894335710; // Fe
+        if(this->istar == 0) {
+            PS::S64 dum;
+            fscanf(fp, "%lld", &dum);
+            for(PS::S64 k = 0; k < NumberOfElement; k++) {
+                fscanf(fp, "%lf", &this->elem[k]);
+            }
+        }
+    }
+
+};
+
 namespace AssignToMesh {
 #if 1
     const PS::S64 NumberOfRadius      = 128;
@@ -38,8 +81,8 @@ namespace AssignToMesh {
     static PS::F32 dens_g[NumberOfAzimuth][NumberOfInclination][NumberOfRadius];
     static PS::F32 temp_l[NumberOfAzimuth][NumberOfInclination][NumberOfRadius];
     static PS::F32 temp_g[NumberOfAzimuth][NumberOfInclination][NumberOfRadius];
-    static PS::F32 cmps_l[NR::NumberOfNucleon][NumberOfAzimuth][NumberOfInclination][NumberOfRadius];
-    static PS::F32 cmps_g[NR::NumberOfNucleon][NumberOfAzimuth][NumberOfInclination][NumberOfRadius];
+    static PS::F32 cmps_l[SPHDetailElement::NumberOfElement][NumberOfAzimuth][NumberOfInclination][NumberOfRadius];
+    static PS::F32 cmps_g[SPHDetailElement::NumberOfElement][NumberOfAzimuth][NumberOfInclination][NumberOfRadius];
     static bool FirstCallInclination = true;
     static PS::F64 incl[NumberOfInclination];
 
@@ -143,49 +186,6 @@ public:
 
 };
 
-class SPHDetailElement : public HelmholtzGas {
-public:
-
-    static const PS::S64 NumberOfElement = 34;
-    PS::F64 elem[NumberOfElement];
-
-    SPHDetailElement() {
-        this->id    = 0;
-        this->istar = 0;
-        this->mass  = 0.;
-        this->pos   = 0.;
-        this->vel   = 0.;
-        this->dens  = 0.;
-        this->ksr   = 0.;
-        this->pot   = 0.;
-        for(PS::S64 k = 0; k < NumberOfElement; k++) {
-            this->elem[k] = 0.;
-        }
-    }
-
-    void readAscii(FILE * fp) {
-        fscanf(fp, "%lld%lld%lf", &this->id,     &this->istar,  &this->mass);   //   3
-        fscanf(fp, "%lf%lf%lf",   &this->pos[0], &this->pos[1], &this->pos[2]); //   6
-        fscanf(fp, "%lf%lf%lf",   &this->vel[0], &this->vel[1], &this->vel[2]); //   9
-        fscanf(fp, "%lf%lf%lf",   &this->dens,   &this->ksr,    &this->pot);    //  12
-        this->elem[9]  = 0.49179301803663630124; // C
-        this->elem[11] = 0.49179301803663630124; // O
-        this->elem[13] = 0.01342153152708231446; // Ne
-        this->elem[15] = 0.00070522296620528707; // Mg
-        this->elem[17] = 0.00066876453890332400; // Si
-        this->elem[19] = 0.00031136169559311488; // S
-        this->elem[29] = 0.00130708319894335710; // Fe
-        /*
-        if(this->istar == 0) {
-            for(PS::S64 k = 0; k < NumberOfElement; k++) {
-                fscanf(fp, "%lf", &this->elem[k]);
-            }
-        }
-        */
-    }
-
-};
-
 template <class Tsph>
 void obtainDensityCenter(Tsph & sph,
                          PS::F64vec & pcenter,
@@ -215,10 +215,14 @@ void obtainDensityCenter(Tsph & sph,
     vcenter = vglb / dglb;
 }
 
-template <class Tsph>
+template <class Tsph,
+          class Tsphelem>
 void assignToMesh(char * ofile,
-                  Tsph & sph) {
+                  Tsph & sph,
+                  Tsphelem & sphelem) {
     using namespace AssignToMesh;
+
+    PS::S64 NumberOfElement = SPHDetailElement::NumberOfElement;
 
     PS::F64vec pcenter(0.);
     PS::F64vec vcenter(0.);
@@ -229,7 +233,7 @@ void assignToMesh(char * ofile,
             for(PS::S64 ix = 0; ix < NumberOfRadius; ix++) {
                 dens_l[iz][iy][ix] = 0.;
                 temp_l[iz][iy][ix] = 0.;
-                for(PS::S64 k = 0; k < NR::NumberOfNucleon; k++) {
+                for(PS::S64 k = 0; k < NumberOfElement; k++) {
                     cmps_l[k][iz][iy][ix] = 0.;
                 }
             }
@@ -271,34 +275,29 @@ void assignToMesh(char * ofile,
                     PS::F64 dinv = 1. / sph[ip].dens;
                     PS::F64 ksph = sph[ip].mass * dinv * kw0;
                     temp_l[iphi][iinc][irad] += ksph * sph[ip].temp;
-                    /*
-                    for(PS::S64 k = 0; k < NR::NumberOfNucleon; k++) {
-                        cmps_l[k][iphi][iinc][irad] += ((dq1 <= 1.) ? sph[ip].cmps[k] : 0.);
-                    }
-                    */
                 }            
             }            
         }
     }
 
-    for(PS::S64 ip = 0; ip < sph.getNumberOfParticleLocal(); ip++) {
-        PS::F64vec pptcl = sph[ip].pos - pcenter;
-        PS::F64vec vptcl = sph[ip].vel - vcenter;
-        PS::F64    eptcl = 0.5 * (vptcl * vptcl) + sph[ip].pot;
+    for(PS::S64 ip = 0; ip < sphelem.getNumberOfParticleLocal(); ip++) {
+        PS::F64vec pptcl = sphelem[ip].pos - pcenter;
+        PS::F64vec vptcl = sphelem[ip].vel - vcenter;
+        PS::F64    eptcl = 0.5 * (vptcl * vptcl) + sphelem[ip].pot;
         if(eptcl < 0.) {
             continue;
         }
-        if(sph[ip].id % 320 != 0) {
+        if(sphelem[ip].id % 320 != 0) {
             continue;
         }
 
         PS::F64 fexp  = pow(320., 1./3.);
         PS::F64 radius = sqrt(pptcl * pptcl);
         PS::F64 theta  = acos(pptcl[2] / radius);
-        PS::F64 dtheta = (sph[ip].ksr*fexp <= radius) ?
-            asin(sph[ip].ksr*fexp / radius) : M_PI;
-        PS::S64 irmin  = getIndexRadius(radius-sph[ip].ksr*fexp);
-        PS::S64 irmax  = getIndexRadius(radius+sph[ip].ksr*fexp);
+        PS::F64 dtheta = (sphelem[ip].ksr*fexp <= radius) ?
+            asin(sphelem[ip].ksr*fexp / radius) : M_PI;
+        PS::S64 irmin  = getIndexRadius(radius-sphelem[ip].ksr*fexp);
+        PS::S64 irmax  = getIndexRadius(radius+sphelem[ip].ksr*fexp);
         PS::S64 itmin  = getIndexInclination(theta-dtheta);
         PS::S64 itmax  = getIndexInclination(theta+dtheta);
 
@@ -314,15 +313,14 @@ void assignToMesh(char * ofile,
                     PS::F64vec dr = pos - pptcl;
                     PS::F64 dr2   = dr * dr;
                     PS::F64 dr1   = sqrt(dr2);
-                    PS::F64 hinv1 = 1. / (sph[ip].ksr * fexp);
+                    PS::F64 hinv1 = 1. / (sphelem[ip].ksr * fexp);
                     PS::F64 dq1   = dr1 * hinv1;
                     PS::F64 hinv3 = ND::calcVolumeInverse(hinv1);
                     PS::F64 kw0   = hinv3 * SK::kernel0th(dq1);
-                    PS::F64 dinv = 1. / sph[ip].dens;
-                    PS::F64 ksph = sph[ip].mass * dinv * kw0;
-                    for(PS::S64 k = 0; k < NR::NumberOfNucleon; k++) {
-                        //cmps_l[k][iphi][iinc][irad] += ((dq1 <= 1.) ? sph[ip].cmps[k] : 0.);
-                        cmps_l[k][iphi][iinc][irad] += ksph * sph[ip].cmps[k];
+                    PS::F64 dinv = 1. / sphelem[ip].dens;
+                    PS::F64 ksph = sphelem[ip].mass * dinv * kw0;
+                    for(PS::S64 k = 0; k < NumberOfElement; k++) {
+                        cmps_l[k][iphi][iinc][irad] += ksph * sphelem[ip].elem[k];
                     }
                 }            
             }            
@@ -332,7 +330,7 @@ void assignToMesh(char * ofile,
     PS::S64 ierr = 0;
     ierr = MPI_Allreduce(dens_l, dens_g, NumberOfMesh3, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
     ierr = MPI_Allreduce(temp_l, temp_g, NumberOfMesh3, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
-    for(PS::S64 k = 0; k < NR::NumberOfNucleon; k++) {
+    for(PS::S64 k = 0; k < NumberOfElement; k++) {
         ierr = MPI_Allreduce(cmps_l[k], cmps_g[k], NumberOfMesh3, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
     }
 
@@ -352,11 +350,11 @@ void assignToMesh(char * ofile,
                         dens_g[iphi][iinc][irad],
                         temp_g[iphi][iinc][irad]);
                 PS::F32 norm = 0.;
-                for(PS::S64 k = 0; k < NR::NumberOfNucleon; k++) {
+                for(PS::S64 k = 0; k < NumberOfElement; k++) {
                     norm += cmps_g[k][iphi][iinc][irad];
                 }
                 PS::F32 ninv = (norm != 0.) ? (1. / norm) : 0.;
-                for(PS::S64 k = 0; k < NR::NumberOfNucleon; k++) {
+                for(PS::S64 k = 0; k < NumberOfElement; k++) {
                     fprintf(fp, " %+.2e", cmps_g[k][iphi][iinc][irad] * ninv);
                 }
                 fprintf(fp, "\n");
@@ -380,11 +378,11 @@ void assignToMesh(char * ofile,
                         dens_g[iphi][iinc][irad],
                         temp_g[iphi][iinc][irad]);
                 PS::F32 norm = 0.;
-                for(PS::S64 k = 0; k < NR::NumberOfNucleon; k++) {
+                for(PS::S64 k = 0; k < NumberOfElement; k++) {
                     norm += cmps_g[k][iphi][iinc][irad];
                 }
                 PS::F32 ninv = (norm != 0.) ? (1. / norm) : 0.;
-                for(PS::S64 k = 0; k < NR::NumberOfNucleon; k++) {
+                for(PS::S64 k = 0; k < NumberOfElement; k++) {
                     fprintf(fp, " %+.2e", cmps_g[k][iphi][iinc][irad] * ninv);
                 }
                 fprintf(fp, "\n");
@@ -466,7 +464,7 @@ int main(int argc, char ** argv) {
         sphelem.readParticleAscii(etype, "%s_p%06d_i%06d.data");
 
         /*
-        if(PS::Comm::getRank() == 3071) {
+        if(PS::Comm::getRank() == 0) {
             for(PS::S64 i = 0; i < sphelem.getNumberOfParticleLocal(); i++) {
                 printf("hoge %10d %2d %+e %+e %+e %+e %+e\n", sphelem[i].id, sphelem[i].istar, sphelem[i].pos[0], sphelem[i].pos[1], sphelem[i].pos[2], sphelem[i].elem[9], sphelem[i].elem[29]);
             }
@@ -475,7 +473,7 @@ int main(int argc, char ** argv) {
 
         char ofile[1024];
         sprintf(ofile, "%s/init3d_t%04d.dat", odir, itime);
-        assignToMesh(ofile, sph);
+        assignToMesh(ofile, sph, sphelem);
 
     }
 
