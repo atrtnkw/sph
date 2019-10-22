@@ -425,11 +425,11 @@ int main(int argc, char ** argv) {
     sphelem.createParticle(0);
     sphelem.setNumberOfParticleLocal(0);
 
-    char idir[1024], odir[1024], etype[1024];
+    char idir[1024], otype[1024], etype[1024];
     PS::S64 itime;
     FILE * fp = fopen(argv[1], "r");
     fscanf(fp, "%s", idir);
-    fscanf(fp, "%s", odir);
+    fscanf(fp, "%s", otype);
     fscanf(fp, "%s", etype);
     fscanf(fp, "%lld", &itime);
     fclose(fp);
@@ -472,7 +472,7 @@ int main(int argc, char ** argv) {
         */
 
         char ofile[1024];
-        sprintf(ofile, "%s/init3d_t%04d.dat", odir, itime);
+        sprintf(ofile, "%s.dat", otype);
         assignToMesh(ofile, sph, sphelem);
 
     }
