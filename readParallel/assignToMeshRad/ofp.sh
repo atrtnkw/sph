@@ -11,15 +11,17 @@
 
 echo "../r004m/run.b1.00_h030-060_0.60_h010-100/rad/time005.00-050.00"  > input.list
 #echo "../r004m/run.b1.00_h030-060_0.60_h010-100/rad/anly/heelem_t0010" >> input.list
-echo "coelem_t0010" >> input.list
+echo "coco1.0coco0.6_64x16x16" >> input.list
 echo "../r004m/run.b1.00_h030-060_0.60_h010-100/rad/element/sphelem_t0010" >> input.list
-echo "10" >> input.list
-echo "1"  >> input.list
+echo "10"  >> input.list
+echo "1"   >> input.list
+echo "48." >> input.list
 
 # idir
 # otype
 # etype
 # itime
 # flag(0:CompanionHeCO,1:CompanionCO)
+# VelocityOverRadius
 
 mpiexec.hydra -n ${PJM_MPI_PROC} ./run input.list
