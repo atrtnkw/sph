@@ -23,6 +23,7 @@ class SPHDetailElement : public HelmholtzGas {
 public:
 
     static       PS::S64 CompanionCO;
+    static       PS::F64 VelocityOverRadius;
     static const PS::S64 NumberOfElement = 34;
     PS::F64 elem[NumberOfElement];
 
@@ -76,21 +77,22 @@ public:
     }
 
 };
-PS::S64 SPHDetailElement::CompanionCO = -1;
+PS::S64 SPHDetailElement::CompanionCO        = -1;
+PS::F64 SPHDetailElement::VelocityOverRadius = -1.;
 
 namespace AssignToMesh {
-#if 1
+#if 0
     const PS::S64 NumberOfRadius      = 128;
     const PS::S64 NumberOfInclination = 64;
     const PS::S64 NumberOfAzimuth     = 64;
 #else
-    const PS::S64 NumberOfRadius      = 32;
+    const PS::S64 NumberOfRadius      = 64;
     const PS::S64 NumberOfInclination = 16;
     const PS::S64 NumberOfAzimuth     = 16;
 #endif
     const PS::S64 NumberOfMesh3       = NumberOfRadius
         * NumberOfInclination * NumberOfAzimuth;
-    const PS::F64 RadiusOfBox    = 3.e11;
+    const PS::F64 RadiusOfBox    = 2.4e11;
     const PS::F64 DeltaRadius    = RadiusOfBox / ((PS::F64)NumberOfRadius);
     const PS::F64 DeltaRadiusInv = 1. / DeltaRadius;
     static PS::F32 dens_l[NumberOfAzimuth][NumberOfInclination][NumberOfRadius];
@@ -350,14 +352,60 @@ void assignToMesh(char * ofile,
         ierr = MPI_Allreduce(cmps_l[k], cmps_g[k], NumberOfMesh3, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
     }
 
-#if 1
     if(PS::Comm::getRank() == 0) {
+#define MaedaFormat
+#ifdef MaedaFormat
+        using namespace AssignToMesh;
+        FILE * fp = fopen(ofile, "w");
+        fprintf(fp, "%d\n", 2);   // just flag
+        fprintf(fp, "%+e\n", 1.); // time in day
+        fprintf(fp, "%+e\n", 1.); // the same as above
+        fprintf(fp, "%lld %lld %lld\n", NumberOfRadius, NumberOfInclination, NumberOfAzimuth);
+        fprintf(fp, "\n");
+        for(PS::S64 irad = 0; irad < NumberOfRadius; irad++) {
+            fprintf(fp, "%+e\n", getPositionRadius(irad) / SPHDetailElement::VelocityOverRadius * 1e-5); // [km/s]
+        }
+        fprintf(fp, "\n");
+        for(PS::S64 iinc = 0; iinc < NumberOfInclination; iinc++) {
+            fprintf(fp, "%+e\n", getPositionInclination(iinc));
+        }
+        fprintf(fp, "\n");
+        for(PS::S64 iphi = 0; iphi < NumberOfAzimuth; iphi++) {
+            fprintf(fp, "%+e\n", getPositionAzimuth(iphi));
+        }
+        fprintf(fp, "\n");
+        for(PS::S64 iphi = 0; iphi < NumberOfAzimuth; iphi++) {
+            for(PS::S64 iinc = 0; iinc < NumberOfInclination; iinc++) {
+                for(PS::S64 irad = 0; irad < NumberOfRadius; irad++) {
+                    PS::F64 dens = (dens_g[iphi][iinc][irad] > 0.) ?
+                        log10(dens_g[iphi][iinc][irad]) : -100.;
+                    PS::F32 norm = 0.;
+                    for(PS::S64 k = 0; k < NumberOfElement; k++) {
+                        norm += cmps_g[k][iphi][iinc][irad];
+                    }
+                    PS::F32 ninv = (norm != 0. && dens_g[iphi][iinc][irad] != 0.) ? (1. / norm) : 0.;
+
+                    fprintf(fp, "%4lld %4lld %4lld", irad+1, iinc+1, iphi+1);
+                    fprintf(fp, " %+e %+e", dens, temp_g[iphi][iinc][irad]);
+                    for(PS::S64 k = 0; k < NumberOfElement; k++) {
+                        fprintf(fp, " %+e", cmps_g[k][iphi][iinc][irad] * ninv);
+                        if(k == 3) {
+                            fprintf(fp, "\n");
+                        }
+                    }
+                    fprintf(fp, "\n");
+                }
+            }
+        }
+        fclose(fp);
+#else
         FILE * fp = fopen(ofile, "w");
         PS::S64 iinc = NumberOfInclination/2 - 1;
         PS::F64 inc  = getPositionInclination(iinc);
         for(PS::S64 iphi = 0; iphi < NumberOfAzimuth; iphi++) {
             for(PS::S64 irad = 0; irad < NumberOfRadius; irad++) {
-                PS::F64 rad = getPositionRadius(irad);
+                //PS::F64 rad = getPositionRadius(irad);
+                PS::F64 rad = getPositionRadius(irad) / SPHDetailElement::VelocityOverRadius;
                 PS::F64 phi = getPositionAzimuth(iphi);
                 PS::F64vec pos(rad * sin(inc) * cos(phi),
                                rad * sin(inc) * sin(phi),
@@ -377,54 +425,8 @@ void assignToMesh(char * ofile,
             }
         }
         fclose(fp);
-    }
-#else
-    if(PS::Comm::getRank() == 0) {
-        FILE * fp = fopen(ofile, "w");
-        PS::S64 iphi = 37;
-        for(PS::S64 iinc = 0; iinc < NumberOfInclination; iinc++) {
-            for(PS::S64 irad = 0; irad < NumberOfRadius; irad++) {
-                PS::F64 rad = getPositionRadius(irad);
-                PS::F64 inc = getPositionInclination(iinc);
-                PS::F64 phi = getPositionAzimuth(iphi);
-                PS::F64vec pos(rad * sin(inc) * cos(phi),
-                               rad * sin(inc) * sin(phi),
-                               rad * cos(inc));
-                fprintf(fp, "%+e %+e %+e %+e %+e", pos[0], pos[1], pos[2],
-                        dens_g[iphi][iinc][irad],
-                        temp_g[iphi][iinc][irad]);
-                PS::F32 norm = 0.;
-                for(PS::S64 k = 0; k < NumberOfElement; k++) {
-                    norm += cmps_g[k][iphi][iinc][irad];
-                }
-                PS::F32 ninv = (norm != 0.) ? (1. / norm) : 0.;
-                for(PS::S64 k = 0; k < NumberOfElement; k++) {
-                    fprintf(fp, " %+.2e", cmps_g[k][iphi][iinc][irad] * ninv);
-                }
-                fprintf(fp, "\n");
-            }
-        }
-        /*
-        for(PS::S64 iphi = 0; iphi < NumberOfAzimuth; iphi++) {
-            for(PS::S64 iinc = 0; iinc < NumberOfInclination; iinc++) {
-                for(PS::S64 irad = 0; irad < NumberOfRadius; irad++) {
-                    PS::F64 rad = getPositionRadius(irad);
-                    PS::F64 inc = getPositionInclination(iinc);
-                    PS::F64 phi = getPositionAzimuth(iphi);
-                    PS::F64vec pos(rad * sin(inc) * cos(phi),
-                                   rad * sin(inc) * sin(phi),
-                                   rad * cos(inc));
-                    fprintf(fp, "%+e %+e %+e %+e %+e", pos[0], pos[1], pos[2],
-                            dens_g[iphi][iinc][irad],
-                            temp_g[iphi][iinc][irad]);
-                    fprintf(fp, "\n");
-                }
-            }
-        }
-        */
-        fclose(fp);
-    }
 #endif
+    }
 
 }
 
@@ -449,7 +451,9 @@ int main(int argc, char ** argv) {
     fscanf(fp, "%s", etype);
     fscanf(fp, "%lld", &itime);
     fscanf(fp, "%lld", &SPHDetailElement::CompanionCO);
+    fscanf(fp, "%lf", &SPHDetailElement::VelocityOverRadius);
     fclose(fp);
+    assert(SPHDetailElement::VelocityOverRadius > 0.);
 
     {        
         char tfile[1024];
