@@ -22,6 +22,7 @@ enum KernelType {CubicSpline = 0, WendlandC2 = 1, WendlandC4 = 2};
 class SPHDetailElement : public HelmholtzGas {
 public:
 
+    static       PS::S64 CompanionCO;
     static const PS::S64 NumberOfElement = 34;
     PS::F64 elem[NumberOfElement];
 
@@ -44,13 +45,27 @@ public:
         fscanf(fp, "%lf%lf%lf",   &this->pos[0], &this->pos[1], &this->pos[2]); //   6
         fscanf(fp, "%lf%lf%lf",   &this->vel[0], &this->vel[1], &this->vel[2]); //   9
         fscanf(fp, "%lf%lf%lf",   &this->dens,   &this->ksr,    &this->pot);    //  12
-        this->elem[9]  = 0.49179301803663630124; // C
-        this->elem[11] = 0.49179301803663630124; // O
-        this->elem[13] = 0.01342153152708231446; // Ne
-        this->elem[15] = 0.00070522296620528707; // Mg
-        this->elem[17] = 0.00066876453890332400; // Si
-        this->elem[19] = 0.00031136169559311488; // S
-        this->elem[29] = 0.00130708319894335710; // Fe
+        if(CompanionCO == 1) {
+            this->elem[9]  = 0.49179301803663630124; // C
+            this->elem[11] = 0.49179301803663630124; // O
+            this->elem[13] = 0.01342153152708231446; // Ne
+            this->elem[15] = 0.00070522296620528707; // Mg
+            this->elem[17] = 0.00066876453890332400; // Si
+            this->elem[19] = 0.00031136169559311488; // S
+            this->elem[29] = 0.00130708319894335710; // Fe
+        } else if(CompanionCO == 0) {
+            this->elem[5]  = 0.59232608581213036673; // He
+            this->elem[9]  = 0.19671720721465452049; // C
+            this->elem[10] = 0.00512458476488597461; // N
+            this->elem[11] = 0.19671720721465452049; // O
+            this->elem[13] = 0.00075386998319660882 + 0.00536861261083292578; // Ne
+            this->elem[15] = 0.00070522296620528707; // Mg
+            this->elem[17] = 0.00066876453890332400; // Si
+            this->elem[19] = 0.00031136169559311488; // S
+            this->elem[29] = 0.00130708319894335710; // Fe
+        } else {
+            assert(NULL);
+        }
         if(this->istar == 0) {
             PS::S64 dum;
             fscanf(fp, "%lld", &dum);
@@ -61,6 +76,7 @@ public:
     }
 
 };
+PS::S64 SPHDetailElement::CompanionCO = -1;
 
 namespace AssignToMesh {
 #if 1
@@ -353,7 +369,7 @@ void assignToMesh(char * ofile,
                 for(PS::S64 k = 0; k < NumberOfElement; k++) {
                     norm += cmps_g[k][iphi][iinc][irad];
                 }
-                PS::F32 ninv = (norm != 0.) ? (1. / norm) : 0.;
+                PS::F32 ninv = (norm != 0. && dens_g[iphi][iinc][irad] != 0.) ? (1. / norm) : 0.;
                 for(PS::S64 k = 0; k < NumberOfElement; k++) {
                     fprintf(fp, " %+.2e", cmps_g[k][iphi][iinc][irad] * ninv);
                 }
@@ -432,6 +448,7 @@ int main(int argc, char ** argv) {
     fscanf(fp, "%s", otype);
     fscanf(fp, "%s", etype);
     fscanf(fp, "%lld", &itime);
+    fscanf(fp, "%lld", &SPHDetailElement::CompanionCO);
     fclose(fp);
 
     {        
@@ -462,14 +479,6 @@ int main(int argc, char ** argv) {
 
         char efile[1024];
         sphelem.readParticleAscii(etype, "%s_p%06d_i%06d.data");
-
-        /*
-        if(PS::Comm::getRank() == 0) {
-            for(PS::S64 i = 0; i < sphelem.getNumberOfParticleLocal(); i++) {
-                printf("hoge %10d %2d %+e %+e %+e %+e %+e\n", sphelem[i].id, sphelem[i].istar, sphelem[i].pos[0], sphelem[i].pos[1], sphelem[i].pos[2], sphelem[i].elem[9], sphelem[i].elem[29]);
-            }
-        }
-        */
 
         char ofile[1024];
         sprintf(ofile, "%s.dat", otype);
