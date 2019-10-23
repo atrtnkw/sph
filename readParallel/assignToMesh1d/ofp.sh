@@ -10,9 +10,8 @@
 #PJM --omp thread=1
 
 echo "../r004m/run.b1.00_h030-060_0.60_h010-100/time010.00-050.00"  > input.list
-#echo "../r004m/run.b1.00_h030-060_0.60_h010-100/snr" >> input.list
-echo "./" >> input.list
-echo "20 20" >> input.list
+echo "../r004m/run.b1.00_h030-060_0.60_h010-100/swd" >> input.list
+echo "21 32" >> input.list
 
 # idir
 # odir
