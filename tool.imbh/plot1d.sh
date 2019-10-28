@@ -25,6 +25,13 @@ do
         continue
     fi
 
+    nf=`awk '{if(NR==1) print NF}' mesh_t"$time".dat`
+    if test $nf = 17
+    then
+        echo "mesh_t$time.dat already exists." >&2
+        continue
+    fi
+
     awk '{for(i=0;i<17;i++) printf(" %+e", $(2*i+1));printf("\n");}' mesh_t"$time".dat > tmp.dat
     n=`head -n1 mesh_t"$time".dat | awk '{print NF}'`
     if test $n -eq 20
