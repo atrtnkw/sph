@@ -9,8 +9,8 @@ tend=$2
 dtsp=$3
 
 alias python3='~/work/yt-conda/bin/python3'
-#python3 ~/git-sph/tool.cdet/plot1d.py $tbgn $tend $dtsp
-python3 plot1d.py $tbgn $tend $dtsp
+python3 ~/git-sph/tool.imbh/plot1d.py $tbgn $tend $dtsp
+#python3 plot1d.py $tbgn $tend $dtsp
 
 for time in $(seq $tbgn $dtsp $tend)
 do
