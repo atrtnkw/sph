@@ -10,7 +10,6 @@ dtsp=$3
 
 alias python3='~/work/yt-conda/bin/python3'
 python3 ~/git-sph/tool.imbh/plot1d.py $tbgn $tend $dtsp
-#python3 plot1d.py $tbgn $tend $dtsp
 
 for time in $(seq $tbgn $dtsp $tend)
 do
@@ -20,7 +19,12 @@ do
     fi
     time=`printf "%04d" $time`
 
-#    awk '{for(i=0;i<20;i++) printf(" %+e", $(2*i+1));printf("\n");}' mesh_t"$time".dat > tmp.dat
+    if ! test -e mesh_t"$time".dat
+    then
+        echo "mesh_t$time.dat is not found." >&2
+        continue
+    fi
+
     awk '{for(i=0;i<17;i++) printf(" %+e", $(2*i+1));printf("\n");}' mesh_t"$time".dat > tmp.dat
     n=`head -n1 mesh_t"$time".dat | awk '{print NF}'`
     if test $n -eq 20
