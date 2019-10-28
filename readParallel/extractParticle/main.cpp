@@ -124,7 +124,9 @@ int main(int argc, char ** argv) {
                 fprintf(fp, "%10d\n", sph[i].id);
             }
         } else {
-            sph[i].writeAscii(fp);
+            if(sph[i].istar == 0) {
+                sph[i].writeAscii(fp);
+            }
         }
     }
     fclose(fp);
