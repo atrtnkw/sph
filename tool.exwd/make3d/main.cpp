@@ -105,7 +105,10 @@ namespace HeliumDetonation {
 
 namespace CarbonDetonation {
     PS::F64 tmax = 3.5e9;
+//    PS::F64 tmax = 5e9;
+//    PS::F64 tmax = 7e9;
     PS::F64 tmin = 1e8;
+//    PS::F64 tmin = 1e9;
     PS::F64 size = 0.0;
     PS::F64vec hpos;
 

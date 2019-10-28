@@ -119,10 +119,12 @@ int main(int argc, char ** argv) {
             fprintf(fp, " %+e %+e %+e", sph[i].vel[0], sph[i].vel[1], sph[i].vel[2]);
             fprintf(fp, " %+e %+e %+e", sph[i].dens, sph[i].ksr, sph[i].pot);
             fprintf(fp, "\n");
-        } else {
+        } else if(mode == 1) {
             if(sph[i].istar == 0 && sph[i].cmps[0] > 0.1) {
                 fprintf(fp, "%10d\n", sph[i].id);
             }
+        } else {
+            sph[i].writeAscii(fp);
         }
     }
     fclose(fp);

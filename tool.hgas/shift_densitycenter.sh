@@ -1,6 +1,6 @@
 if test $# -ne 1
 then
-    echo "sh $0 <file>"
+    echo "sh $0 <file>" >&2
     exit
 fi
 
