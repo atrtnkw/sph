@@ -20,14 +20,28 @@ enum KernelType {CubicSpline = 0, WendlandC2 = 1, WendlandC4 = 2};
 #include "hdr_bhns.hpp"
 
 namespace AssignToMesh {
-    const PS::S64 NumberOfMesh    = 800;
+    const PS::S64 NumberOfMesh    = 200;
+    const PS::S64 NumberOfMesh2   = NumberOfMesh * NumberOfMesh;
     const PS::F64 HalfLengthOfBox = 5e8;
     const PS::F64 WidthOfMesh     = (2. * HalfLengthOfBox) / ((PS::F64)NumberOfMesh);
     const PS::F64 WidthOfMeshInv  = 1. / WidthOfMesh;
-    static PS::F64 dens_l[NumberOfMesh];
-    static PS::F64 dens_g[NumberOfMesh];
-    static PS::F64 velz_l[NumberOfMesh];
-    static PS::F64 velz_g[NumberOfMesh];
+    static PS::F64 dens_l[NumberOfMesh][NumberOfMesh];
+    static PS::F64 dens_g[NumberOfMesh][NumberOfMesh];
+    static PS::F64 velz_l[NumberOfMesh][NumberOfMesh];
+    static PS::F64 velz_g[NumberOfMesh][NumberOfMesh];
+    
+    const PS::F64vec BasePosition0(+5.854266e+08, -1.250326e+09, 0.);
+    const PS::F64vec BasePosition1(+1.594931e+08, -1.375774e+09, 0.);
+    PS::F64vec BasisVector;
+    PS::F64vec MiddlePoint;
+    PS::F64vec StartPoint;
+
+    void initializeAssignToMesh() {
+        PS::F64vec dr = BasePosition0 - BasePosition1;
+        BasisVector = (1. / sqrt(dr * dr)) * dr;
+        MiddlePoint = 0.5 * (BasePosition0 + BasePosition1);
+        StartPoint  = MiddlePoint - HalfLengthOfBox * BasisVector;
+    }
 
     PS::S64 getIndex(PS::F64 x) {
         PS::F64 fx = (x + HalfLengthOfBox) * WidthOfMeshInv - 0.5;
@@ -87,44 +101,101 @@ void assignToMesh(char * ofile,
                   Tsph & sph) {
     using namespace AssignToMesh;
 
+    initializeAssignToMesh();
+
     for(PS::S64 iz = 0; iz < NumberOfMesh; iz++) {
-        dens_l[iz] = 0.;
-        velz_l[iz] = 0.;
+        for(PS::S64 is = 0; is < NumberOfMesh; is++) {
+            dens_l[iz][is] = 0.;
+            velz_l[iz][is] = 0.;
+        }
     }
 
-    PS::F64 posx = +5.854266e+08;
-    PS::F64 posy = -1.250326e+09;
-//    PS::F64 posx = +1.594931e+08;
-//    PS::F64 posy = -1.375774e+09;
     for(PS::S64 ip = 0; ip < sph.getNumberOfParticleLocal(); ip++) {
+        PS::F64vec pvec2d(sph[ip].pos[0], sph[ip].pos[1], 0.);
+        PS::F64    ksr2    = sph[ip].ksr * sph[ip].ksr;
+        PS::F64vec dstart  = pvec2d - StartPoint;
+        PS::F64    dstart2 = dstart * dstart;
+        PS::F64vec dend    = pvec2d - (StartPoint + 2. * HalfLengthOfBox * BasisVector);
+        PS::F64    dend2   = dend * dend;
+        PS::F64    project = dstart * BasisVector;
+        PS::F64    foot2   = dstart2 - project * project;
+        if(foot2 > ksr2
+           || (project < 0.                   && dstart2 > ksr2)
+           || (project > 2. * HalfLengthOfBox && dend2   > ksr2)) {
+            continue;
+        }
+
         for(PS::S64 iz = 0; iz < NumberOfMesh; iz++) {
-            PS::F64vec pos(posx, posy, getPosition(iz));
-            PS::F64vec dr = pos - sph[ip].pos;
-            PS::F64 dr2   = dr * dr;
-            PS::F64 dr1   = sqrt(dr2);
-            PS::F64 hinv1 = 1. / sph[ip].ksr;
-            PS::F64 hinv3 = ND::calcVolumeInverse(hinv1);
-            PS::F64 dq1   = dr1 * hinv1;
-            PS::F64 kw0   = hinv3 * SK::kernel0th(dq1);
-            dens_l[iz] += sph[ip].mass * kw0;
-            PS::F64 dinv = 1. / sph[ip].dens;
-            PS::F64 ksph = sph[ip].mass * dinv * kw0;
-            velz_l[iz] += ksph * sph[ip].vel[2];
+            PS::F64 posz = getPosition(iz);
+            for(PS::S64 is = 0; is < NumberOfMesh; is++) {
+                PS::F64 length = getPosition(is);
+                PS::F64vec pos = MiddlePoint + length * BasisVector;
+                pos[2] = posz;
+
+                PS::F64vec dr = pos - sph[ip].pos;
+                PS::F64 dr2   = dr * dr;
+                PS::F64 dr1   = sqrt(dr2);
+                PS::F64 hinv1 = 1. / sph[ip].ksr;
+                PS::F64 hinv3 = ND::calcVolumeInverse(hinv1);
+                PS::F64 dq1   = dr1 * hinv1;
+                PS::F64 kw0   = hinv3 * SK::kernel0th(dq1);
+                dens_l[iz][is] += sph[ip].mass * kw0;
+                PS::F64 dinv = 1. / sph[ip].dens;
+                PS::F64 ksph = sph[ip].mass * dinv * kw0;
+                velz_l[iz][is] += ksph * sph[ip].vel[2];
+            }
         }
     }
 
     PS::S64 ierr = 0;
-    ierr = MPI_Allreduce(dens_l, dens_g, NumberOfMesh, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-    ierr = MPI_Allreduce(velz_l, velz_g, NumberOfMesh, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    ierr = MPI_Allreduce(dens_l, dens_g, NumberOfMesh2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    ierr = MPI_Allreduce(velz_l, velz_g, NumberOfMesh2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
     if(PS::Comm::getRank() == 0) {
         FILE * fp = fopen(ofile, "w");
         for(PS::S64 iz = 0; iz < NumberOfMesh; iz++) {
-            PS::F64 mz   = getPosition(iz);
-            PS::F64 dens = (dens_g[iz] > 1e-6) ? dens_g[iz] : 1e-6;
-            fprintf(fp, "%+e %+e %+e\n", mz, dens, velz_g[iz]);
+            PS::F64 posz = getPosition(iz);
+            for(PS::S64 is = 0; is < NumberOfMesh; is++) {
+                PS::F64 length = getPosition(is);
+                PS::F64vec pos = MiddlePoint + length * BasisVector;
+                pos[2] = posz;
+                PS::F64 dens = (dens_g[iz][is] > 1e-6) ? dens_g[iz][is] : 1e-6;
+                fprintf(fp, "%+e %+e %+e %+e %+e %+e\n", length, pos[0], pos[1], pos[2], dens, velz_g[iz][is]);
+            }
         }
         fclose(fp);
+        
+        {
+            FILE * fp = fopen("column0.dat", "w");
+            PS::F64vec relvec  = BasePosition0 - MiddlePoint;
+            PS::F64    relvec1 = sqrt(relvec * relvec);
+            PS::S64    relis   = getIndex(relvec1);
+            for(PS::S64 iz = 0; iz < NumberOfMesh; iz++) {
+                PS::F64 posz = getPosition(iz);
+                PS::F64 length = getPosition(relis);
+                PS::F64vec pos = MiddlePoint + length * BasisVector;
+                pos[2] = posz;
+                PS::F64 dens = (dens_g[iz][relis] > 1e-6) ? dens_g[iz][relis] : 1e-6;
+                fprintf(fp, "%+e %+e %+e %+e %+e %+e\n", length, pos[0], pos[1], pos[2], dens, velz_g[iz][relis]);
+            }
+            fclose(fp);
+        }
+
+        {
+            FILE * fp = fopen("column1.dat", "w");
+            PS::F64vec relvec  = BasePosition1 - MiddlePoint;
+            PS::F64    relvec1 = - sqrt(relvec * relvec);
+            PS::S64    relis   = getIndex(relvec1);
+            for(PS::S64 iz = 0; iz < NumberOfMesh; iz++) {
+                PS::F64 posz = getPosition(iz);
+                PS::F64 length = getPosition(relis);
+                PS::F64vec pos = MiddlePoint + length * BasisVector;
+                pos[2] = posz;
+                PS::F64 dens = (dens_g[iz][relis] > 1e-6) ? dens_g[iz][relis] : 1e-6;
+                fprintf(fp, "%+e %+e %+e %+e %+e %+e\n", length, pos[0], pos[1], pos[2], dens, velz_g[iz][relis]);
+            }
+            fclose(fp);        
+        }
     }
 
 }
