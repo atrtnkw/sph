@@ -1,4 +1,7 @@
-Data = fimbh* amr* mesh_*
+Data = amr* mesh_* tde2d*
+
+dummy:
+	echo "This is dummy."
 
 move:
 	mkdir temp
