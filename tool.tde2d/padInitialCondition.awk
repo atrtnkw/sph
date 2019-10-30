@@ -4,11 +4,11 @@ BEGIN{
 }
 {
     if(NR == 1) {
-        print $4, $5, $6;
+        print $1, $2, $3;
     } else {
-        dz = ($4 - prevz) / n;
-        dd = ($5 - prevd) / n;
-        dv = ($6 - prevv) / n;
+        dz = ($1 - prevz) / n;
+        dd = ($2 - prevd) / n;
+        dv = ($3 - prevv) / n;
         for(i = 0; i < n; i++) {
             posz = prevz + dz * (i + 1);
             dens = prevd + dd * (i + 1);
@@ -16,9 +16,9 @@ BEGIN{
             printf("%+e %+e %+e\n", posz, dens, velz);
         }
     }
-    prevz = $4;
-    prevd = $5;
-    prevv = $6;
+    prevz = $1;
+    prevd = $2;
+    prevv = $3;
 }
 END{
     for(i = 0; i < n-1; i++) {
