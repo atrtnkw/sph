@@ -1,0 +1,18 @@
+Data = fimbh* amr* mesh_*
+
+move:
+	mkdir temp
+	cp -f flash4 temp/
+	cp -f flash.par temp/
+	cp -f ofp_*.sh temp/
+	mv -f ${Data} temp/
+
+copy:
+	cp ~/FLASH4.3/fimbh2/flash4 .
+
+clean:
+	rm -f *~
+
+distclean:
+	make clean
+	rm -f ${Data} core
