@@ -186,7 +186,7 @@ void assignToMesh(char * ofile,
         fclose(fp);
         
         {
-            FILE * fp = fopen("t0102.dat.200", "w");
+            FILE * fp = fopen("t0102.out", "w");
             PS::F64vec relvec  = BasePosition0 - MiddlePoint;
             PS::F64    relvec1 = sqrt(relvec * relvec);
             PS::S64    relis   = getIndex(relvec1);
@@ -196,14 +196,14 @@ void assignToMesh(char * ofile,
                 PS::F64vec pos = MiddlePoint + length * BasisVector;
                 pos[2] = posz;
                 PS::F64 dens = (dens_g[iz][relis] > 1e-6) ? dens_g[iz][relis] : 1e-6;
-                //fprintf(fp, "%+e %+e %+e %+e %+e %+e\n", length, pos[0], pos[1], pos[2], dens, velz_g[iz][relis]);
-                fprintf(fp, "%+e %+e %+e\n", pos[2], dens, velz_g[iz][relis]);
+                fprintf(fp, "%+e %+e %+e %+e %+e %+e\n", length, pos[0], pos[1], pos[2], dens, velz_g[iz][relis]);
+                //fprintf(fp, "%+e %+e %+e\n", pos[2], dens, velz_g[iz][relis]);
             }
             fclose(fp);
         }
 
         {
-            FILE * fp = fopen("t0103.dat.200", "w");
+            FILE * fp = fopen("t0103.out", "w");
             PS::F64vec relvec  = BasePosition1 - MiddlePoint;
             PS::F64    relvec1 = - sqrt(relvec * relvec);
             PS::S64    relis   = getIndex(relvec1);
@@ -213,8 +213,8 @@ void assignToMesh(char * ofile,
                 PS::F64vec pos = MiddlePoint + length * BasisVector;
                 pos[2] = posz;
                 PS::F64 dens = (dens_g[iz][relis] > 1e-6) ? dens_g[iz][relis] : 1e-6;
-                //fprintf(fp, "%+e %+e %+e %+e %+e %+e\n", length, pos[0], pos[1], pos[2], dens, velz_g[iz][relis]);
-                fprintf(fp, "%+e %+e %+e\n", pos[2], dens, velz_g[iz][relis]);
+                fprintf(fp, "%+e %+e %+e %+e %+e %+e\n", length, pos[0], pos[1], pos[2], dens, velz_g[iz][relis]);
+                //fprintf(fp, "%+e %+e %+e\n", pos[2], dens, velz_g[iz][relis]);
             }
             fclose(fp);        
         }
@@ -265,7 +265,7 @@ int main(int argc, char ** argv) {
         sph.readParticleAscii(sfile, "%s_p%06d_i%06d.dat");
 
         char ofile[1024];
-        sprintf(ofile, "%s/%s.dat", odir, otype);
+        sprintf(ofile, "%s/%s.out", odir, otype);
         assignToMesh(ofile, sph);
 
     }
