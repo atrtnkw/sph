@@ -29,6 +29,10 @@ namespace AssignToMesh {
     static PS::F64 dens_g[NumberOfMesh][NumberOfMesh];
     static PS::F64 velz_l[NumberOfMesh][NumberOfMesh];
     static PS::F64 velz_g[NumberOfMesh][NumberOfMesh];
+    static PS::F64 velp_l[NumberOfMesh][NumberOfMesh];
+    static PS::F64 velp_g[NumberOfMesh][NumberOfMesh];
+    static PS::F64 velv_l[NumberOfMesh][NumberOfMesh];
+    static PS::F64 velv_g[NumberOfMesh][NumberOfMesh];
     
     const PS::F64vec BasePosition0(+5.854266e+08, -1.250326e+09, 0.);
     const PS::F64vec BasePosition1(+1.594931e+08, -1.375774e+09, 0.);
@@ -107,6 +111,8 @@ void assignToMesh(char * ofile,
         for(PS::S64 is = 0; is < NumberOfMesh; is++) {
             dens_l[iz][is] = 0.;
             velz_l[iz][is] = 0.;
+            velp_l[iz][is] = 0.;
+            velv_l[iz][is] = 0.;
         }
     }
 
@@ -124,6 +130,7 @@ void assignToMesh(char * ofile,
            || (project > 2. * HalfLengthOfBox && dend2   > ksr2)) {
             continue;
         }
+        PS::F64vec vvec2d(sph[ip].vel[0], sph[ip].vel[1], 0.);
 
         for(PS::S64 iz = 0; iz < NumberOfMesh; iz++) {
             PS::F64 posz = getPosition(iz);
@@ -143,6 +150,11 @@ void assignToMesh(char * ofile,
                 PS::F64 dinv = 1. / sph[ip].dens;
                 PS::F64 ksph = sph[ip].mass * dinv * kw0;
                 velz_l[iz][is] += ksph * sph[ip].vel[2];
+                PS::F64 velp = vvec2d * BasisVector;
+                velp_l[iz][is] += ksph * velp;
+                PS::F64vec vtemp = vvec2d - velp * BasisVector;
+                PS::F64    velv  = sqrt(vtemp * vtemp);
+                velv_l[iz][is] += ksph * velv;
             }
         }
     }
@@ -150,9 +162,15 @@ void assignToMesh(char * ofile,
     PS::S64 ierr = 0;
     ierr = MPI_Allreduce(dens_l, dens_g, NumberOfMesh2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
     ierr = MPI_Allreduce(velz_l, velz_g, NumberOfMesh2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    ierr = MPI_Allreduce(velp_l, velp_g, NumberOfMesh2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    ierr = MPI_Allreduce(velv_l, velv_g, NumberOfMesh2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
     if(PS::Comm::getRank() == 0) {
         FILE * fp = fopen(ofile, "w");
+        PS::S64 isstd   = getIndex(0.);
+        PS::S64 izstd   = getIndex(0.);
+        PS::F64 velpstd = velp_g[izstd][isstd];
+        PS::F64 velvstd = velv_g[izstd][isstd];
         for(PS::S64 iz = 0; iz < NumberOfMesh; iz++) {
             PS::F64 posz = getPosition(iz);
             for(PS::S64 is = 0; is < NumberOfMesh; is++) {
@@ -160,13 +178,15 @@ void assignToMesh(char * ofile,
                 PS::F64vec pos = MiddlePoint + length * BasisVector;
                 pos[2] = posz;
                 PS::F64 dens = (dens_g[iz][is] > 1e-6) ? dens_g[iz][is] : 1e-6;
-                fprintf(fp, "%+e %+e %+e %+e %+e %+e\n", length, pos[0], pos[1], pos[2], dens, velz_g[iz][is]);
+                fprintf(fp, "%+e %+e %+e %+e %+e %+e %+e %+e\n",
+                        length, pos[0], pos[1], pos[2], dens,
+                        velz_g[iz][is], velp_g[iz][is] - velpstd, velv_g[iz][is] - velvstd);
             }
         }
         fclose(fp);
         
         {
-            FILE * fp = fopen("column0.dat", "w");
+            FILE * fp = fopen("t0102.dat.200", "w");
             PS::F64vec relvec  = BasePosition0 - MiddlePoint;
             PS::F64    relvec1 = sqrt(relvec * relvec);
             PS::S64    relis   = getIndex(relvec1);
@@ -176,13 +196,14 @@ void assignToMesh(char * ofile,
                 PS::F64vec pos = MiddlePoint + length * BasisVector;
                 pos[2] = posz;
                 PS::F64 dens = (dens_g[iz][relis] > 1e-6) ? dens_g[iz][relis] : 1e-6;
-                fprintf(fp, "%+e %+e %+e %+e %+e %+e\n", length, pos[0], pos[1], pos[2], dens, velz_g[iz][relis]);
+                //fprintf(fp, "%+e %+e %+e %+e %+e %+e\n", length, pos[0], pos[1], pos[2], dens, velz_g[iz][relis]);
+                fprintf(fp, "%+e %+e %+e\n", pos[2], dens, velz_g[iz][relis]);
             }
             fclose(fp);
         }
 
         {
-            FILE * fp = fopen("column1.dat", "w");
+            FILE * fp = fopen("t0103.dat.200", "w");
             PS::F64vec relvec  = BasePosition1 - MiddlePoint;
             PS::F64    relvec1 = - sqrt(relvec * relvec);
             PS::S64    relis   = getIndex(relvec1);
@@ -192,7 +213,8 @@ void assignToMesh(char * ofile,
                 PS::F64vec pos = MiddlePoint + length * BasisVector;
                 pos[2] = posz;
                 PS::F64 dens = (dens_g[iz][relis] > 1e-6) ? dens_g[iz][relis] : 1e-6;
-                fprintf(fp, "%+e %+e %+e %+e %+e %+e\n", length, pos[0], pos[1], pos[2], dens, velz_g[iz][relis]);
+                //fprintf(fp, "%+e %+e %+e %+e %+e %+e\n", length, pos[0], pos[1], pos[2], dens, velz_g[iz][relis]);
+                fprintf(fp, "%+e %+e %+e\n", pos[2], dens, velz_g[iz][relis]);
             }
             fclose(fp);        
         }
