@@ -19,7 +19,12 @@ enum KernelType {CubicSpline = 0, WendlandC2 = 1, WendlandC4 = 2};
 #include "hdr_hgas.hpp"
 #include "hdr_bhns.hpp"
 
-MPI_Datatype NucleonMPI;
+//MPI_Datatype NucleonMPI;
+
+static PS::S64 FlagOfBoundOrNot = -2;
+// -1: All particles
+//  0: Bound particles
+//  1: Unbound particles
 
 class SPHAnalysis : public HelmholtzGas {
 public:
@@ -61,8 +66,41 @@ public:
 };
 
 template <class Tsph>
+void obtainDensityCenter(Tsph & sph,
+                         PS::F64vec & pcenter,
+                         PS::F64vec & vcenter) {
+    PS::S64    np   = 0;
+    PS::F64    dloc = 0.;
+    PS::F64vec ploc(0.);
+    PS::F64vec vloc(0.);
+    for(PS::S64 ip = 0; ip < sph.getNumberOfParticleLocal(); ip++) {
+        if(sph[ip].istar == 0) {
+            continue;
+        }
+        np++;
+        dloc += sph[ip].dens;
+        ploc += sph[ip].dens * sph[ip].pos;
+        vloc += sph[ip].dens * sph[ip].vel;
+    }
+
+    PS::F64    dglb;
+    PS::F64vec pglb;
+    PS::F64vec vglb;
+    PS::S64 ierr = 0;
+    ierr = MPI_Allreduce(&dloc, &dglb, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    ierr = MPI_Allreduce(&ploc, &pglb, 3, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    ierr = MPI_Allreduce(&vloc, &vglb, 3, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    pcenter = pglb / dglb;
+    vcenter = vglb / dglb;
+}
+
+template <class Tsph>
 void reduceElement(Tsph & sph,
                    PS::F64 * cmpsglb) {
+
+    PS::F64vec pcenter(0.);
+    PS::F64vec vcenter(0.);
+    obtainDensityCenter(sph, pcenter, vcenter);
 
     PS::F64 cmpsloc[NR::NumberOfNucleon];
     for(PS::S64 k = 0; k < NR::NumberOfNucleon; k++) {
@@ -70,6 +108,15 @@ void reduceElement(Tsph & sph,
         cmpsglb[k] = 0.;
     }
     for(PS::S64 ip = 0; ip < sph.getNumberOfParticleLocal(); ip++) {
+        PS::F64vec pptcl = sph[ip].pos - pcenter;
+        PS::F64vec vptcl = sph[ip].vel - vcenter;
+        PS::F64    eptcl = 0.5 * (vptcl * vptcl) + sph[ip].pot;
+
+        if((FlagOfBoundOrNot == 0 && eptcl > 0.)
+           || (FlagOfBoundOrNot == 1 && eptcl <= 0.)) {
+            continue;
+        }
+
         for(PS::S64 k = 0; k < NR::NumberOfNucleon; k++) {
             cmpsloc[k] += sph[ip].cmps[k] * sph[ip].mass;
         }
@@ -101,7 +148,10 @@ int main(int argc, char ** argv) {
     fscanf(fp, "%s", idir);
     fscanf(fp, "%s", odir);
     fscanf(fp, "%lld%lld%lf", &ibgn, &iend, &tsnap);
+    fscanf(fp, "%lld", &FlagOfBoundOrNot);
     fclose(fp);
+
+    assert(-1 <= FlagOfBoundOrNot && FlagOfBoundOrNot <= 1);
 
     char ofile[1024];
     sprintf(ofile, "%s/element.dat", odir);
