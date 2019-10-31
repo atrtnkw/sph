@@ -10,12 +10,16 @@
 ##PJM --mpi proc=64
 #PJM --omp thread=1
 
-idir=../r004m/run.b0.90_0.60_h010-100/time000.00-003.00
+idir=../r004m/run.b0.90_0.60_h010-100/time003.00-050.00
 odir=./
-ibgn=48
-iend=48
-tsnp=0.0625
-flag=-1
+ibgn=7
+iend=7
+tsnp=5.0
+flgb=1
+flgp=1
+
+# flgb ... -1:all, 0:bound, 1:unbound
+# flgp ... -1:all, 0:primary, 1:secondary
 
 ####
 echo "$idir"  > input.list
@@ -23,7 +27,8 @@ echo "$odir" >> input.list
 echo "$ibgn" >> input.list
 echo "$iend" >> input.list
 echo "$tsnp" >> input.list
-echo "$flag" >> input.list
+echo "$flgb" >> input.list
+echo "$flgp" >> input.list
 
 if ! test -e $odir
 then
