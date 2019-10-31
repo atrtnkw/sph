@@ -25,6 +25,10 @@ static PS::S64 FlagOfBoundOrNot = -2;
 // -1: All particles
 //  0: Bound particles
 //  1: Unbound particles
+static PS::S64 FlagOfParticle   = -2;
+// -1: All particles
+//  0: Primary particle
+//  1: Secondary particle
 
 class SPHAnalysis : public HelmholtzGas {
 public:
@@ -117,6 +121,10 @@ void reduceElement(Tsph & sph,
             continue;
         }
 
+        if((FlagOfParticle != -1) && (FlagOfParticle != sph[ip].istar)) {
+            continue;
+        }
+
         for(PS::S64 k = 0; k < NR::NumberOfNucleon; k++) {
             cmpsloc[k] += sph[ip].cmps[k] * sph[ip].mass;
         }
@@ -149,9 +157,11 @@ int main(int argc, char ** argv) {
     fscanf(fp, "%s", odir);
     fscanf(fp, "%lld%lld%lf", &ibgn, &iend, &tsnap);
     fscanf(fp, "%lld", &FlagOfBoundOrNot);
+    fscanf(fp, "%lld", &FlagOfParticle);
     fclose(fp);
 
     assert(-1 <= FlagOfBoundOrNot && FlagOfBoundOrNot <= 1);
+    assert(-1 <= FlagOfParticle && FlagOfParticle <= 1);
 
     char ofile[1024];
     sprintf(ofile, "%s/element.dat", odir);
