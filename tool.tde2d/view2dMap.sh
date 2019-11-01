@@ -1,5 +1,13 @@
-#file="mesh_t0000.dat"
-#file=$file
+if test $# -ne 1
+then
+    echo "sh $0 <mesh_txxxx.dat>" >&2
+    exit
+fi
+
+file=$1
+
+gnuplot<<EOF
+file="$file"
 
 set lmargin 7
 set rmargin 2
@@ -30,7 +38,7 @@ set mytic 4
 set cbrange [0:8]
 
 pl \
-file u ($1*sinv):($2*sinv):(log10($3)) pal ps 0.6 pt 5
+file u (\$1*sinv):(\$2*sinv):(log10(\$3)) pal ps 0.6 pt 5
 
 #====================================
 
@@ -41,4 +49,10 @@ set format x "%g"
 set cbrange [6:10]
 
 pl \
-file u ($1*sinv):($2*sinv):(log10($5)) pal ps 0.6 pt 5
+file u (\$1*sinv):(\$2*sinv):(log10(\$5)) pal ps 0.6 pt 5
+
+#====================================
+
+#pause -1
+pause 100000
+EOF
