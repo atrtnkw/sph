@@ -8,7 +8,7 @@ tbgn=$1
 tend=$2
 dtsp=$3
 tdir=`dirname $0`
-nfmesh=18
+nfmesh=19
 
 alias python3='~/work/yt-conda/bin/python3'
 python3 "$tdir"/plot2d.py $tbgn $tend $dtsp

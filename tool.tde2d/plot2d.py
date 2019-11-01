@@ -25,4 +25,5 @@ for time in range(tbgn,tend,dtsp):
     obj = open(ofile, 'w')
     for i in range(ad["temp"].size):
 #        print (ad["x"][i], ad["y"][i], ad["dens"][i], ad["velx"][i], ad["temp"][i], ad["he4 "][i], ad["c12 "][i], ad["o16 "][i], ad["ne20"][i], ad["mg24"][i], ad["si28"][i], ad["s32 "][i], ad["ar36"][i], ad["ca40"][i], ad["ti44"][i], ad["cr48"][i], ad["fe52"][i], ad["ni56"][i], file=obj)
-        print (ad["x"][i], ad["y"][i], ad["dens"][i], ad["vely"][i], ad["temp"][i], ad["he4 "][i], ad["c12 "][i], ad["o16 "][i], ad["ne20"][i], ad["mg24"][i], ad["si28"][i], ad["s32 "][i], ad["ar36"][i], ad["ca40"][i], ad["ti44"][i], ad["cr48"][i], ad["fe52"][i], ad["ni56"][i], file=obj)
+#        print (ad["x"][i], ad["y"][i], ad["dens"][i], ad["vely"][i], ad["temp"][i], ad["he4 "][i], ad["c12 "][i], ad["o16 "][i], ad["ne20"][i], ad["mg24"][i], ad["si28"][i], ad["s32 "][i], ad["ar36"][i], ad["ca40"][i], ad["ti44"][i], ad["cr48"][i], ad["fe52"][i], ad["ni56"][i], file=obj)
+        print (ad["x"][i], ad["y"][i], ad["velx"][i], ad["vely"][i], ad["dens"][i], ad["temp"][i], ad["he4 "][i], ad["c12 "][i], ad["o16 "][i], ad["ne20"][i], ad["mg24"][i], ad["si28"][i], ad["s32 "][i], ad["ar36"][i], ad["ca40"][i], ad["ti44"][i], ad["cr48"][i], ad["fe52"][i], ad["ni56"][i], file=obj)

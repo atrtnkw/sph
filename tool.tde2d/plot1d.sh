@@ -8,6 +8,7 @@ tbgn=$1
 tend=$2
 dtsp=$3
 tdir=`dirname $0`
+nfmesh=19
 
 alias python3='~/work/yt-conda/bin/python3'
 #python3 ~/git-sph/tool.imbh/plot1d.py $tbgn $tend $dtsp
@@ -28,13 +29,14 @@ do
     fi
 
     nf=`awk '{if(NR==1) print NF}' mesh_t"$time".dat`
-    if test $nf = 17
+    if test $nf = $nfmesh
     then
         echo "mesh_t$time.dat already exists." >&2
         continue
     fi
 
-    awk '{for(i=0;i<17;i++) printf(" %+e", $(2*i+1));printf("\n");}' mesh_t"$time".dat > tmp.dat
+    awk '{for(i=0;i<nf-2;i++){if(i==0||i==1){printf(" %+e", 0.);}printf(" %+e", $(2*i+1));}printf("\n");}' nf=$nfmesh mesh_t"$time".dat \
+        > tmp.dat
     n=`head -n1 mesh_t"$time".dat | awk '{print NF}'`
     if test $n -eq 20
     then

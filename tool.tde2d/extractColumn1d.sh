@@ -1,15 +1,16 @@
-if test $# -ne 2
+if test $# -ne 3
 then
-    echo "sh $0 <idir> <col>" >&2
+    echo "sh $0 <idir> <dx> <col>" >&2
     exit
 fi
 idir=$1
-ncol=$2
+dxxx=$2
+ncol=$3
 tdir=`dirname $0`
 
 filelist=`ls $idir/mesh*.dat`
 
 for file in $filelist
 do
-    awk -f "$tdir"/extractColumn1d.awk col=$ncol $file > $file.col"$ncol"
+    awk -f "$tdir"/extractColumn1d.awk col=$ncol dx=$dxxx $file > $file.col"$ncol"
 done
