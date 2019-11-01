@@ -60,7 +60,7 @@ set origin 0, dy*(-0.8)
 
 set format x "%g"
 
-set cbrange [-1:1]
+set cbrange [-1:3]
 set cbtic -10, 1, 10
 set mcbtic 1
 
