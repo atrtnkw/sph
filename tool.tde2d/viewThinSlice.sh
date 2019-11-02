@@ -1,16 +1,17 @@
-if test $# -ne 2
+if test $# -ne 3
 then
-    echo "sh $0 <xmin> <mesh_txxxx.dat>" >&2
+    echo "sh $0 <xmin> <xlen> <mesh_txxxx.dat>" >&2
     exit
 fi
 
 xmin=$1
-file=$2
+xlen=$2
+file=$3
 
 gnuplot<<EOF
 file = "$file"
 xmin = $xmin
-xlen = 1e7
+xlen = $xlen
 xmax = xmin + xlen
 PointSize=0.25
 Pitch=1
@@ -21,12 +22,12 @@ set tmargin 2
 set bmargin 3
 
 set size 1
-set size ratio 10
+set size ratio 10*1e7/xlen
 
 set multiplot
 
-px=-0.3
-dx=0.1
+px=-0.45
+dx=0.07*xlen/1e7
 dy=0.23
 ndy=-1.5
 
@@ -41,7 +42,7 @@ set origin px+dx*0, dy*0
 set title "dens" offset 0, -1
 
 set xrange [xmin*sinv:xmax*sinv]
-set xtic xmin*sinv, xlen*sinv, xmax*sinv
+set xtic xmin*sinv-xlen*sinv*0.5, xlen*sinv, xmax*sinv+xlen*sinv*0.5
 set mxtic 1
 set format x "%g"
 
