@@ -9,6 +9,7 @@ file=$1
 gnuplot<<EOF
 file="$file"
 PointSize=0.2
+Pitch=16
 
 set lmargin 7
 set rmargin 2
@@ -46,7 +47,7 @@ set mcbtic 1
 set cblabel "dens" offset 1,0
 
 pl \
-file u (\$1*sinv):(\$2*sinv):(log10(\$5)) pal ps PointSize pt 5
+file u (\$1*sinv):(\$2*sinv):(log10(\$5)) ev Pitch pal ps PointSize pt 5
 
 #====================================
 
@@ -58,7 +59,7 @@ set mcbtic 1
 set cblabel "56Ni"
 
 pl \
-file u (\$1*sinv):(\$2*sinv):19 pal ps PointSize pt 5
+file u (\$1*sinv):(\$2*sinv):19 ev Pitch pal ps PointSize pt 5
 
 #====================================
 
@@ -70,7 +71,7 @@ set mcbtic 1
 set cblabel "vels"
 
 pl \
-file u (\$1*sinv):(\$2*sinv):(\$3*1e-9) pal ps PointSize pt 5
+file u (\$1*sinv):(\$2*sinv):(\$3*1e-9) ev Pitch pal ps PointSize pt 5
 
 #====================================
 
@@ -78,10 +79,13 @@ set origin 0, dy*(0+ndy)
 
 set format x "%g"
 
+set cbrange [-1:3]
+set cbtic -1, 1, 3
+set mcbtic 1
 set cblabel "velz"
 
 pl \
-file u (\$1*sinv):(\$2*sinv):(\$4*1e-9) pal ps PointSize pt 5
+file u (\$1*sinv):(\$2*sinv):(\$4*1e-9) ev Pitch pal ps PointSize pt 5
 
 
 #====================================
