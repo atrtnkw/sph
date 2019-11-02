@@ -1,11 +1,11 @@
 if test $# -ne 2
 then
-    echo "sh $0 <mesh_txxxx.dat> <xmin>" >&2
+    echo "sh $0 <xmin> <mesh_txxxx.dat>" >&2
     exit
 fi
 
-file=$1
-xmin=$2
+xmin=$1
+file=$2
 
 gnuplot<<EOF
 file = "$file"
@@ -116,6 +116,8 @@ set format y ""
 set cbrange [0:1]
 set cbtic 0, 1, 1
 set mcbtic 1
+
+set label 1 file at xmax*sinv*1, 1 left
 
 pl \
 file u (\$1*sinv):(\$2*sinv):19 ev Pitch pal ps PointSize pt 5

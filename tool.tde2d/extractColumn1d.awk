@@ -1,4 +1,4 @@
-# argv: col=1,2,-1, dx, px
+# argv: col=1,2,-1, dx, xcol
 BEGIN {
     xcol = 1e30;
 }
