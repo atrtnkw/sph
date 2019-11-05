@@ -13,8 +13,8 @@ file = "$file"
 xmin = $xmin
 xlen = $xlen
 xmax = xmin + xlen
-PointSize=0.25
 Pitch=1
+PointSize=0.25/sqrt(Pitch)
 
 set lmargin 7
 set rmargin 2
@@ -109,6 +109,21 @@ file u (\$1*sinv):(\$2*sinv):7 ev Pitch pal ps PointSize pt 5
 #====================================
 
 set origin px+dx*5, dy*0
+
+set title "40Ca"
+
+set format y ""
+
+set cbrange [0:1]
+set cbtic 0, 1, 1
+set mcbtic 1
+
+pl \
+file u (\$1*sinv):(\$2*sinv):15 ev Pitch pal ps PointSize pt 5
+
+#====================================
+
+set origin px+dx*6, dy*0
 
 set title "56Ni"
 
