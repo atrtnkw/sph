@@ -110,7 +110,7 @@ file u (\$1*sinv):(\$2*sinv):7 ev Pitch pal ps PointSize pt 5
 
 set origin px+dx*5, dy*0
 
-set title "40Ca"
+set title "Ti+Cr+Fe"
 
 set format y ""
 
@@ -119,7 +119,7 @@ set cbtic 0, 1, 1
 set mcbtic 1
 
 pl \
-file u (\$1*sinv):(\$2*sinv):15 ev Pitch pal ps PointSize pt 5
+file u (\$1*sinv):(\$2*sinv):(\$16+\$17+\$18) ev Pitch pal ps PointSize pt 5
 
 #====================================
 

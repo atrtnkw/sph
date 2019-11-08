@@ -45,6 +45,19 @@ namespace AssignToMesh {
         BasisVector = (1. / sqrt(dr * dr)) * dr;
         MiddlePoint = 0.5 * (BasePosition0 + BasePosition1);
         StartPoint  = MiddlePoint - HalfLengthOfBox * BasisVector;
+#if 1
+        PS::F64vec TempBasis(BasisVector[1], -BasisVector[0], 0.);
+        PS::F64vec TempMiddle = MiddlePoint + 4.5e7 * BasisVector;
+        PS::F64vec TempStart  = TempMiddle - HalfLengthOfBox * TempBasis;
+        BasisVector = TempBasis;
+        MiddlePoint = TempMiddle;
+        StartPoint  = TempStart;
+#endif
+        if(PS::Comm::getRank() == 0) {
+            printf("Basis:  %+e %+e\n", BasisVector[0], BasisVector[1]);
+            printf("Middle: %+e %+e\n", MiddlePoint[0], MiddlePoint[1]);
+            printf("Start:  %+e %+e\n", StartPoint[0], StartPoint[1]);
+        }
     }
 
     PS::S64 getIndex(PS::F64 x) {
