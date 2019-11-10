@@ -47,7 +47,9 @@ namespace AssignToMesh {
         StartPoint  = MiddlePoint - HalfLengthOfBox * BasisVector;
 #if 1
         PS::F64vec TempBasis(BasisVector[1], -BasisVector[0], 0.);
-        PS::F64vec TempMiddle = MiddlePoint + 4.5e7 * BasisVector;
+        //PS::F64vec TempMiddle = MiddlePoint + 4.5e7 * BasisVector;
+        //PS::F64vec TempMiddle = MiddlePoint + 4.0e7 * BasisVector;
+        PS::F64vec TempMiddle = MiddlePoint + 3.0e7 * BasisVector;
         PS::F64vec TempStart  = TempMiddle - HalfLengthOfBox * TempBasis;
         BasisVector = TempBasis;
         MiddlePoint = TempMiddle;
