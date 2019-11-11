@@ -1,4 +1,4 @@
-Data = amr* mesh_* tde2d*
+Data = amr* mesh_* small_* tde2d*
 
 dummy:
 	echo "This is dummy."
