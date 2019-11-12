@@ -335,7 +335,7 @@ void assignToMesh(char * ofile,
                     PS::F64 dq1   = dr1 * hinv1;
                     PS::F64 hinv3 = ND::calcVolumeInverse(hinv1);
                     PS::F64 kw0   = hinv3 * SK::kernel0th(dq1);
-                    PS::F64 dinv = 1. / sphelem[ip].dens;
+                    PS::F64 dinv = 1. / sphelem[ip].dens; // **** bug? // 19/11/12
                     PS::F64 ksph = sphelem[ip].mass * dinv * kw0;
                     for(PS::S64 k = 0; k < NumberOfElement; k++) {
                         cmps_l[k][iphi][iinc][irad] += ksph * sphelem[ip].elem[k];
