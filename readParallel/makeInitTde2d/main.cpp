@@ -22,8 +22,8 @@ enum KernelType {CubicSpline = 0, WendlandC2 = 1, WendlandC4 = 2};
 namespace AssignToMesh {
     const PS::S64 NumberOfMesh    = 200;
     const PS::S64 NumberOfMesh2   = NumberOfMesh * NumberOfMesh;
-    //const PS::F64 HalfLengthOfBox = 5e8;
-    const PS::F64 HalfLengthOfBox = 2e9;
+    const PS::F64 HalfLengthOfBox = 5e8;
+    //const PS::F64 HalfLengthOfBox = 2e9;
     const PS::F64 WidthOfMesh     = (2. * HalfLengthOfBox) / ((PS::F64)NumberOfMesh);
     const PS::F64 WidthOfMeshInv  = 1. / WidthOfMesh;
     static PS::F64 dens_l[NumberOfMesh][NumberOfMesh];
@@ -46,12 +46,10 @@ namespace AssignToMesh {
         BasisVector = (1. / sqrt(dr * dr)) * dr;
         MiddlePoint = 0.5 * (BasePosition0 + BasePosition1);
         StartPoint  = MiddlePoint - HalfLengthOfBox * BasisVector;
-#if 0
+#if 1
         PS::F64vec TempBasis(BasisVector[1], -BasisVector[0], 0.);
-        PS::F64vec TempMiddle = MiddlePoint + 4.5e7 * BasisVector;
-        //PS::F64vec TempMiddle = MiddlePoint + 4.4e7 * BasisVector;
-        //PS::F64vec TempMiddle = MiddlePoint + 4.25e7 * BasisVector;
-        //PS::F64vec TempMiddle = MiddlePoint + 4.0e7 * BasisVector;
+        //PS::F64vec TempMiddle = MiddlePoint + 4.5e7 * BasisVector;
+        PS::F64vec TempMiddle = MiddlePoint + 4.5e7 * BasisVector + 1.5e8 * TempBasis;
         PS::F64vec TempStart  = TempMiddle - HalfLengthOfBox * TempBasis;
         BasisVector = TempBasis;
         MiddlePoint = TempMiddle;

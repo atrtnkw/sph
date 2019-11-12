@@ -79,8 +79,10 @@ public:
 PS::S64 SPHDetailElement::CompanionCO        = -1;
 
 namespace AssignToMesh {
+    bool Flag2D = false;
     const PS::S64 MaxNumberOfElement = 10;
-    const PS::S64 NumberOfMesh    = 256;
+    //const PS::S64 NumberOfMesh    = 256;
+    const PS::S64 NumberOfMesh    = 64;
     const PS::S64 NumberOfMesh2   = NumberOfMesh * NumberOfMesh;
     const PS::S64 NumberOfMesh3   = NumberOfMesh * NumberOfMesh2;
     const PS::F64 HalfLengthOfBox = 3.e11;
@@ -309,30 +311,59 @@ void assignToMesh(char * ofile,
     }
 
     if(PS::Comm::getRank() == 0) {
-        FILE * fp = fopen(ofile, "w");
-        PS::S64 iz = NumberOfMesh / 2;
-        for(PS::S64 iy = 0; iy < NumberOfMesh; iy++) {
-            for(PS::S64 ix = 0; ix < NumberOfMesh; ix++) {
-                PS::F64 mx   = getPosition(ix);
-                PS::F64 my   = getPosition(iy);
-                fprintf(fp, " %+e %+e", mx, my);
-                fprintf(fp, " %+e", dens_g[iz][iy][ix]);
-
-                PS::F64 norm =  cmps_g[iz][iy][ix];
-                PS::F64 ninv = (norm != 0.) ? (1. / norm) : 0.;
-                fprintf(fp, " %+e", ni56_g[iz][iy][ix] * ninv);
-
-                norm = etot_g[iz][iy][ix];
-                ninv = (norm != 0.) ? (1. / norm) : 0.;
-                ninv = (dens_g[iz][iy][ix] != 0.) ? ninv : 0.;
-                for(PS::S64 k = 0; k < MaxNumberOfElement; k++) {
-                    fprintf(fp, " %+e", elem_g[k][iz][iy][ix] * ninv);
+        if(Flag2D) {
+            FILE * fp = fopen(ofile, "w");
+            PS::S64 iz = NumberOfMesh / 2;
+            for(PS::S64 iy = 0; iy < NumberOfMesh; iy++) {
+                for(PS::S64 ix = 0; ix < NumberOfMesh; ix++) {
+                    PS::F64 mx   = getPosition(ix);
+                    PS::F64 my   = getPosition(iy);
+                    fprintf(fp, " %+e %+e", mx, my);
+                    fprintf(fp, " %+e", dens_g[iz][iy][ix]);
+                    
+                    PS::F64 norm =  cmps_g[iz][iy][ix];
+                    PS::F64 ninv = (norm != 0.) ? (1. / norm) : 0.;
+                    fprintf(fp, " %+e", ni56_g[iz][iy][ix] * ninv);
+                    
+                    norm = etot_g[iz][iy][ix];
+                    ninv = (norm != 0.) ? (1. / norm) : 0.;
+                    ninv = (dens_g[iz][iy][ix] != 0.) ? ninv : 0.;
+                    for(PS::S64 k = 0; k < MaxNumberOfElement; k++) {
+                        fprintf(fp, " %+e", elem_g[k][iz][iy][ix] * ninv);
+                    }
+                    
+                    fprintf(fp, "\n");
                 }
-
-                fprintf(fp, "\n");
             }
+            fclose(fp);
+        } else {
+            FILE * fp = fopen(ofile, "w");
+            for(PS::S64 iz = 0; iz < NumberOfMesh; iz++) {
+                for(PS::S64 iy = 0; iy < NumberOfMesh; iy++) {
+                    for(PS::S64 ix = 0; ix < NumberOfMesh; ix++) {
+                        PS::F64 mx   = getPosition(ix);
+                        PS::F64 my   = getPosition(iy);
+                        PS::F64 mz   = getPosition(iz);
+                        fprintf(fp, " %+e %+e %+e", mx, my, mz);
+                        fprintf(fp, " %+e", dens_g[iz][iy][ix]);
+                        
+                        PS::F64 norm =  cmps_g[iz][iy][ix];
+                        PS::F64 ninv = (norm != 0.) ? (1. / norm) : 0.;
+                        fprintf(fp, " %+e", ni56_g[iz][iy][ix] * ninv);
+                        
+                        norm = etot_g[iz][iy][ix];
+                        ninv = (norm != 0.) ? (1. / norm) : 0.;
+                        ninv = (dens_g[iz][iy][ix] != 0.) ? ninv : 0.;
+                        for(PS::S64 k = 0; k < MaxNumberOfElement; k++) {
+                            fprintf(fp, " %+e", elem_g[k][iz][iy][ix] * ninv);
+                        }
+                        
+                        fprintf(fp, "\n");
+                    }
+                }
+            }
+            fclose(fp);
         }
-        fclose(fp);
     }
 
 }
