@@ -1,0 +1,9 @@
+transferAllDataForSnr.sh ... all the data of density, ni56, and
+chemical elements (Z=1-30) are transfered to NumPy format, using
+transfer1dDataFromTextToNumpyArray.sh
+
+transfer1dDataFromTextToNumpyArray.sh .. a data type is transfered to
+NumPy format, using transfer1dDataFromTextToNumpyArray.awk
+
+view1dNumpyArray.sh .. a data type in NumPy format is transfered in
+Ascii format

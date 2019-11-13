@@ -11,13 +11,6 @@ otype=$3
 tdir=`dirname $0`
 ftype=`basename --suffix=.sh $0`
 
-if test -e "$tdir"/"$ftype".py
-then
-    echo "$tdir"/"$ftype".py
-else
-    echo "hoge"
-fi
-
 if test -e $otype.npy
 then
     echo "Error: $otype.npy exists." >&2

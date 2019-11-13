@@ -79,10 +79,10 @@ public:
 PS::S64 SPHDetailElement::CompanionCO        = -1;
 
 namespace AssignToMesh {
-    bool Flag2D = false;
+    bool Flag2D = true;
     const PS::S64 MaxNumberOfElement = 10;
-    //const PS::S64 NumberOfMesh    = 256;
-    const PS::S64 NumberOfMesh    = 64;
+    const PS::S64 NumberOfMesh    = 256;
+    //const PS::S64 NumberOfMesh    = 64;
     const PS::S64 NumberOfMesh2   = NumberOfMesh * NumberOfMesh;
     const PS::S64 NumberOfMesh3   = NumberOfMesh * NumberOfMesh2;
     const PS::F64 HalfLengthOfBox = 3.e11;
@@ -318,7 +318,8 @@ void assignToMesh(char * ofile,
                 for(PS::S64 ix = 0; ix < NumberOfMesh; ix++) {
                     PS::F64 mx   = getPosition(ix);
                     PS::F64 my   = getPosition(iy);
-                    fprintf(fp, " %+e %+e", mx, my);
+                    PS::F64 mz   = getPosition(iz);
+                    fprintf(fp, " %+e %+e %+e", mx, my, mz);
                     fprintf(fp, " %+e", dens_g[iz][iy][ix]);
                     
                     PS::F64 norm =  cmps_g[iz][iy][ix];
@@ -381,11 +382,10 @@ int main(int argc, char ** argv) {
     sphelem.createParticle(0);
     sphelem.setNumberOfParticleLocal(0);
 
-    char idir[1024], otype[1024], etype[1024];
+    char idir[1024], etype[1024];
     PS::S64 itime;
     FILE * fp = fopen(argv[1], "r");
     fscanf(fp, "%s", idir);
-    fscanf(fp, "%s", otype);
     fscanf(fp, "%s", etype);
     fscanf(fp, "%lld", &itime);
     fscanf(fp, "%lld", &SPHDetailElement::CompanionCO);
@@ -424,7 +424,13 @@ int main(int argc, char ** argv) {
         sphelem.readParticleAscii(etype, "%s_p%06d_i%06d.data");
 
         char ofile[1024];
-        sprintf(ofile, "%sE%02d.dat", otype, AssignToMesh::FirstElement);
+        if(AssignToMesh::Flag2D) {
+            sprintf(ofile, "snr2dN%03dE%02d.dat",
+                    AssignToMesh::NumberOfMesh, AssignToMesh::FirstElement);
+        } else {
+            sprintf(ofile, "snr3dN%03dE%02d.dat",
+                    AssignToMesh::NumberOfMesh, AssignToMesh::FirstElement);
+        }
         assignToMesh(ofile, sph, sphelem);
 
     }
