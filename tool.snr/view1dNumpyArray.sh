@@ -25,7 +25,7 @@ fi
 if ! test -e hoge.dat2
 then
     awk 'BEGIN{RS=OFS;}{print $1}' hoge.dat1 \
-        | awk '{if(NR!=1&&NF!=0) print $0}' \
+        | awk '{if(NF!=0&&$1!="["&&$1!="]") print $0}' \
         > hoge.dat2
 fi
 
