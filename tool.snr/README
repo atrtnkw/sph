@@ -5,5 +5,5 @@ transfer1dDataFromTextToNumpyArray.sh
 transfer1dDataFromTextToNumpyArray.sh .. a data type is transfered to
 NumPy format, using transfer1dDataFromTextToNumpyArray.awk
 
-view1dNumpyArray.sh .. a data type in NumPy format is transfered in
-Ascii format
+view1dNumpyArray.sh .. a data type in NumPy format is transfered like
+(ix, iy, iz, quantity).
