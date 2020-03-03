@@ -34,9 +34,16 @@ namespace AssignToMesh {
     static PS::F64 velp_g[NumberOfMesh][NumberOfMesh];
     static PS::F64 velv_l[NumberOfMesh][NumberOfMesh];
     static PS::F64 velv_g[NumberOfMesh][NumberOfMesh];
-    
-    const PS::F64vec BasePosition0(+5.854266e+08, -1.250326e+09, 0.);
-    const PS::F64vec BasePosition1(+1.594931e+08, -1.375774e+09, 0.);
+  
+// for t0102-t0103  
+//    const PS::F64vec BasePosition0(+5.854266e+08, -1.250326e+09, 0.);
+//    const PS::F64vec BasePosition1(+1.594931e+08, -1.375774e+09, 0.);
+// for t0099-t0100
+//    const PS::F64vec BasePosition0(+5.076772e+08, -1.152763e+09, 0.);
+//    const PS::F64vec BasePosition1(+3.734502e+07, -1.253617e+09, 0.);
+// for t0096-t0097
+    const PS::F64vec BasePosition0(+4.686057e+08, -9.581197e+08, 0.);
+    const PS::F64vec BasePosition1(-3.307604e+07, -1.100849e+09, 0.);
     PS::F64vec BasisVector;
     PS::F64vec MiddlePoint;
     PS::F64vec StartPoint;
@@ -46,15 +53,26 @@ namespace AssignToMesh {
         BasisVector = (1. / sqrt(dr * dr)) * dr;
         MiddlePoint = 0.5 * (BasePosition0 + BasePosition1);
         StartPoint  = MiddlePoint - HalfLengthOfBox * BasisVector;
+// for t0102-t0103, t0099-t0100, perp
 #if 1
         PS::F64vec TempBasis(BasisVector[1], -BasisVector[0], 0.);
-        //PS::F64vec TempMiddle = MiddlePoint + 4.5e7 * BasisVector;
         PS::F64vec TempMiddle = MiddlePoint + 4.5e7 * BasisVector + 1.5e8 * TempBasis;
         PS::F64vec TempStart  = TempMiddle - HalfLengthOfBox * TempBasis;
         BasisVector = TempBasis;
         MiddlePoint = TempMiddle;
         StartPoint  = TempStart;
 #endif
+// for t0096-t0097 perp
+/*
+#if 1
+        PS::F64vec TempBasis(BasisVector[1], -BasisVector[0], 0.);
+        PS::F64vec TempMiddle = MiddlePoint;
+        PS::F64vec TempStart  = TempMiddle - HalfLengthOfBox * TempBasis;
+        BasisVector = TempBasis;
+        MiddlePoint = TempMiddle;
+        StartPoint  = TempStart;
+#endif
+*/
         if(PS::Comm::getRank() == 0) {
             printf("Basis:  %+e %+e\n", BasisVector[0], BasisVector[1]);
             printf("Middle: %+e %+e\n", MiddlePoint[0], MiddlePoint[1]);
