@@ -1,21 +1,36 @@
-if test $# -ne 3
+if test $# -ne 2
 then
-    echo "sh $0 <ifile> <icolumn=1:x,2:y,3:z,4:dn...> <otype>" >&2
+    echo "sh $0 <ifile> <odir>" >&2
     exit
 fi
 
-ifile=$1
-icolumn=`echo "$2-1" | bc`
-otype=$3
+ityp=$1
+odir=$2
 
 tdir=`dirname $0`
 ftype=`basename --suffix=.sh $0`
 
-if test -e $otype.npy
-then
-    echo "Error: $otype.npy exists." >&2
-    exit
-fi
-
 alias python3='~/work/yt-conda/bin/python3'
-python3 "$tdir"/"$ftype".py $ifile $icolumn $otype
+
+ifile="$ityp"E04.dat
+python3 "$tdir"/"$ftype".py $ifile 4 $odir/dens
+python3 "$tdir"/"$ftype".py $ifile 5 $odir/ni56
+
+for znum in $(seq 1 1 30)
+do
+    if test $znum -le 10
+    then
+        ifile="$ityp"E04.dat
+        icol=`echo "$znum+4" | bc`
+    elif test $znum -le 20
+    then
+        ifile="$ityp"E14.dat
+        icol=`echo "$znum+4-10" | bc`
+    else
+        ifile="$ityp"E24.dat
+        icol=`echo "$znum+4-20" | bc`
+    fi
+    pnum=`printf "%03d" $znum`
+    python3 "$tdir"/"$ftype".py $ifile $icol $odir/z"$pnum"
+done
+

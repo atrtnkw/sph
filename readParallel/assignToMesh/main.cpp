@@ -22,7 +22,7 @@ enum KernelType {CubicSpline = 0, WendlandC2 = 1, WendlandC4 = 2};
 namespace AssignToMesh {
 //#define SurvivingWhiteDwarf
 #define Data2D
-#define LowResolution
+//#define LowResolution
 #ifdef LowResolution
     const PS::S64 NumberOfMesh    = 128;
 #else

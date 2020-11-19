@@ -79,10 +79,9 @@ public:
 PS::S64 SPHDetailElement::CompanionCO        = -1;
 
 namespace AssignToMesh {
-    bool Flag2D = true;
+    bool Flag2D = true; //false;
     const PS::S64 MaxNumberOfElement = 10;
-    const PS::S64 NumberOfMesh    = 256;
-    //const PS::S64 NumberOfMesh    = 64;
+    const PS::S64 NumberOfMesh    = 256; //64; //
     const PS::S64 NumberOfMesh2   = NumberOfMesh * NumberOfMesh;
     const PS::S64 NumberOfMesh3   = NumberOfMesh * NumberOfMesh2;
     const PS::F64 HalfLengthOfBox = 3.e11;
@@ -98,7 +97,10 @@ namespace AssignToMesh {
     static PS::F32 etot_g[NumberOfMesh][NumberOfMesh][NumberOfMesh];
     static PS::F32 elem_l[MaxNumberOfElement][NumberOfMesh][NumberOfMesh][NumberOfMesh];
     static PS::F32 elem_g[MaxNumberOfElement][NumberOfMesh][NumberOfMesh][NumberOfMesh];
+    static PS::S32 pnum_l[NumberOfMesh][NumberOfMesh][NumberOfMesh];
+    static PS::S32 pnum_g[NumberOfMesh][NumberOfMesh][NumberOfMesh];
     PS::S64 FirstElement = -1;
+    PS::S64 MinimumNumberOfParticle = 1;
 
     PS::S64 getIndex(PS::F64 x) {
         PS::F64 fx = (x + HalfLengthOfBox) * WidthOfMeshInv - 0.5;
@@ -197,6 +199,7 @@ void assignToMesh(char * ofile,
     for(PS::S64 iz = 0; iz < NumberOfMesh; iz++) {
         for(PS::S64 iy = 0; iy < NumberOfMesh; iy++) {
             for(PS::S64 ix = 0; ix < NumberOfMesh; ix++) {
+                pnum_l[iz][iy][ix] = 0;
                 dens_l[iz][iy][ix] = 0.;
                 cmps_l[iz][iy][ix] = 0.;
                 ni56_l[iz][iy][ix] = 0.;
@@ -240,6 +243,7 @@ void assignToMesh(char * ofile,
                     PS::F64 hinv3 = ND::calcVolumeInverse(hinv1);
                     PS::F64 dq1   = dr1 * hinv1;
                     PS::F64 kw0   = hinv3 * SK::kernel0th(dq1);
+                    pnum_l[iz][iy][ix] += (kw0 != 0.) ? 1 : 0;
                     dens_l[iz][iy][ix] += sph[ip].mass * kw0;
                     PS::F64 dinv = 1. / sph[ip].dens;
                     PS::F64 ksph = sph[ip].mass * dinv * kw0;
@@ -302,6 +306,7 @@ void assignToMesh(char * ofile,
     }
 
     PS::S64 ierr = 0;
+    ierr = MPI_Allreduce(pnum_l, pnum_g, NumberOfMesh3, MPI_INT,   MPI_SUM, MPI_COMM_WORLD);
     ierr = MPI_Allreduce(dens_l, dens_g, NumberOfMesh3, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
     ierr = MPI_Allreduce(cmps_l, cmps_g, NumberOfMesh3, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
     ierr = MPI_Allreduce(ni56_l, ni56_g, NumberOfMesh3, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
@@ -319,18 +324,19 @@ void assignToMesh(char * ofile,
                     PS::F64 mx   = getPosition(ix);
                     PS::F64 my   = getPosition(iy);
                     PS::F64 mz   = getPosition(iz);
+                    PS::F64 pinv = (pnum_g[iz][iy][ix] >= MinimumNumberOfParticle) ? 1. : 0.;
                     fprintf(fp, " %+e %+e %+e", mx, my, mz);
-                    fprintf(fp, " %+e", dens_g[iz][iy][ix]);
+                    fprintf(fp, " %+e", dens_g[iz][iy][ix] * pinv);
                     
                     PS::F64 norm =  cmps_g[iz][iy][ix];
                     PS::F64 ninv = (norm != 0.) ? (1. / norm) : 0.;
-                    fprintf(fp, " %+e", ni56_g[iz][iy][ix] * ninv);
+                    fprintf(fp, " %+e", ni56_g[iz][iy][ix] * ninv * pinv);
                     
                     norm = etot_g[iz][iy][ix];
                     ninv = (norm != 0.) ? (1. / norm) : 0.;
                     ninv = (dens_g[iz][iy][ix] != 0.) ? ninv : 0.;
                     for(PS::S64 k = 0; k < MaxNumberOfElement; k++) {
-                        fprintf(fp, " %+e", elem_g[k][iz][iy][ix] * ninv);
+                        fprintf(fp, " %+e", elem_g[k][iz][iy][ix] * ninv * pinv);
                     }
                     
                     fprintf(fp, "\n");
@@ -390,6 +396,7 @@ int main(int argc, char ** argv) {
     fscanf(fp, "%lld", &itime);
     fscanf(fp, "%lld", &SPHDetailElement::CompanionCO);
     fscanf(fp, "%lld", &AssignToMesh::FirstElement);
+    fscanf(fp, "%lld", &AssignToMesh::MinimumNumberOfParticle);
     fclose(fp);
 
     assert(AssignToMesh::FirstElement != -1);
