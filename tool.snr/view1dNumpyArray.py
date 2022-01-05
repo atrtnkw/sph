@@ -11,7 +11,7 @@ if (argc != 2):
 ifile = argv[1]
 
 a = np.load(ifile)
-np.set_printoptions(threshold=np.inf)
-#np.set_printoptions(threshold=a.size)
-#np.set_printoptions(threshold=128)
-print(a)
+#np.set_printoptions(threshold=np.inf)
+#print(a)
+for i in range(len(a)):
+    print("%+e"%(a[i]))

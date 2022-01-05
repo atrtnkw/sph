@@ -79,14 +79,16 @@ public:
 PS::S64 SPHDetailElement::CompanionCO        = -1;
 
 namespace AssignToMesh {
-    bool Flag2D = true; //false;
-    const PS::S64 MaxNumberOfElement = 10;
+    bool Flag2D = false;//true; //
+    const PS::S64 MaxNumberOfElement = 1;//10;
     const PS::S64 NumberOfMesh    = 256; //64; //
     const PS::S64 NumberOfMesh2   = NumberOfMesh * NumberOfMesh;
     const PS::S64 NumberOfMesh3   = NumberOfMesh * NumberOfMesh2;
     const PS::F64 HalfLengthOfBox = 3.e11;
     const PS::F64 WidthOfMesh     = (2. * HalfLengthOfBox) / ((PS::F64)NumberOfMesh);
     const PS::F64 WidthOfMeshInv  = 1. / WidthOfMesh;
+    static PS::F32vec vel_l[NumberOfMesh][NumberOfMesh][NumberOfMesh];
+    static PS::F32vec vel_g[NumberOfMesh][NumberOfMesh][NumberOfMesh];
     static PS::F32 dens_l[NumberOfMesh][NumberOfMesh][NumberOfMesh];
     static PS::F32 dens_g[NumberOfMesh][NumberOfMesh][NumberOfMesh];
     static PS::F32 cmps_l[NumberOfMesh][NumberOfMesh][NumberOfMesh];
@@ -203,6 +205,7 @@ void assignToMesh(char * ofile,
                 dens_l[iz][iy][ix] = 0.;
                 cmps_l[iz][iy][ix] = 0.;
                 ni56_l[iz][iy][ix] = 0.;
+                vel_l[iz][iy][ix]  = 0.;
                 for(PS::S64 k = 0; k < MaxNumberOfElement; k++) {
                     elem_l[k][iz][iy][ix] = 0.;
                 }
@@ -217,6 +220,8 @@ void assignToMesh(char * ofile,
         if(eptcl < 0.) {
             continue;
         }
+        PS::F64vec vnorm = sqrt(1. / (vptcl * vptcl)) * vptcl;
+        PS::F64vec vterm = sqrt(2. * eptcl) * vnorm;
 
         PS::S64 ixmin = getIndex(pptcl[0] - sph[ip].ksr);
         PS::S64 ixmax = getIndex(pptcl[0] + sph[ip].ksr);
@@ -249,6 +254,7 @@ void assignToMesh(char * ofile,
                     PS::F64 ksph = sph[ip].mass * dinv * kw0;
                     cmps_l[iz][iy][ix] += ksph;
                     ni56_l[iz][iy][ix] += ksph * sph[ip].cmps[12];
+                    vel_l[iz][iy][ix]  += ksph * vterm;
                 }            
             }            
         }
@@ -311,6 +317,7 @@ void assignToMesh(char * ofile,
     ierr = MPI_Allreduce(cmps_l, cmps_g, NumberOfMesh3, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
     ierr = MPI_Allreduce(ni56_l, ni56_g, NumberOfMesh3, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
     ierr = MPI_Allreduce(etot_l, etot_g, NumberOfMesh3, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
+    ierr = MPI_Allreduce(vel_l, vel_g, NumberOfMesh3*3, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
     for(PS::S64 k = 0; k < MaxNumberOfElement; k++) {
         ierr = MPI_Allreduce(elem_l[k], elem_g[k], NumberOfMesh3, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
     }
@@ -331,12 +338,18 @@ void assignToMesh(char * ofile,
                     PS::F64 norm =  cmps_g[iz][iy][ix];
                     PS::F64 ninv = (norm != 0.) ? (1. / norm) : 0.;
                     fprintf(fp, " %+e", ni56_g[iz][iy][ix] * ninv * pinv);
-                    
-                    norm = etot_g[iz][iy][ix];
-                    ninv = (norm != 0.) ? (1. / norm) : 0.;
-                    ninv = (dens_g[iz][iy][ix] != 0.) ? ninv : 0.;
-                    for(PS::S64 k = 0; k < MaxNumberOfElement; k++) {
-                        fprintf(fp, " %+e", elem_g[k][iz][iy][ix] * ninv * pinv);
+
+                    if(FirstElement == 4 || FirstElement == 14 || FirstElement == 24) {
+                        norm = etot_g[iz][iy][ix];
+                        ninv = (norm != 0.) ? (1. / norm) : 0.;
+                        ninv = (dens_g[iz][iy][ix] != 0.) ? ninv : 0.;
+                        for(PS::S64 k = 0; k < MaxNumberOfElement; k++) {
+                            fprintf(fp, " %+e", elem_g[k][iz][iy][ix] * ninv * pinv);
+                        }
+                    } else {
+                        for(PS::S64 k = 0; k < 3; k++) {
+                            fprintf(fp, " %+e", vel_g[iz][iy][ix][k] * ninv * pinv);
+                        }
                     }
                     
                     fprintf(fp, "\n");
@@ -358,11 +371,17 @@ void assignToMesh(char * ofile,
                         PS::F64 ninv = (norm != 0.) ? (1. / norm) : 0.;
                         fprintf(fp, " %+e", ni56_g[iz][iy][ix] * ninv);
                         
-                        norm = etot_g[iz][iy][ix];
-                        ninv = (norm != 0.) ? (1. / norm) : 0.;
-                        ninv = (dens_g[iz][iy][ix] != 0.) ? ninv : 0.;
-                        for(PS::S64 k = 0; k < MaxNumberOfElement; k++) {
-                            fprintf(fp, " %+e", elem_g[k][iz][iy][ix] * ninv);
+                        if(FirstElement == 4 || FirstElement == 14 || FirstElement == 24) {
+                            norm = etot_g[iz][iy][ix];
+                            ninv = (norm != 0.) ? (1. / norm) : 0.;
+                            ninv = (dens_g[iz][iy][ix] != 0.) ? ninv : 0.;
+                            for(PS::S64 k = 0; k < MaxNumberOfElement; k++) {
+                                fprintf(fp, " %+e", elem_g[k][iz][iy][ix] * ninv);
+                            }
+                        } else {
+                            for(PS::S64 k = 0; k < 3; k++) {
+                                fprintf(fp, " %+e", vel_g[iz][iy][ix][k] * ninv);
+                            }
                         }
                         
                         fprintf(fp, "\n");

@@ -13,8 +13,8 @@ ftype=`basename --suffix=.sh $0`
 alias python3='~/work/yt-conda/bin/python3'
 
 ifile="$ityp"E04.dat
-python3 "$tdir"/"$ftype".py $ifile 4 $odir/dens
-python3 "$tdir"/"$ftype".py $ifile 5 $odir/ni56
+python3 "$tdir"/"$ftype".py $ifile 3 $odir/dens
+python3 "$tdir"/"$ftype".py $ifile 4 $odir/ni56
 
 for znum in $(seq 1 1 30)
 do
